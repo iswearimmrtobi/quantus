@@ -53,6 +53,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   decides: `for a > 0: Max(-\sqrt{a/3} | …), Min(\sqrt{a/3} | …)`, `for a ≤ 0: no extrema`.
   Symmetry, the y-intercept, the behaviour of a polynomial family at ±∞ and the antiderivative
   come in terms of the parameter too.
+- Analysis: the loci (Ortskurven) of a family's extrema and inflection points: x of the point
+  solved for the parameter and put into y, with |x| resolved where x keeps its sign
+  (`y = -2x^3 (x < 0)` for the maxima of `x^3 - ax`).
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

@@ -52,6 +52,8 @@ pub enum AnalysisRule {
     Spline,
     /// Two curves set equal.
     Intersection,
+    /// The curve a family's points run along (Ortskurve).
+    Locus,
 }
 
 impl AnalysisRule {
@@ -97,6 +99,7 @@ impl AnalysisRule {
             AnalysisRule::GlobalExtremum => "GLOBAL_EXTREMUM",
             AnalysisRule::Spline => "SPLINE",
             AnalysisRule::Intersection => "INTERSECTION",
+            AnalysisRule::Locus => "LOCUS",
         }
     }
 }

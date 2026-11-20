@@ -81,10 +81,12 @@ pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
         sections.push(family.symmetry());
         sections.push(family.y_intercept(&domain));
         sections.push(family.zeros());
-        let (extrema, _) = family.points(1);
+        let (extrema, mut found) = family.points(1);
         sections.push(extrema);
-        let (inflection, _) = family.points(2);
+        let (inflection, more) = family.points(2);
         sections.push(inflection);
+        found.extend(more);
+        sections.push(family.locus(&found));
         sections.push(depends("monotonicity", msg!("core.analysis.discussion.monotonicity")));
         sections.push(depends("curvature", msg!("core.analysis.discussion.curvature")));
         sections.push(family.behaviour());
@@ -462,7 +464,7 @@ impl Family<'_> {
 
     /// Extrema (`order` 1: f′ = 0, decided by f″) or inflection points (2: f″ = 0, by f‴), with
     /// the points found as (kind, x, y) per range for the locus.
-    fn points(&self, order: usize) -> (Section, Vec<(super::discussion::PointKind, Expr, Expr)>) {
+    fn points(&self, order: usize) -> (Section, Vec<(super::discussion::PointKind, Expr, Expr, IntervalSet)>) {
         use super::discussion::PointKind;
         let (id, title) = if order == 1 { ("extrema", msg!("core.analysis.discussion.extrema")) } else { ("inflection", msg!("core.analysis.discussion.inflection_points")) };
         let label = format!("{}{}({})", self.name, "'".repeat(order), self.ctx.var);
@@ -527,7 +529,7 @@ impl Family<'_> {
                     let y = self.at(&self.f, &x, &part);
                     add(part.clone(), self.point(kind.letter(), &x, &y));
                     if point_of(&part).is_none() {
-                        found.push((kind, x, y));
+                        found.push((kind, x, y, part.clone()));
                     }
                 }
             }
@@ -560,6 +562,70 @@ impl Family<'_> {
             lo(&a.0).partial_cmp(&lo(&b.0)).unwrap_or(std::cmp::Ordering::Equal)
         });
         joined.iter().map(|(set, body)| format!("{}{body}", self.prefix(set, only))).collect::<Vec<_>>().join(", \\quad ")
+    }
+
+    /// The curve the points of one kind run along as the parameter changes (Ortskurve):
+    /// x = x₀(a) solved for a, put into y₀(a).
+    fn locus(&self, found: &[(super::discussion::PointKind, Expr, Expr, IntervalSet)]) -> Section {
+        use super::discussion::PointKind;
+        let title = msg!("core.analysis.family.locus");
+        let var = self.ctx.var;
+        let mut steps = Vec::new();
+        // (what, curve, the sides of x it is found on), joined where the same curve comes twice.
+        let mut curves: Vec<(String, String, Vec<Option<i32>>)> = Vec::new();
+        let mut add = |which: String, curve: String, side: Option<i32>| match curves.iter_mut().find(|(w, c, _)| *w == which && *c == curve) {
+            Some((_, _, sides)) => sides.push(side),
+            None => curves.push((which, curve, vec![side])),
+        };
+        for (kind, x0, y0, part) in found {
+            let which = match kind {
+                PointKind::Max => msg!("core.analysis.family.locus_max"),
+                PointKind::Min => msg!("core.analysis.family.locus_min"),
+                _ => msg!("core.analysis.family.locus_inflection"),
+            };
+            // A point that does not move has none; one that moves only up and down runs along a
+            // vertical line.
+            if x0.parameters().is_empty() {
+                if !y0.parameters().is_empty() {
+                    add(which, format!("{var} = {}", self.tex(x0)), None);
+                }
+                continue;
+            }
+            let Some(a) = invert(x0, &self.param, Expr::Var).map(|a| simplify(&a)) else { continue };
+            steps.push(step(
+                AnalysisRule::Locus,
+                msg!("core.analysis.family.solve_for_parameter"),
+                format!("{var} = {} \\Rightarrow {} = {}", self.tex(x0), self.param, self.tex(&a)),
+            ));
+            let mut y = simplify(&y0.put_parameter(&self.param, &a));
+            // Where x keeps its sign, |x| and \sqrt{x^2} are ±x.
+            let range = sign_cases(x0, &self.param, part, self.ctx).and_then(|signs| {
+                let signs: Vec<i32> = signs.iter().map(|(_, s)| *s).filter(|s| *s != 0).collect();
+                (!signs.is_empty() && signs.iter().all(|s| *s == signs[0])).then_some(signs[0])
+            });
+            if let Some(sign) = range {
+                y = simplify(&with_sign(&y, sign));
+            }
+            steps.push(step(AnalysisRule::Locus, msg!("core.analysis.family.put_parameter_in"), format!("y = {} = {}", self.tex(y0), self.tex(&y))));
+            add(which, format!("y = {}", self.tex(&y)), range);
+        }
+        let lines: Vec<String> = curves
+            .into_iter()
+            .map(|(which, curve, sides)| {
+                // Found for x > 0 and for x < 0, or without a side: for every x.
+                let side = match (sides.contains(&Some(1)), sides.contains(&Some(-1)), sides.contains(&None)) {
+                    (true, false, false) => format!(" \\ ({var} > 0)"),
+                    (false, true, false) => format!(" \\ ({var} < 0)"),
+                    _ => String::new(),
+                };
+                format!("{} \\ {curve}{side}", text(&which))
+            })
+            .collect();
+        if lines.is_empty() {
+            let message = msg!("core.analysis.family.no_locus");
+            return section("locus", title, steps, Some(text(&message)), SectionStatus::Ok, None);
+        }
+        section("locus", title, steps, Some(lines.join(", \\quad ")), SectionStatus::Ok, None)
     }
 
     fn symmetry(&self) -> Section {
@@ -668,6 +734,62 @@ fn split_half_powers(e: &Expr) -> Expr {
         Expr::Sum(items) => Expr::Sum(items.iter().map(split_half_powers).collect()),
         Expr::Product(items) => Expr::Product(items.iter().map(split_half_powers).collect()),
         Expr::Func(function, argument) => Expr::func(*function, split_half_powers(argument)),
+        other => other.clone(),
+    }
+}
+
+/// The parameter as a function of x, from x = `e` (an expression in the parameter): each step
+/// of `e` undone around `target`. `None` where that is not one step at a time, or not unique (a
+/// square of the parameter).
+fn invert(e: &Expr, param: &str, target: Expr) -> Option<Expr> {
+    let has = |e: &Expr| e.parameters().iter().any(|p| p == param);
+    match e {
+        Expr::Param(key) if key == param => Some(target),
+        Expr::Sum(items) => {
+            let (with, without): (Vec<&Expr>, Vec<&Expr>) = items.iter().partition(|i| has(i));
+            let [inner] = with.as_slice() else { return None };
+            let rest = Expr::sum(without.into_iter().map(|i| Expr::negate(i.clone())).collect());
+            invert(inner, param, Expr::sum(vec![target, rest]))
+        }
+        Expr::Product(items) => {
+            let (with, without): (Vec<&Expr>, Vec<&Expr>) = items.iter().partition(|i| has(i));
+            let [inner] = with.as_slice() else { return None };
+            let rest = Expr::product(without.into_iter().cloned().collect());
+            invert(inner, param, Expr::product(vec![target, Expr::recip(rest)]))
+        }
+        Expr::Pow(base, exponent) if has(base) && !has(exponent) => {
+            let q = exponent.as_num()?;
+            // Undone by the inverse power only where that is one-to-one: a root, or an odd power.
+            let inverse = dashu::rational::RBig::ONE / q.clone();
+            let odd = q.is_int() && (q.numerator() % dashu::integer::IBig::from(2)) != dashu::integer::IBig::ZERO;
+            if !(inverse.is_int() || odd) {
+                return None;
+            }
+            invert(base, param, Expr::pow(target, Expr::Num(inverse)))
+        }
+        Expr::Func(Fn::Exp, u) if has(u) => invert(u, param, Expr::func(Fn::Ln, target)),
+        Expr::Func(Fn::Ln, u) if has(u) => invert(u, param, Expr::func(Fn::Exp, target)),
+        _ => None,
+    }
+}
+
+/// `|x|` and `\sqrt{x^2}` as `x` (sign 1) or `-x` (sign -1), where x is known to have that sign.
+fn with_sign(e: &Expr, sign: i32) -> Expr {
+    let signed = || Expr::product(vec![Expr::int(sign as i64), Expr::Var]);
+    match e {
+        Expr::Func(Fn::Abs, u) if **u == Expr::Var => signed(),
+        Expr::Pow(base, exponent) if exponent.as_num() == Some(&dashu::rational::RBig::from_parts(dashu::integer::IBig::ONE, dashu::integer::UBig::from(2u8))) => {
+            if let Expr::Pow(inner, two) = &**base {
+                if **inner == Expr::Var && **two == Expr::int(2) {
+                    return signed();
+                }
+            }
+            Expr::pow(with_sign(base, sign), (**exponent).clone())
+        }
+        Expr::Pow(base, exponent) => Expr::pow(with_sign(base, sign), with_sign(exponent, sign)),
+        Expr::Sum(items) => Expr::Sum(items.iter().map(|i| with_sign(i, sign)).collect()),
+        Expr::Product(items) => Expr::Product(items.iter().map(|i| with_sign(i, sign)).collect()),
+        Expr::Func(function, argument) => Expr::func(*function, with_sign(argument, sign)),
         other => other.clone(),
     }
 }

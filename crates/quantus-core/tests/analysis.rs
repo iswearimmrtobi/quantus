@@ -699,3 +699,13 @@ fn a_family_is_solved_case_by_case_of_its_parameter() {
     let quartic = sketch(r"f_a(x) = x^4 - ax^2");
     assert!(result(&quartic, "extrema").starts_with(r"\text{for }a \le 0\colon \ Min\left(0 \mid 0\right)"), "{}", result(&quartic, "extrema"));
 }
+
+#[test]
+fn the_points_of_a_family_run_along_their_locus() {
+    let d = sketch(r"f_a(x) = x^3 - ax");
+    assert_eq!(result(&d, "locus"), r"\text{Locus of the maxima:} \ y = -2x^{3} \ (x < 0), \quad \text{Locus of the minima:} \ y = -2x^{3} \ (x > 0)");
+    assert!(steps(&d, "locus").iter().any(|s| s.contains(r"\Rightarrow a = 3x^{2}")), "{:?}", steps(&d, "locus"));
+    assert_eq!(result(&sketch(r"f_t(x) = x^2 - 2tx"), "locus"), r"\text{Locus of the minima:} \ y = -x^{2}");
+    assert!(result(&sketch(r"x e^{ax}"), "locus").ends_with(r"\text{Locus of the inflection points:} \ y = \frac{x}{e^{2}}"));
+    assert_eq!(result(&sketch(r"x^2 + a"), "locus"), r"\text{Locus of the minima:} \ x = 0");
+}

@@ -120,7 +120,7 @@ handheld keeps working.
   - [x] `Expr::Param`; the other letters are parameters, conditions like `a>0` from the domain
     clause.
   - [x] The symbolic sketch with case splits on the parameter's sign, `partial` beyond that.
-  - [ ] The locus (Ortskurve) of the extrema and inflection points.
+  - [x] The locus (Ortskurve) of the extrema and inflection points.
   - [ ] A slider per parameter in the graph; the numeric sketch for one value as the fallback.
 
 Further ideas for the mode: [feature-ideas.md](feature-ideas.md) §39.
