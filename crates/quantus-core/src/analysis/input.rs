@@ -31,6 +31,7 @@ pub fn parse_function(latex: &str, variable: Option<&str>, domain: Option<&str>,
         }
         nodes.push(formula.expression);
     }
+    let found: std::collections::BTreeSet<String> = nodes.iter().flat_map(collect_variables).collect();
     let var = match (variable, named) {
         (Some(asked), Some(named)) if asked != named => {
             return Err(QuantusError::other(msg!(
@@ -38,21 +39,37 @@ pub fn parse_function(latex: &str, variable: Option<&str>, domain: Option<&str>,
         }
         (Some(asked), _) => asked.to_string(),
         (None, Some(named)) => named,
+        // Without a prefix x is the variable if it is there, and the other letters parameters.
+        (None, None) if found.contains("x") || found.is_empty() => "x".to_string(),
+        (None, None) if found.len() == 1 => found.iter().next().unwrap().clone(),
         (None, None) => {
-            let found: std::collections::BTreeSet<String> = nodes.iter().flat_map(collect_variables).collect();
-            match found.len() {
-                0 => "x".to_string(),
-                1 => found.into_iter().next().unwrap(),
-                _ => {
-                    let listed = found.into_iter().collect::<Vec<_>>().join(", ");
-                    return Err(QuantusError::other(msg!(
-                        "core.analysis.input.one_variable_only")));
-                }
-            }
+            let listed = found.into_iter().collect::<Vec<_>>().join(", ");
+            return Err(QuantusError::other(msg!(
+                "core.analysis.input.one_variable_only")));
         }
     };
+    // Every other letter is a parameter of a family; the algebra writes x for the variable.
+    let parameters: Vec<String> = found.into_iter().filter(|name| *name != var).collect();
+    if var != "x" && parameters.iter().any(|p| p == "x") {
+        return Err(QuantusError::other(msg!("core.analysis.input.x_parameter")));
+    }
+    let _scope = super::expr::ParameterScope::extend(&parameters);
     let mut restriction = IntervalSet::reals();
-    for given in [clause.map(|(_, c)| c), domain.filter(|d| !d.trim().is_empty())].into_iter().flatten() {
+    let mut conditions: Vec<(String, IntervalSet)> = Vec::new();
+    let clauses: Vec<String> = clause.map(|(_, c)| split_conditions(c)).unwrap_or_default();
+    for given in clauses.iter().map(String::as_str).chain(domain.filter(|d| !d.trim().is_empty())) {
+        // A condition on a parameter (`a > 0`) restricts the family, one on x the domain.
+        let on_parameter = parameters.iter().find_map(|p| match parse_condition(given, p, settings) {
+            Ok(Condition::Set(set)) if parse_condition(given, &var, settings).is_err() => Some((p.clone(), set)),
+            _ => None,
+        });
+        if let Some((p, set)) = on_parameter {
+            match conditions.iter_mut().find(|(known, _)| *known == p) {
+                Some((_, known)) => *known = known.intersect(&set),
+                None => conditions.push((p, set)),
+            }
+            continue;
+        }
         match parse_condition(given, &var, settings)? {
             Condition::Set(set) => restriction = restriction.intersect(&set),
             Condition::Otherwise => return Err(QuantusError::other(msg!("core.analysis.input.condition_not_understood", given.trim()))),
@@ -98,7 +115,48 @@ pub fn parse_function(latex: &str, variable: Option<&str>, domain: Option<&str>,
     if pieces.is_empty() {
         return Err(QuantusError::other(msg!("core.analysis.input.empty_domain")));
     }
-    Ok((Function { pieces }, var))
+    Ok((Function { pieces, conditions }, var))
+}
+
+/// A clause of several conditions, `x \in [0, 3], a > 0`, split where a new condition starts: a
+/// comma or semicolon only separates two parts that each say something (`[0, 3]` stays one).
+fn split_conditions(clause: &str) -> Vec<String> {
+    const RELATIONS: [&str; 13] = ["<", ">", "\\le", "\\ge", "\\lt", "\\gt", "\\in", "\\ne", "≤", "≥", "≠", "=", "\\text"];
+    let mut parts: Vec<String> = Vec::new();
+    let mut depth = 0i32;
+    let mut current = String::new();
+    for c in clause.chars() {
+        match c {
+            '{' => depth += 1,
+            '}' => depth -= 1,
+            _ => {}
+        }
+        if depth == 0 && (c == ',' || c == ';') {
+            parts.push(std::mem::take(&mut current));
+            parts.push(c.to_string());
+            continue;
+        }
+        current.push(c);
+    }
+    parts.push(current);
+    let mut out: Vec<String> = Vec::new();
+    let mut pending_separator: Option<String> = None;
+    for part in parts {
+        if part == "," || part == ";" {
+            pending_separator = Some(part);
+            continue;
+        }
+        let says_something = RELATIONS.iter().any(|r| part.contains(r));
+        match (out.last_mut(), says_something) {
+            (Some(last), false) => {
+                last.push_str(pending_separator.as_deref().unwrap_or(""));
+                last.push_str(&part);
+            }
+            _ => out.push(part),
+        }
+        pending_separator = None;
+    }
+    out.into_iter().filter(|p| !p.trim().is_empty()).collect()
 }
 
 /// The expression and a domain clause after it: `x^2, \ x \in [0, 3]`, `x^2; \ 0 \le x \le 3`,
@@ -316,10 +374,11 @@ mod tests {
     }
 
     #[test]
-    fn families_and_equations_are_errors() {
-        assert!(parse_function("x^2 + a", None, None, &Settings::default()).unwrap_err().to_string().contains("function families"));
+    fn other_letters_are_parameters_and_equations_are_errors() {
+        assert_eq!(parse_function("x^2 + a", None, None, &Settings::default()).unwrap().0.parameters(), ["a"]);
+        assert!(parse_function("t^2 + a", None, None, &Settings::default()).unwrap_err().to_string().contains("which is the variable"));
         assert!(parse_function("x^2 = 4", None, None, &Settings::default()).unwrap_err().to_string().contains("not an equation"));
-        assert!(parse_function("f(x) = t^2", None, None, &Settings::default()).unwrap_err().to_string().contains("function families"));
+        assert_eq!(parse_function("f(x) = t^2", None, None, &Settings::default()).unwrap().0.parameters(), ["t"]);
         assert!(parse_function("f(x) = x^2", Some("t"), None, &Settings::default()).is_err());
     }
 
@@ -350,5 +409,21 @@ mod tests {
         assert!(overlap.to_string().contains("overlap"), "{overlap}");
         let error = parse_function("\\begin{cases}x+ & x<1\\\\ 2 & x\\ge 1\\end{cases}", None, None, &Settings::default()).unwrap_err();
         assert!(error.position().is_some_and(|p| p >= 14), "{:?}", error.position());
+    }
+
+    #[test]
+    fn a_family_keeps_its_conditions_apart_from_the_domain() {
+        let (f, var) = parse_function("f_k(x) = kx^2 - 4x, \\ k > 0", None, None, &Settings::default()).unwrap();
+        assert_eq!(var, "x");
+        assert_eq!(f.parameters(), ["k"]);
+        assert_eq!(f.conditions.len(), 1);
+        assert!(f.pieces[0].on.is_reals());
+        let (both, _) = parse_function("\\ln(x - a), \\ x \\in [0, 3], a < 0", None, None, &Settings::default()).unwrap();
+        assert_eq!(both.conditions[0].0, "a");
+        assert!(both.pieces[0].on.is_bounded());
+        let _member = crate::analysis::expr::ParameterScope::new(vec![("a".into(), Some(Expr::int(3)))]);
+        let (member, _) = parse_function("x^3 - ax", None, None, &Settings::default()).unwrap();
+        assert!(member.parameters().is_empty());
+        assert_eq!(member.pieces[0].expr.to_latex("x"), "x^{3} - 3x");
     }
 }

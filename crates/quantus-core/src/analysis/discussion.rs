@@ -160,6 +160,8 @@ pub struct Discussion {
     pub breaks: Vec<f64>,
     /// Where periodic families are listed.
     pub window: (f64, f64),
+    /// The parameters of a family (`a` of `f_a`); empty for one function.
+    pub parameters: Vec<String>,
 }
 
 pub struct Ctx<'a> {
@@ -189,6 +191,9 @@ fn out_of_time(section: &mut Section) {
 
 /// The whole curve sketch of `function` (the trees as typed). Fails only when the domain is empty.
 pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
+    if !function.parameters().is_empty() {
+        return super::family::discuss(function, ctx);
+    }
     if function.is_piecewise() {
         return piecewise::discuss(function, ctx);
     }
@@ -285,6 +290,7 @@ pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
         domain: dom,
         breaks: sketch.breaks,
         window,
+        parameters: Vec::new(),
     })
 }
 
@@ -333,7 +339,7 @@ pub fn period_of(f: &Expr) -> Option<RBig> {
     fn walk(e: &Expr, periods: &mut Vec<RBig>) -> bool {
         match e {
             Expr::Var => false,
-            Expr::Num(_) | Expr::Pi | Expr::E => true,
+            Expr::Num(_) | Expr::Pi | Expr::E | Expr::Param(_) => true,
             Expr::Func(function @ (Fn::Sin | Fn::Cos | Fn::Tan), u) if u.depends_on_var() => {
                 let slope = simplify(&super::derive::derivative(u));
                 let Some(a) = slope.as_num().filter(|a| **a != RBig::ZERO) else { return false };

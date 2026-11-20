@@ -344,7 +344,7 @@ fn cubic(points: &[(RBig, RBig)], ends: &Ends, var: &str, language: Language) ->
     }
     steps.push(step(AnalysisRule::Spline, msg!("core.analysis.spline.pieces"), array(&shifted_lines)).with_level(StepDetail::Standard));
     steps.push(step(AnalysisRule::Spline, msg!("core.analysis.spline.result"), array(&expanded_lines)));
-    Ok(Spline { function: Function { pieces: function_pieces }, steps, points: points.to_vec() })
+    Ok(Spline { function: Function { pieces: function_pieces, conditions: Vec::new() }, steps, points: points.to_vec() })
 }
 
 /// Lines below each other.

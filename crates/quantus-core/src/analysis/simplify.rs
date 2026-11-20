@@ -234,7 +234,7 @@ fn canon(e: &Expr) -> Expr {
 
 fn map_children(e: &Expr, f: fn(&Expr) -> Expr) -> Expr {
     match e {
-        Expr::Num(_) | Expr::Pi | Expr::E | Expr::Var => e.clone(),
+        Expr::Num(_) | Expr::Pi | Expr::E | Expr::Var | Expr::Param(_) => e.clone(),
         Expr::Sum(terms) => Expr::Sum(terms.iter().map(f).collect()),
         Expr::Product(factors) => Expr::Product(factors.iter().map(f).collect()),
         Expr::Pow(base, exponent) => Expr::pow(f(base), f(exponent)),
@@ -335,6 +335,8 @@ fn atom_node(e: &Expr, atoms: &mut Vec<Expr>) -> Option<Node> {
     Some(match e {
         Expr::Num(r) => number(r),
         Expr::Var => Expr::Var.to_node(Expr::poly_variable()),
+        // A parameter is a variable of the algebra like x.
+        Expr::Param(key) => super::expr::parameter_node(key),
         Expr::Sum(terms) => {
             terms.iter().map(|t| atom_node(t, atoms)).collect::<Option<Vec<_>>>()?.into_iter().reduce(|a, b| Node::binary(Operator::Plus, a, b, Node::SYNTHETIC))?
         }

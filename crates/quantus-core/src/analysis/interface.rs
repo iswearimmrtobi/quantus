@@ -30,6 +30,8 @@ pub struct AnalysisRequest {
     pub domain: Option<String>,
     /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
     pub definitions: Vec<String>,
+    /// Values for the parameters of a family (`a` → `2`), for one member of it.
+    pub parameters: std::collections::BTreeMap<String, String>,
     /// Significant digits of approximate values; by default at most 6.
     pub precision: Option<usize>,
 }
@@ -46,6 +48,9 @@ pub struct AnalysisResponse {
     /// The period in LaTeX (`2\pi`), for a periodic function.
     pub period: Option<String>,
     pub plot: PlotResponse,
+    /// The parameters of a family (`a` of `f_a`), whose sketch is in terms of them; the plot
+    /// shows the member with each parameter 1. Empty for one function.
+    pub parameters: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -121,6 +126,8 @@ pub struct SampleRequest {
     pub domain: Option<String>,
     /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
     pub definitions: Vec<String>,
+    /// Values for the parameters of a family (`a` → `2`), for one member of it.
+    pub parameters: std::collections::BTreeMap<String, String>,
     pub x_min: f64,
     pub x_max: f64,
     pub samples: usize,
@@ -144,6 +151,8 @@ pub struct TangentRequest {
     pub domain: Option<String>,
     /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
     pub definitions: Vec<String>,
+    /// Values for the parameters of a family (`a` → `2`), for one member of it.
+    pub parameters: std::collections::BTreeMap<String, String>,
     pub x0: String,
     pub precision: Option<usize>,
 }
@@ -177,6 +186,8 @@ pub struct AreaRequest {
     pub domain: Option<String>,
     /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
     pub definitions: Vec<String>,
+    /// Values for the parameters of a family (`a` → `2`), for one member of it.
+    pub parameters: std::collections::BTreeMap<String, String>,
     /// The other function, for the area between the two curves instead of down to the axis.
     pub other: Option<String>,
     /// The bounds; both missing means between the outermost zeros.
@@ -216,6 +227,8 @@ pub struct TableRequest {
     pub domain: Option<String>,
     /// The other functions, `g(x) = …` each, which the input may use: `f(x - 1)`, `g'(x)`.
     pub definitions: Vec<String>,
+    /// Values for the parameters of a family (`a` → `2`), for one member of it.
+    pub parameters: std::collections::BTreeMap<String, String>,
     pub from: String,
     pub to: String,
     pub step: String,
@@ -350,9 +363,24 @@ pub fn spline(settings: &Settings, request: &SplineRequest) -> Result<SplineResp
 
 /// The curve sketch with the initial plot.
 pub fn analyze(settings: &Settings, request: &AnalysisRequest) -> Result<AnalysisResponse> {
+    let _member = member(&request.parameters, settings)?;
     let latex = resolved(&request.latex, &request.definitions, settings)?;
     let d = super::analyze_on(&latex, request.variable.as_deref(), request.domain.as_deref(), settings, request.precision)?;
     Ok(response(&d, settings))
+}
+
+/// The values chosen for a family's parameters, in scope while a request is answered, so the
+/// input is read as that member of the family.
+fn member(values: &std::collections::BTreeMap<String, String>, settings: &Settings) -> Result<super::expr::ParameterScope> {
+    let mut given = Vec::new();
+    for (name, value) in values {
+        if value.trim().is_empty() {
+            continue;
+        }
+        let point = super::function::parse_bound_number(value, settings)?;
+        given.push((name.clone(), point.exact));
+    }
+    Ok(super::expr::ParameterScope::new(given))
 }
 
 /// The input with the other functions it uses put in.
@@ -367,6 +395,8 @@ fn steps(steps: &[Step], settings: &Settings) -> Vec<StepResponse> {
 }
 
 fn response(d: &Discussion, settings: &Settings) -> AnalysisResponse {
+    // A family is drawn with each parameter 1.
+    let _plotted = (!d.parameters.is_empty()).then(|| super::expr::ParameterScope::new(d.parameters.iter().map(|p| (p.clone(), Some(super::Expr::int(1)))).collect()));
     let window = default_window(d);
     let mut breaks = function_breaks(&d.f, &d.domain, &d.piece_domains, window.x_min, window.x_max);
     breaks.extend(d.breaks.iter().copied().filter(|x| *x > window.x_min && *x < window.x_max));
@@ -397,6 +427,7 @@ fn response(d: &Discussion, settings: &Settings) -> AnalysisResponse {
         asymptotes: d.asymptotes.iter().map(asymptote).collect(),
         period: d.period.clone(),
         plot: PlotResponse { x_min: window.x_min, x_max: window.x_max, y_min: window.y_min, y_max: window.y_max, segments, ends: ends(&d.f) },
+        parameters: d.parameters.clone(),
     }
 }
 
@@ -444,7 +475,12 @@ fn asymptote(a: &Asymptote) -> AsymptoteResponse {
 pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<SampleResponse> {
     let _language = Scope::new(settings.language);
     let _budget = super::budget::Guard::new(super::SAMPLE_LIMIT);
+    let _member = member(&request.parameters, settings)?;
     let latex = resolved(&request.latex, &request.definitions, settings)?;
+    // A family without values is drawn like its sketch's plot, each parameter 1.
+    let (read, _) = super::input::parse_function(&latex, request.variable.as_deref(), request.domain.as_deref(), settings)?;
+    let ones: Vec<(String, Option<super::Expr>)> = read.parameters().into_iter().map(|p| (p, Some(super::Expr::int(1)))).collect();
+    let _ones = (!ones.is_empty()).then(|| super::expr::ParameterScope::new(ones));
     let p = super::tasks::prepare(&latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?;
     let breaks = function_breaks(&p.function, &p.domain, &p.pieces, request.x_min, request.x_max);
     let mut ends = ends_in(&p.domain, request.x_min, request.x_max);
@@ -457,6 +493,7 @@ pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<S
 }
 
 pub fn tangent(settings: &Settings, request: &TangentRequest) -> Result<TangentResponse> {
+    let _member = member(&request.parameters, settings)?;
     let latex = resolved(&request.latex, &request.definitions, settings)?;
     let r = tasks::tangent(&latex, request.variable.as_deref(), request.domain.as_deref(), &request.x0, settings, request.precision)?;
     let digits = super::digits(settings, request.precision);
@@ -483,6 +520,7 @@ fn line(l: &Line) -> LineResponse {
 }
 
 pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> {
+    let _member = member(&request.parameters, settings)?;
     let latex = resolved(&request.latex, &request.definitions, settings)?;
     let other = match request.other.as_deref().filter(|o| !o.trim().is_empty()) {
         Some(o) => Some(resolved(o, &request.definitions, settings)?),
@@ -518,6 +556,7 @@ pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> 
 }
 
 pub fn value_table(settings: &Settings, request: &TableRequest) -> Result<TableResponse> {
+    let _member = member(&request.parameters, settings)?;
     let latex = resolved(&request.latex, &request.definitions, settings)?;
     let rows = tasks::value_table(&latex, request.variable.as_deref(), request.domain.as_deref(), &request.from, &request.to, &request.step, settings, request.precision)?;
     Ok(TableResponse { rows: rows.into_iter().map(|r| TableRowResponse { x: r.x, y: r.y, x_value: r.x_value, y_value: r.y_value }).collect() })

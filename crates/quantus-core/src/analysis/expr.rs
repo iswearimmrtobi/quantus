@@ -24,12 +24,74 @@ use crate::{QuantusError, Result};
 /// The name the variable has while a tree is evaluated or converted to a polynomial.
 const INTERNAL_VARIABLE: &str = "x";
 
+thread_local! {
+    /// The parameters known while a family is read or worked on, with a value each once one is
+    /// chosen (a member of the family is sketched, or a sign is tested).
+    static PARAMETERS: std::cell::RefCell<Vec<(String, Option<Expr>)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// The parameters of a family while it is in scope: other letters than the variable are read as
+/// [`Expr::Param`]. One with a value (a member of the family is asked for) is read as that value
+/// right away, and a parameter evaluates to its value in floating point. The previous scope comes
+/// back when this one is dropped.
+pub struct ParameterScope {
+    previous: Vec<(String, Option<Expr>)>,
+}
+
+impl ParameterScope {
+    pub fn new(parameters: Vec<(String, Option<Expr>)>) -> ParameterScope {
+        let previous = PARAMETERS.with(|p| std::mem::replace(&mut *p.borrow_mut(), parameters));
+        ParameterScope { previous }
+    }
+
+    /// The scope with `names` added, without a value, where it does not know them yet.
+    pub fn extend(names: &[String]) -> ParameterScope {
+        let mut all = PARAMETERS.with(|p| p.borrow().clone());
+        for name in names {
+            if !all.iter().any(|(known, _)| known == name) {
+                all.push((name.clone(), None));
+            }
+        }
+        ParameterScope::new(all)
+    }
+
+    /// Whether `key` is a parameter of the family in scope.
+    pub fn knows(key: &str) -> bool {
+        PARAMETERS.with(|p| p.borrow().iter().any(|(name, _)| name == key))
+    }
+
+    /// The value given for `key`, if any.
+    pub fn given(key: &str) -> Option<Expr> {
+        PARAMETERS.with(|p| p.borrow().iter().find(|(name, _)| name == key).and_then(|(_, v)| v.clone()))
+    }
+
+    fn value(key: &str) -> Option<f64> {
+        ParameterScope::given(key)?.eval_f64(0.0)
+    }
+}
+
+impl Drop for ParameterScope {
+    fn drop(&mut self) {
+        let previous = std::mem::take(&mut self.previous);
+        PARAMETERS.with(|p| *p.borrow_mut() = previous);
+    }
+}
+
+/// The node of a parameter by its key: `k_1` is `k` with index `1`.
+pub(super) fn parameter_node(key: &str) -> Node {
+    let (name, index) = key.split_once('_').unwrap_or((key, ""));
+    Node::Variable { name: name.to_string(), index: index.trim_start_matches('{').trim_end_matches('}').to_string(), position: Node::SYNTHETIC }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Expr {
     Num(RBig),
     Pi,
     E,
     Var,
+    /// A parameter of a family, `a` in `f_a(x) = x^3 - ax`, by its key (`a`, `k_1`): a constant
+    /// whose value is not known. See [`ParameterScope`].
+    Param(String),
     Sum(Vec<Expr>),
     Product(Vec<Expr>),
     Pow(Box<Expr>, Box<Expr>),
@@ -157,6 +219,10 @@ impl Expr {
                 _ => return Err(unsupported(msg!("core.analysis.expr.complex_numbers"))),
             },
             Node::Variable { name, index, .. } if index.is_empty() && name == var => Expr::Var,
+            Node::Variable { name, index, .. } if ParameterScope::knows(&Node::variable_key(name, index)) => {
+                let key = Node::variable_key(name, index);
+                ParameterScope::given(&key).unwrap_or(Expr::Param(key))
+            }
             Node::Variable { name, index, .. } => {
                 let name = Node::variable_key(name, index);
                 return Err(QuantusError::other(msg!(
@@ -391,7 +457,7 @@ fn factor_rank(factor: &Expr) -> u8 {
         Expr::Num(_) => 0,
         // Constants like \ln(2) or \sqrt{3} lead: \ln(2) \cdot 2^{x}.
         _ if factor.is_constant() => 1,
-        Expr::Pi | Expr::E => 1,
+        Expr::Pi | Expr::E | Expr::Param(_) => 1,
         Expr::Var => 2,
         Expr::Pow(base, _) if **base == Expr::Var => 2,
         Expr::Pow(base, _) if base.as_num().is_some() => 3,
@@ -483,6 +549,7 @@ fn factor_node(factor: &Expr, var: &str) -> Node {
         Expr::Pi => Node::Constant { name: "\\pi".into(), position: Node::SYNTHETIC },
         Expr::E => Node::Constant { name: "e".into(), position: Node::SYNTHETIC },
         Expr::Var => Node::Variable { name: var.to_string(), index: String::new(), position: Node::SYNTHETIC },
+        Expr::Param(key) => parameter_node(key),
         Expr::Sum(_) => sum_node_grouped(factor, var),
         Expr::Product(_) => {
             let (negative, node) = term_node(factor, var);
@@ -537,7 +604,7 @@ impl Expr {
     pub fn substitute(&self, with: &Expr) -> Expr {
         match self {
             Expr::Var => with.clone(),
-            Expr::Num(_) | Expr::Pi | Expr::E => self.clone(),
+            Expr::Num(_) | Expr::Pi | Expr::E | Expr::Param(_) => self.clone(),
             Expr::Sum(terms) => Expr::Sum(terms.iter().map(|t| t.substitute(with)).collect()),
             Expr::Product(factors) => Expr::Product(factors.iter().map(|f| f.substitute(with)).collect()),
             Expr::Pow(base, exponent) => Expr::pow(base.substitute(with), exponent.substitute(with)),
@@ -548,10 +615,41 @@ impl Expr {
     pub fn depends_on_var(&self) -> bool {
         match self {
             Expr::Var => true,
-            Expr::Num(_) | Expr::Pi | Expr::E => false,
+            Expr::Num(_) | Expr::Pi | Expr::E | Expr::Param(_) => false,
             Expr::Sum(items) | Expr::Product(items) => items.iter().any(Expr::depends_on_var),
             Expr::Pow(base, exponent) => base.depends_on_var() || exponent.depends_on_var(),
             Expr::Func(_, argument) => argument.depends_on_var(),
+        }
+    }
+
+    /// The parameters in the tree, each once.
+    pub fn parameters(&self) -> Vec<String> {
+        fn walk(e: &Expr, out: &mut Vec<String>) {
+            match e {
+                Expr::Param(key) if !out.contains(key) => out.push(key.clone()),
+                Expr::Sum(items) | Expr::Product(items) => items.iter().for_each(|i| walk(i, out)),
+                Expr::Pow(base, exponent) => {
+                    walk(base, out);
+                    walk(exponent, out);
+                }
+                Expr::Func(_, argument) => walk(argument, out),
+                _ => {}
+            }
+        }
+        let mut out = Vec::new();
+        walk(self, &mut out);
+        out
+    }
+
+    /// The tree with parameter `key` replaced by `with`.
+    pub fn put_parameter(&self, key: &str, with: &Expr) -> Expr {
+        match self {
+            Expr::Param(k) if k == key => with.clone(),
+            Expr::Num(_) | Expr::Pi | Expr::E | Expr::Param(_) | Expr::Var => self.clone(),
+            Expr::Sum(terms) => Expr::Sum(terms.iter().map(|t| t.put_parameter(key, with)).collect()),
+            Expr::Product(factors) => Expr::Product(factors.iter().map(|f| f.put_parameter(key, with)).collect()),
+            Expr::Pow(base, exponent) => Expr::pow(base.put_parameter(key, with), exponent.put_parameter(key, with)),
+            Expr::Func(function, argument) => Expr::func(*function, argument.put_parameter(key, with)),
         }
     }
 
@@ -567,6 +665,7 @@ impl Expr {
             Expr::Pi => std::f64::consts::PI,
             Expr::E => std::f64::consts::E,
             Expr::Var => x,
+            Expr::Param(key) => ParameterScope::value(key)?,
             Expr::Sum(terms) => terms.iter().map(|t| t.eval_f64(x)).sum::<Option<f64>>()?,
             Expr::Product(factors) => factors.iter().map(|f| f.eval_f64(x)).product::<Option<f64>>()?,
             Expr::Pow(base, exponent) => {
@@ -602,6 +701,7 @@ impl Expr {
         Some(match self {
             Expr::Num(r) => (Poly::from_const(r.clone()), Poly::from_const(1)),
             Expr::Var => (Poly::from_var(INTERNAL_VARIABLE), Poly::from_const(1)),
+            Expr::Param(key) => (Poly::from_var(key), Poly::from_const(1)),
             Expr::Pi | Expr::E | Expr::Func(..) => return None,
             Expr::Sum(terms) => {
                 let mut total = (Poly::zero(), Poly::from_const(1));
@@ -644,17 +744,29 @@ impl Expr {
             .terms
             .iter()
             .map(|term| {
-                let degree = term.monomial.degree_of(INTERNAL_VARIABLE);
-                let power = match degree {
-                    0 => None,
-                    1 => Some(Expr::Var),
-                    k => Some(Expr::pow(Expr::Var, Expr::int(k as i64))),
+                let power = |base: Expr, degree: usize| match degree {
+                    1 => base,
+                    k => Expr::pow(base, Expr::int(k as i64)),
                 };
-                match power {
-                    None => Expr::Num(term.coeff.clone()),
-                    Some(power) if term.coeff == RBig::ONE => power,
-                    Some(power) => Expr::Product(vec![Expr::Num(term.coeff.clone()), power]),
+                // Parameters first, then the variable: a^{2}x.
+                let mut factors: Vec<Expr> = term
+                    .monomial
+                    .vars
+                    .iter()
+                    .filter(|(name, degree)| name.as_str() != INTERNAL_VARIABLE && **degree > 0)
+                    .map(|(name, degree)| power(Expr::Param(name.clone()), *degree))
+                    .collect();
+                let degree = term.monomial.degree_of(INTERNAL_VARIABLE);
+                if degree > 0 {
+                    factors.push(power(Expr::Var, degree));
                 }
+                if factors.is_empty() {
+                    return Expr::Num(term.coeff.clone());
+                }
+                if term.coeff != RBig::ONE {
+                    factors.insert(0, Expr::Num(term.coeff.clone()));
+                }
+                Expr::product(factors)
             })
             .collect();
         Expr::sum(terms)

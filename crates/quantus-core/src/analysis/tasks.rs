@@ -78,6 +78,9 @@ pub(super) struct Prepared {
 
 pub(super) fn prepare(latex: &str, variable: Option<&str>, given: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<Prepared> {
     let (function, var) = super::input::parse_function(latex, variable, given, settings)?;
+    if !function.parameters().is_empty() {
+        return Err(QuantusError::other(msg!("core.analysis.family.choose_value")));
+    }
     let digits = super::digits(settings, precision);
     let (domain, _, pieces) = function_domain(&function, &DomainContext { settings, var: &var, digits })?;
     Ok(Prepared { function: function.simplified(), var, domain, pieces, digits })

@@ -43,6 +43,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Analysis: the area between two curves. The area task's *Down to* takes another function instead
   of the x-axis; the area of f − g is split where the curves cross, by default between their
   outermost intersections, and the graph shades the region between them.
+- Analysis: function families. Letters other than the variable are parameters (`f_a(x) = x^3 -
+  ax`, or `x^2 + a` with x as the variable), a condition such as `a > 0` after the function
+  restricts them, and the derivatives come in terms of them. With values for the parameters a
+  request sketches one member of the family like any function.
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

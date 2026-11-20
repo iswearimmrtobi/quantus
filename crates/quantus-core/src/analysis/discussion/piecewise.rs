@@ -131,6 +131,7 @@ pub(super) fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
         piece_domains: domains,
         breaks,
         window: (-10.0, 10.0),
+        parameters: Vec::new(),
     })
 }
 

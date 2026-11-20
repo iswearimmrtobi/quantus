@@ -945,6 +945,8 @@ export interface Analysis {
   asymptotes: Asymptote[];
   period: string | null;
   plot: PlotData;
+  /** The parameters of a family (`a` of `f_a`); empty for one function. */
+  parameters: string[];
 }
 
 export interface Line {

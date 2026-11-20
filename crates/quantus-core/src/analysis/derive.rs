@@ -254,7 +254,7 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name
                 AnalysisRule::ChainRule
             }
         }
-        Expr::Num(_) | Expr::Pi | Expr::E => AnalysisRule::FactorRule,
+        Expr::Num(_) | Expr::Pi | Expr::E | Expr::Param(_) => AnalysisRule::FactorRule,
     }
 }
 
@@ -498,7 +498,7 @@ pub fn derivative(e: &Expr) -> Expr {
             };
             mul(vec![outer, derivative(argument)])
         }
-        Expr::Num(_) | Expr::Pi | Expr::E => Expr::int(0),
+        Expr::Num(_) | Expr::Pi | Expr::E | Expr::Param(_) => Expr::int(0),
     }
 }
 

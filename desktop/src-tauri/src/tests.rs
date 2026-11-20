@@ -429,8 +429,8 @@ fn analysis_errors_reach_the_renderer_like_other_errors() {
     assert!(tangent["error"].as_str().unwrap().contains("not differentiable"));
     let table = invoke(&w, "value_table", json!({ "request": { "latex": "x", "from": "0", "to": "1", "step": "-1" } })).unwrap_err();
     assert!(table["error"].as_str().unwrap().contains("step"));
-    let sample = invoke(&w, "sample_function", json!({ "request": { "latex": "x^2 + a", "xMin": -1.0, "xMax": 1.0, "samples": 10 } })).unwrap_err();
-    assert!(sample["error"].as_str().unwrap().contains("function families"));
+    let family = invoke(&w, "tangent", json!({ "request": { "latex": "x^2 + a", "x0": "1" } })).unwrap_err();
+    assert!(family["error"].as_str().unwrap().contains("choose a value"));
 }
 
 #[test]

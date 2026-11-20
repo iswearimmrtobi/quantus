@@ -650,3 +650,26 @@ fn a_piecewise_antiderivative_joins_up_where_f_is_continuous() {
     let jump = sketch(r"\begin{cases}x & x<1\\ x+1 & x\ge 1\end{cases}");
     assert_eq!(result(&jump, "antiderivative"), r"F(x) = \begin{cases} \frac{1}{2}x^{2} + C_{1} & x < 1 \\ \frac{1}{2}x^{2} + x + C_{2} & x \ge 1 \end{cases}");
 }
+
+#[test]
+fn a_family_is_sketched_in_terms_of_its_parameter() {
+    let d = sketch(r"f_a(x) = x^3 - ax");
+    assert_eq!(d.parameters, ["a"]);
+    assert!(d.function.starts_with(r"f_{a}(x) = x^{3} - a"));
+    assert!(result(&d, "derivatives").starts_with(r"f_{a}'(x) = 3x^{2} - a"), "{}", result(&d, "derivatives"));
+    assert_eq!(result(&d, "parameters"), r"a \in \mathbb{R}");
+    let k = sketch(r"f_k(x) = kx^2 - 4x, \ k > 0");
+    assert_eq!(result(&k, "parameters"), "k > 0");
+    assert_eq!(result(&k, "domain"), r"D = \mathbb{R}");
+    assert!(quantus_core::analysis::tasks::tangent("x^2 + a", None, None, "1", &Settings::default(), None).unwrap_err().to_string().contains("choose a value"));
+}
+
+#[test]
+fn a_member_of_a_family_is_sketched_like_any_function() {
+    use quantus_core::analysis::interface::{analyze, AnalysisRequest};
+    let request = AnalysisRequest { latex: "f_a(x) = x^3 - ax".into(), parameters: [("a".to_string(), "3".to_string())].into(), ..Default::default() };
+    let member = analyze(&Settings::default(), &request).unwrap();
+    assert!(member.parameters.is_empty());
+    assert_eq!(member.function, r"f(x) = x^{3} - 3x");
+    assert_eq!(member.points.iter().filter(|p| p.kind == "max" || p.kind == "min").count(), 2);
+}

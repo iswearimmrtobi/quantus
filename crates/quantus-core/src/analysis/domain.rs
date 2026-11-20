@@ -144,7 +144,7 @@ fn add(out: &mut Vec<Condition>, condition: Condition, argument: &Expr) -> Resul
 
 fn collect(e: &Expr, out: &mut Vec<Condition>) -> Result<()> {
     match e {
-        Expr::Num(_) | Expr::Pi | Expr::E | Expr::Var => {}
+        Expr::Num(_) | Expr::Pi | Expr::E | Expr::Var | Expr::Param(_) => {}
         Expr::Sum(items) | Expr::Product(items) => {
             for item in items {
                 collect(item, out)?;

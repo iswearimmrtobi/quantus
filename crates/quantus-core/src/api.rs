@@ -781,7 +781,7 @@ mod tests {
         let body = json_of(&analyze(&Settings::default(), &request).unwrap());
         let mut keys: Vec<_> = body.as_object().unwrap().keys().cloned().collect();
         keys.sort();
-        assert_eq!(keys, ["asymptotes", "function", "period", "plot", "points", "sections", "variable"]);
+        assert_eq!(keys, ["asymptotes", "function", "parameters", "period", "plot", "points", "sections", "variable"]);
         assert_eq!(body["function"], "f(x) = x^{3} - 3x");
         let ids: Vec<_> = body["sections"].as_array().unwrap().iter().map(|s| s["id"].as_str().unwrap().to_string()).collect();
         assert_eq!(
@@ -856,8 +856,11 @@ mod tests {
         assert_eq!(meet["points"][1]["latex"], "P_{2}\\left(1 \\mid 2\\right)");
         let parse = analyze(&settings, &AnalysisRequest { latex: "x^2 +".into(), ..Default::default() }).unwrap_err();
         assert!(parse.position.is_some());
-        let family = analyze(&settings, &AnalysisRequest { latex: "x^2 + a".into(), ..Default::default() }).unwrap_err();
-        assert!(family.error.contains("function families") && family.position.is_none());
+        let ambiguous = analyze(&settings, &AnalysisRequest { latex: "t^2 + a".into(), ..Default::default() }).unwrap_err();
+        assert!(ambiguous.error.contains("which is the variable") && ambiguous.position.is_none());
+        let family = json_of(&analyze(&settings, &AnalysisRequest { latex: "x^2 + a".into(), ..Default::default() }).unwrap());
+        assert_eq!(family["parameters"], serde_json::json!(["a"]));
+        assert!(!family["plot"]["segments"].as_array().unwrap().is_empty());
     }
 
     #[test]

@@ -23,12 +23,14 @@ pub struct Piece {
 #[derive(Clone, Debug)]
 pub struct Function {
     pub pieces: Vec<Piece>,
+    /// For a family: what its parameters are restricted to (`a > 0`), each by its key.
+    pub conditions: Vec<(String, IntervalSet)>,
 }
 
 impl Function {
     /// One expression on all of ℝ.
     pub fn plain(expr: Expr) -> Function {
-        Function { pieces: vec![Piece { expr, on: IntervalSet::reals() }] }
+        Function { pieces: vec![Piece { expr, on: IntervalSet::reals() }], conditions: Vec::new() }
     }
 
     pub fn is_piecewise(&self) -> bool {
@@ -51,7 +53,7 @@ impl Function {
 
     /// Every piece simplified.
     pub fn simplified(&self) -> Function {
-        Function { pieces: self.pieces.iter().map(|p| Piece { expr: simplify(&p.expr), on: p.on.clone() }).collect() }
+        Function { pieces: self.pieces.iter().map(|p| Piece { expr: simplify(&p.expr), on: p.on.clone() }).collect(), conditions: self.conditions.clone() }
     }
 
     /// f − g, piece by piece where both are given.
@@ -65,7 +67,20 @@ impl Function {
                 }
             }
         }
-        Function { pieces }
+        Function { pieces, conditions: self.conditions.clone() }
+    }
+
+    /// The parameters of a family, each once; none for a single function.
+    pub fn parameters(&self) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        for piece in &self.pieces {
+            for key in piece.expr.parameters() {
+                if !out.contains(&key) {
+                    out.push(key);
+                }
+            }
+        }
+        out
     }
 
     /// The x where one piece ends and another one starts, sorted.

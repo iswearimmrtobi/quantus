@@ -117,7 +117,7 @@ handheld keeps working.
   - [x] Intersections of two functions.
   - [x] The area between two curves.
 - [ ] 5. Families f_a(x):
-  - [ ] `Expr::Param`; the other letters are parameters, conditions like `a>0` from the domain
+  - [x] `Expr::Param`; the other letters are parameters, conditions like `a>0` from the domain
     clause.
   - [ ] The symbolic sketch with case splits on the parameter's sign, `partial` beyond that.
   - [ ] The locus (Ortskurve) of the extrema and inflection points.

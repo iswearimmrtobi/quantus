@@ -42,6 +42,7 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
                     variable: None,
                     domain: None,
                     definitions: Vec::new(),
+                    parameters: Default::default(),
                     from: from.clone(),
                     to: to.clone(),
                     step: step.clone(),

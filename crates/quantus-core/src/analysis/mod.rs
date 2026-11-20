@@ -8,6 +8,7 @@ pub mod discussion;
 pub mod domain;
 pub mod exact;
 pub mod expr;
+pub mod family;
 pub mod function;
 pub mod input;
 pub mod integrate;
