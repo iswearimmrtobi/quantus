@@ -200,6 +200,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Analysis: the chain rule names the outer function g(z) with g′(z) and the inner function h(x)
+  with h′(x), and goes on to every level: in `\sin(e^{2x})` h′ is found by the chain rule again
+  (g₂, h₂). The quotient rule finds u′ and v′ by the chain rule as the product rule does, and
+  `x^x` goes on after `e^{x \ln x}` with the chain rule. Detailed steps show
+  `f'(x) = g'(h(x)) \cdot h'(x)` before it is put in.
 - Desktop, Analysis: the graph comes first and fills the window's height, the curve sketch beside
   it scrolls on its own; in a narrow window the graph stands above the sketch. The sections' steps
   start closed, so the sketch reads as a summary. The marked points stand as a legend under the

@@ -68,6 +68,8 @@ pub fn derive(g: &Expr, order: usize, var: &str, settings: &Settings) -> Derivat
         steps.extend(term_by_term(terms, &name, var));
     }
     if let Some((outer, inner)) = chain {
+        let template = format!("{name} = {times_constant}g'(h({var})) \\cdot h'({var})");
+        steps.push(step(AnalysisRule::ChainRule, msg!("core.analysis.derive.chain_rule_heading"), template).with_level(StepDetail::Detailed));
         let latex = format!("{name} = {times_constant}{}", chain_product(&outer, &inner, var, settings));
         let text = msg!("core.analysis.derive.outer_times_inner");
         steps.push(step(AnalysisRule::ChainRule, text, latex).with_level(StepDetail::Standard));
@@ -203,13 +205,12 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name
             let Some((u, v, quotient)) = split_parts(e) else {
                 // Only denominators: the power rule on v^{-1} with the chain rule.
                 let Expr::Product(factors) = e else { return AnalysisRule::PowerRule };
-                inner_function(&Expr::product(factors.iter().map(inverted).collect()), var, settings, steps);
+                let v = Expr::product(factors.iter().map(inverted).collect());
+                steps.extend(chain_rule(&Expr::pow(v, Expr::int(-1)), msg!("core.analysis.derive.outer_and_inner"), 1, var, settings));
                 return AnalysisRule::ChainRule;
             };
-            if !quotient {
-                steps.extend(chain_for_part("u", &u, var, settings));
-                steps.extend(chain_for_part("v", &v, var, settings));
-            }
+            steps.extend(chain_for_part("u", &u, var, settings));
+            steps.extend(chain_for_part("v", &v, var, settings));
             let parts = format!(
                 "u = {}, \\quad v = {}, \\quad u' = {}, \\quad v' = {}",
                 tex(&u),
@@ -229,7 +230,7 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name
             if **base == Expr::Var {
                 AnalysisRule::PowerRule
             } else {
-                inner_function(base, var, settings, steps);
+                steps.extend(chain_rule(e, msg!("core.analysis.derive.outer_and_inner"), 1, var, settings));
                 AnalysisRule::ChainRule
             }
         }
@@ -237,23 +238,19 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name
             if **exponent == Expr::Var {
                 AnalysisRule::ElementaryDerivative
             } else {
-                inner_function(exponent, var, settings, steps);
+                steps.extend(chain_rule(e, msg!("core.analysis.derive.outer_and_inner"), 1, var, settings));
                 AnalysisRule::ChainRule
             }
         }
         Expr::Pow(..) => {
-            steps.push(step(
-                AnalysisRule::ChainRule,
-                msg!("core.analysis.derive.power_to_base_e"),
-                "u^{v} = e^{v \\cdot \\ln(u)}",
-            ));
+            steps.extend(chain_rule(e, msg!("core.analysis.derive.outer_and_inner"), 1, var, settings));
             AnalysisRule::ChainRule
         }
         Expr::Func(_, argument) => {
             if **argument == Expr::Var {
                 AnalysisRule::ElementaryDerivative
             } else {
-                inner_function(argument, var, settings, steps);
+                steps.extend(chain_rule(e, msg!("core.analysis.derive.outer_and_inner"), 1, var, settings));
                 AnalysisRule::ChainRule
             }
         }
@@ -261,13 +258,60 @@ fn explain(e: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>, name
     }
 }
 
-fn inner_function(u: &Expr, var: &str, settings: &Settings, steps: &mut Vec<Step>) {
-    let latex = format!("u = {}, \\quad u' = {}", u.to_latex(var), display(&derivative(u), settings).to_latex(var));
-    steps.push(step(AnalysisRule::ChainRule, msg!("core.analysis.derive.inner_function"), latex));
+/// The names of the outer and inner function at a nesting `level`: g and h, then g_{2} and h_{2} …
+fn chain_names(level: usize) -> (String, String) {
+    if level == 1 { ("g".into(), "h".into()) } else { (format!("g_{{{level}}}"), format!("h_{{{level}}}")) }
+}
+
+/// The inner function's name in a text line, where LaTeX is not rendered: h, h₂, h₃ …
+fn plain_inner_name(level: usize) -> String {
+    const SUBSCRIPTS: [char; 10] = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
+    if level == 1 {
+        return "h".into();
+    }
+    let digits: String = level.to_string().chars().map(|d| SUBSCRIPTS[d.to_digit(10).unwrap() as usize]).collect();
+    format!("h{digits}")
+}
+
+/// The chain rule on `e`, a function of an inner function: the outer function g(z) with g′(z) and
+/// the inner one h(x). When h is itself a function of an inner function, h′ is found by the chain
+/// rule again, one level deeper, so `\sin(e^{2x})` is written out to the end. The first step
+/// carries `text`; the deeper ones are shown from Standard on.
+fn chain_rule(e: &Expr, text: String, level: usize, var: &str, settings: &Settings) -> Vec<Step> {
+    let Some((outer, inner)) = chain_parts(e) else { return Vec::new() };
+    let mut steps = Vec::new();
+    if let Expr::Pow(base, exponent) = e {
+        if !base.is_constant() && !exponent.is_constant() {
+            let latex = format!("{} = {}", e.to_latex(var), Expr::func(Fn::Exp, inner.clone()).to_latex(var));
+            let rewrite = step(AnalysisRule::ChainRule, msg!("core.analysis.derive.power_to_base_e"), latex);
+            steps.push(if level == 1 { rewrite } else { rewrite.with_level(StepDetail::Standard) });
+        }
+    }
+    let (g, h) = chain_names(level);
+    let deeper = chain_parts(&inner).is_some();
+    let mut latex = format!(
+        "{g}(z) = {}, \\quad {g}'(z) = {}, \\quad {h}({var}) = {}",
+        outer.to_latex("z"),
+        display(&derivative(&outer), settings).to_latex("z"),
+        inner.to_latex(var)
+    );
+    if !deeper {
+        latex.push_str(&format!(", \\quad {h}'({var}) = {}", display(&derivative(&inner), settings).to_latex(var)));
+    }
+    let first = step(AnalysisRule::ChainRule, text, latex);
+    steps.push(if level == 1 { first } else { first.with_level(StepDetail::Standard) });
+    if deeper {
+        let (g2, h2) = chain_names(level + 1);
+        steps.extend(chain_rule(&inner, msg!("core.analysis.derive.inner_again", plain_inner_name(level)), level + 1, var, settings));
+        let (outer2, inner2) = chain_parts(&inner).expect("checked above");
+        let line = format!("{h}'({var}) = {g2}'({h2}({var})) \\cdot {h2}'({var}) = {}", chain_product(&outer2, &inner2, var, settings));
+        steps.push(step(AnalysisRule::ChainRule, msg!("core.analysis.derive.outer_times_inner"), line).with_level(StepDetail::Standard));
+    }
+    steps
 }
 
 /// A function of an inner function, as `(outer, inner)` with the outer one in x: `e^{2x}` is
-/// `(e^x, 2x)`, `(x - 1)^{-3}` is `(x^{-3}, x - 1)`.
+/// `(e^x, 2x)`, `(x - 1)^{-3}` is `(x^{-3}, x - 1)`, and `x^{x}` is `(e^x, x \ln(x))`.
 fn chain_parts(e: &Expr) -> Option<(Expr, Expr)> {
     match e {
         Expr::Func(function, argument) if **argument != Expr::Var => Some((Expr::func(*function, Expr::Var), (**argument).clone())),
@@ -275,6 +319,11 @@ fn chain_parts(e: &Expr) -> Option<(Expr, Expr)> {
             Some((Expr::pow(Expr::Var, (**exponent).clone()), (**base).clone()))
         }
         Expr::Pow(base, exponent) if base.is_constant() && **exponent != Expr::Var => Some((Expr::pow((**base).clone(), Expr::Var), (**exponent).clone())),
+        // u^v = e^{v \ln(u)}
+        Expr::Pow(base, exponent) if !base.is_constant() && !exponent.is_constant() => Some((
+            Expr::func(Fn::Exp, Expr::Var),
+            Expr::product(vec![(**exponent).clone(), Expr::func(Fn::Ln, (**base).clone())]),
+        )),
         _ => None,
     }
 }
@@ -293,27 +342,28 @@ fn chain_product(outer: &Expr, inner: &Expr, var: &str, settings: &Settings) -> 
         // Powers keep their exponent as written, n - 1 included.
         Expr::Pow(base, exponent) if **base == Expr::Var => {
             let n = exponent.as_num().cloned().unwrap_or(RBig::ONE);
-            let lowered = Expr::Num(&n - RBig::ONE).to_latex(var);
+            let lowered = &n - RBig::ONE;
             let n_tex = factor_tex(&Expr::Num(n), var);
-            format!("{n_tex}({})^{{{lowered}}}", inner.to_latex(var))
+            if lowered == RBig::ONE {
+                format!("{n_tex}({})", inner.to_latex(var))
+            } else {
+                format!("{n_tex}({})^{{{}}}", inner.to_latex(var), Expr::Num(lowered).to_latex(var))
+            }
         }
         _ => factor_tex(&display(&derivative(outer), settings).substitute(inner), var),
     };
     format!("{outer_derivative} \\cdot {inner_derivative}")
 }
 
-/// `p'` by the chain rule, for a part `p` of the product rule that needs it.
-fn chain_for_part(label: &str, part: &Expr, var: &str, settings: &Settings) -> Option<Step> {
-    let (outer, inner) = chain_parts(part)?;
-    let text = msg!(
-        "core.analysis.derive.chain_rule",
-        label,
-        outer.to_latex("u"),
-        inner.to_latex(var),
-        display(&derivative(&inner), settings).to_latex(var)
-    );
+/// `p'` by the chain rule, for a part `p` of the product or quotient rule that needs it: the
+/// outer and inner function, then `p' = g'(h(x)) \cdot h'(x)`.
+fn chain_for_part(label: &str, part: &Expr, var: &str, settings: &Settings) -> Vec<Step> {
+    let Some((outer, inner)) = chain_parts(part) else { return Vec::new() };
+    let text = msg!("core.analysis.derive.chain_rule", label);
+    let mut steps: Vec<Step> = chain_rule(part, text, 1, var, settings).into_iter().map(|s| s.with_level(StepDetail::Standard)).collect();
     let latex = format!("{label}' = {}", chain_product(&outer, &inner, var, settings));
-    Some(step(AnalysisRule::ChainRule, text, latex).with_level(StepDetail::Standard))
+    steps.push(step(AnalysisRule::ChainRule, msg!("core.analysis.derive.outer_times_inner"), latex).with_level(StepDetail::Standard));
+    steps
 }
 
 /// The constant factors of a product and the rest.
@@ -513,7 +563,7 @@ mod tests {
         assert_eq!(derivatives("\\frac{1}{x^2+1}")[0], "-\\frac{2x}{(x^{2} + 1)^{2}}");
         let over_two = derive_chain(&expr("\\frac{3}{x(x+1)}"), 1, "x", &Settings::default()).remove(0);
         assert_eq!(over_two.steps[0].rule.as_deref(), Some("CHAIN_RULE"));
-        assert!(over_two.steps[0].latex.starts_with("u = x(x + 1)") || over_two.steps[0].latex.starts_with("u = x^{2} + x"), "{}", over_two.steps[0].latex);
+        assert!(over_two.steps[0].latex.starts_with("g(z) = \\frac{1}{z}, \\quad g'(z) = -\\frac{1}{z^{2}}, \\quad h(x) = x(x + 1)"), "{}", over_two.steps[0].latex);
     }
 
     #[test]
@@ -528,9 +578,48 @@ mod tests {
         assert_eq!(first("|x|"), "\\frac{x}{\\left|x\\right|}");
     }
 
+    fn lines(latex: &str, detail: StepDetail) -> Vec<(String, String)> {
+        let d = derive(&expr(latex), 1, "x", &Settings::default());
+        crate::eval::calculator::shown_steps(&d.steps, detail).into_iter().map(|s| (s.latex, s.explanation.unwrap_or_default())).collect()
+    }
+
+    #[test]
+    fn the_chain_rule_names_the_outer_and_inner_function_at_every_level() {
+        let nested = lines("\\sin(e^{2x})", StepDetail::Standard);
+        assert_eq!(nested[0], ("g(z) = \\sin(z), \\quad g'(z) = \\cos(z), \\quad h(x) = e^{2x}".into(), "Outer and inner function".into()));
+        assert_eq!(nested[1].0, "g_{2}(z) = e^{z}, \\quad g_{2}'(z) = e^{z}, \\quad h_{2}(x) = 2x, \\quad h_{2}'(x) = 2");
+        assert_eq!(nested[1].1, "h is again a function of an inner function: chain rule");
+        assert_eq!(nested[2].0, "h'(x) = g_{2}'(h_{2}(x)) \\cdot h_{2}'(x) = e^{2x} \\cdot 2");
+        assert_eq!(nested[3].0, "f'(x) = \\cos(e^{2x}) \\cdot 2e^{2x}");
+
+        let three = lines("\\sqrt{\\ln(\\cos(x^2))}", StepDetail::Standard);
+        assert!(three.iter().any(|(_, text)| text == "h₂ is again a function of an inner function: chain rule"), "{three:?}");
+        assert!(three.iter().any(|(latex, _)| latex.starts_with("h_{2}'(x) = g_{3}'(h_{3}(x))")), "{three:?}");
+
+        let template = "f'(x) = g'(h(x)) \\cdot h'(x)";
+        assert!(lines("\\sin(x^2)", StepDetail::Detailed).iter().any(|(latex, _)| latex == template));
+        assert!(!lines("\\sin(x^2)", StepDetail::Standard).iter().any(|(latex, _)| latex == template));
+    }
+
+    #[test]
+    fn the_quotient_rule_finds_its_parts_by_the_chain_rule() {
+        let quotient = lines("\\frac{x}{(2x-1)^2}", StepDetail::Standard);
+        assert_eq!(quotient[0], ("g(z) = z^{2}, \\quad g'(z) = 2z, \\quad h(x) = 2x - 1, \\quad h'(x) = 2".into(), "v' by the chain rule".into()));
+        assert_eq!(quotient[1].0, "v' = 2(2x - 1) \\cdot 2");
+    }
+
+    #[test]
+    fn a_power_with_the_variable_in_base_and_exponent_goes_on_with_the_chain_rule() {
+        let power = lines("x^x", StepDetail::Standard);
+        assert_eq!(power[0], ("x^{x} = e^{x\\ln(x)}".into(), "Write the power with base e".into()));
+        assert_eq!(power[1].0, "g(z) = e^{z}, \\quad g'(z) = e^{z}, \\quad h(x) = x\\ln(x), \\quad h'(x) = \\ln(x) + 1");
+        assert_eq!(power[2].0, "f'(x) = e^{x\\ln(x)} \\cdot \\left(\\ln(x) + 1\\right)");
+        assert_eq!(first("x^x"), "x^{x} \\cdot (\\ln(x) + 1)");
+    }
+
     #[test]
     fn every_derivative_agrees_with_a_difference_quotient() {
-        for input in ["x^x", "\\sin(x)\\cos(x)", "\\frac{e^x}{x^2+1}", "\\sqrt[3]{x^2}", "\\arcsin(x/2)", "\\ln|x|", "\\cosh(x)^2"] {
+        for input in ["x^x", "\\sin(e^{2x})", "\\sqrt{\\ln(x^2+1)}", "\\frac{(x^2+1)^3}{(2x-1)^2}", "x^{\\sin x}", "\\sin(x)\\cos(x)", "\\frac{e^x}{x^2+1}", "\\sqrt[3]{x^2}", "\\arcsin(x/2)", "\\ln|x|", "\\cosh(x)^2"] {
             let f = expr(input);
             let d = derive_chain(&f, 1, "x", &Settings::default()).remove(0).result;
             for x in [0.7, 1.3] {
@@ -554,7 +643,7 @@ mod tests {
         assert_eq!(d.steps[2].latex, "f'(x) = (x^{2} + 2x)e^{x}");
 
         let chain = derive(&expr("\\sin(x^2)"), 2, "x", &Settings::default());
-        assert_eq!(chain.steps[0].latex, "u = x^{2}, \\quad u' = 2x");
+        assert_eq!(chain.steps[0].latex, "g(z) = \\sin(z), \\quad g'(z) = \\cos(z), \\quad h(x) = x^{2}, \\quad h'(x) = 2x");
         assert!(chain.steps[1].latex.starts_with("f''(x) = "));
 
         let _german = Scope::new(Language::De);

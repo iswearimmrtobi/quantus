@@ -91,11 +91,11 @@ Each step one commit. Piecewise functions (step 2) are the base for restricted d
 families come last because `Expr` gets a parameter. New request fields are optional, so the
 handheld keeps working.
 
-- [ ] 1. The chain rule written out fully (`analysis/derive.rs`):
-  - [ ] Outer and inner function named: g(z), g′(z); h(x), h′(x); f′ = g′(h(x))·h′(x).
-  - [ ] Nested chains to every level (`\sin(e^{2x})`), also inside the product rule's parts.
-  - [ ] The chain rule for u′ and v′ of the quotient rule.
-  - [ ] `u^v` continued after `e^{v \ln u}` with the chain and product rules.
+- [x] 1. The chain rule written out fully (`analysis/derive.rs`):
+  - [x] Outer and inner function named: g(z), g′(z); h(x), h′(x); f′ = g′(h(x))·h′(x).
+  - [x] Nested chains to every level (`\sin(e^{2x})`), also inside the product rule's parts.
+  - [x] The chain rule for u′ and v′ of the quotient rule.
+  - [x] `u^v` continued after `e^{v \ln u}` with the chain and product rules.
 - [ ] 2. Restricted domains and piecewise functions (`analysis/function.rs`: pieces of `Expr`
   on an `IntervalSet`):
   - [ ] Input: a domain clause (`x\in[0,3]`, `0\le x<3`, `D=…`), `\begin{cases}`, an optional

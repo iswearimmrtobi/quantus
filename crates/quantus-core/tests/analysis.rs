@@ -404,8 +404,9 @@ fn the_product_rule_shows_the_chain_rule_of_its_parts_and_puts_them_in() {
     use quantus_core::settings::StepDetail;
     let d = sketch("x e^{2x}");
     let detailed = working(&d, "derivatives", StepDetail::Detailed);
-    assert_eq!(detailed[0], (r"v' = e^{2x} \cdot 2".to_string(), "v' by the chain rule: outer e^{u}, inner u = 2x, u' = 2".to_string()));
-    assert_eq!(detailed[2], (r"f'(x) = 1 \cdot e^{2x} + x \cdot 2e^{2x}".to_string(), "Put in".to_string()));
+    assert_eq!(detailed[0], (r"g(z) = e^{z}, \quad g'(z) = e^{z}, \quad h(x) = 2x, \quad h'(x) = 2".to_string(), "v' by the chain rule".to_string()));
+    assert_eq!(detailed[1].0, r"v' = e^{2x} \cdot 2");
+    assert_eq!(detailed[3], (r"f'(x) = 1 \cdot e^{2x} + x \cdot 2e^{2x}".to_string(), "Put in".to_string()));
     assert!(!working(&d, "derivatives", StepDetail::Standard).iter().any(|(_, text)| text == "Put in"));
 
     let d = sketch(r"\sin(x^2)");
@@ -420,7 +421,7 @@ fn the_chain_rule_writes_a_power_and_multiplies_outer_by_inner() {
     let standard = working(&d, "derivatives", StepDetail::Standard);
     let at = standard.iter().position(|(_, text)| text == "Write as a power").unwrap();
     assert_eq!(standard[at].0, "f''(x) = 4(x - 1)^{-3}");
-    assert_eq!(standard[at + 1].1, "Inner function");
+    assert_eq!(standard[at + 1], (r"g(z) = \frac{1}{z^{3}}, \quad g'(z) = -\frac{3}{z^{4}}, \quad h(x) = x - 1, \quad h'(x) = 1".to_string(), "Outer and inner function".to_string()));
     assert_eq!(standard[at + 2], (r"f'''(x) = 4 \cdot \left(-3\right)(x - 1)^{-4} \cdot 1".to_string(), "Outer derivative times inner derivative".to_string()));
 }
 
