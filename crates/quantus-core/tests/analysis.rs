@@ -217,7 +217,8 @@ fn inputs_are_read_with_or_without_a_name() {
     }
     let error = analyze("f(x) = x^2 +", None, &Settings::default(), None).unwrap_err();
     assert_eq!(error.position(), analyze("x^2 +", None, &Settings::default(), None).unwrap_err().position().map(|p| p + 7));
-    assert!(analyze("x^2 + a", None, &Settings::default(), None).unwrap_err().to_string().contains("function families"));
+    assert_eq!(analyze("x^2 + a", None, &Settings::default(), None).unwrap().parameters, ["a"]);
+    assert!(analyze("t^2 + a", None, &Settings::default(), None).unwrap_err().to_string().contains("which is the variable"));
     assert!(analyze("\\ln(-x^2 - 1)", None, &Settings::default(), None).unwrap_err().to_string().contains("defined nowhere"));
 }
 
@@ -672,4 +673,29 @@ fn a_member_of_a_family_is_sketched_like_any_function() {
     assert!(member.parameters.is_empty());
     assert_eq!(member.function, r"f(x) = x^{3} - 3x");
     assert_eq!(member.points.iter().filter(|p| p.kind == "max" || p.kind == "min").count(), 2);
+}
+
+#[test]
+fn a_family_is_solved_case_by_case_of_its_parameter() {
+    let d = sketch(r"f_a(x) = x^3 - ax");
+    assert_eq!(result(&d, "zeros"), r"\text{for }a \le 0\colon \ Z\left(0 \mid 0\right), \quad \text{for }a > 0\colon \ Z_{1}\left(0 \mid 0\right), \ Z_{2}\left(-\sqrt{a} \mid 0\right), \ Z_{3}\left(\sqrt{a} \mid 0\right)");
+    assert_eq!(
+        result(&d, "extrema"),
+        r"\text{for }a \le 0\colon \ \text{No extrema}, \quad \text{for }a > 0\colon \ Max\left(-\sqrt{\frac{a}{3}} \mid \frac{2a\sqrt{\frac{a}{3}}}{3}\right), \ Min\left(\sqrt{\frac{a}{3}} \mid -\frac{2a\sqrt{\frac{a}{3}}}{3}\right)"
+    );
+    assert_eq!(result(&d, "inflection"), r"I\left(0 \mid 0\right)");
+    assert_eq!(result(&d, "symmetry"), r"\text{Symmetric about the origin}");
+    assert!(result(&d, "antiderivative").starts_with(r"F_{a}(x) = \frac{1}{4}x^{4}"));
+
+    let k = sketch(r"f_k(x) = kx^2 - 4x, \ k > 0");
+    assert_eq!(result(&k, "extrema"), r"Min\left(\frac{2}{k} \mid -\frac{4}{k}\right)");
+    assert_eq!(result(&k, "behaviour"), r"\lim_{x \to \infty} f_{k}(x) = \infty, \ \lim_{x \to -\infty} f_{k}(x) = \infty");
+
+    let e = sketch(r"x e^{ax}");
+    assert_eq!(
+        result(&e, "extrema"),
+        r"\text{for }a < 0\colon \ Max\left(-\frac{1}{a} \mid -\frac{1}{a \cdot e}\right), \quad \text{for }a = 0\colon \ \text{No extrema}, \quad \text{for }a > 0\colon \ Min\left(-\frac{1}{a} \mid -\frac{1}{a \cdot e}\right)"
+    );
+    let quartic = sketch(r"f_a(x) = x^4 - ax^2");
+    assert!(result(&quartic, "extrema").starts_with(r"\text{for }a \le 0\colon \ Min\left(0 \mid 0\right)"), "{}", result(&quartic, "extrema"));
 }

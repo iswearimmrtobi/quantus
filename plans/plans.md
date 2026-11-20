@@ -119,7 +119,7 @@ handheld keeps working.
 - [ ] 5. Families f_a(x):
   - [x] `Expr::Param`; the other letters are parameters, conditions like `a>0` from the domain
     clause.
-  - [ ] The symbolic sketch with case splits on the parameter's sign, `partial` beyond that.
+  - [x] The symbolic sketch with case splits on the parameter's sign, `partial` beyond that.
   - [ ] The locus (Ortskurve) of the extrema and inflection points.
   - [ ] A slider per parameter in the graph; the numeric sketch for one value as the fallback.
 

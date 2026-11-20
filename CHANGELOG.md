@@ -47,6 +47,12 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   ax`, or `x^2 + a` with x as the variable), a condition such as `a > 0` after the function
   restricts them, and the derivatives come in terms of them. With values for the parameters a
   request sketches one member of the family like any function.
+- Analysis: the sketch of a family in terms of its parameter. Zeros, extrema and inflection
+  points are solved where the condition is a polynomial in x of degree at most two (after powers
+  of x, e-powers and factors in the parameter are set aside), with cases by the sign of what
+  decides: `for a > 0: Max(-\sqrt{a/3} | …), Min(\sqrt{a/3} | …)`, `for a ≤ 0: no extrema`.
+  Symmetry, the y-intercept, the behaviour of a polynomial family at ±∞ and the antiderivative
+  come in terms of the parameter too.
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

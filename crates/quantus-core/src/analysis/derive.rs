@@ -121,7 +121,9 @@ fn term_by_term(terms: &[Expr], name: &str, var: &str) -> Vec<Step> {
         let size_tex = Expr::Num(size.clone()).to_latex(var);
         let is_one = size == RBig::ONE;
         if rest.is_constant() {
-            marked.push_str(&format!("{sign}({size_tex})'"));
+            // A number, or a constant such as a parameter: (2)', (3a)'.
+            let constant = if rest == Expr::int(1) { size_tex.clone() } else { Expr::product(vec![Expr::Num(size.clone()), rest.clone()]).to_latex(var) };
+            marked.push_str(&format!("{sign}({constant})'"));
             powered.push_str(&format!("{sign}0"));
             continue;
         }

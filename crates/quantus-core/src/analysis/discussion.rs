@@ -88,7 +88,7 @@ impl PointKind {
     }
 
     /// The letter the point is named with: H, T, W, … in German.
-    fn letter(self) -> &'static str {
+    pub(crate) fn letter(self) -> &'static str {
         let letter = match self {
             PointKind::Zero => texts!("core.analysis.discussion.letter.zero"),
             PointKind::YIntercept => return "S_y",
