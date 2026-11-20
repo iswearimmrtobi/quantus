@@ -12,6 +12,18 @@ interface View {
   yMax: number;
 }
 
+/** Another curve in the graph: another function, or a derivative of the analysed one. */
+export interface ExtraCurve {
+  /** Its name in the legend, as LaTeX: `g`, `f'`. */
+  label: string;
+  /** What the engine samples: the function, or a reference to one (`f'(x)`) … */
+  latex: string;
+  /** … with the functions it may use. */
+  definitions: string[];
+  /** Its colour, one of the theme's `--geometry-*` tones. */
+  tone: number;
+}
+
 interface Props {
   /** The function as analysed; panning asks the engine for fresh segments of it. */
   latex: string;
@@ -26,6 +38,8 @@ interface Props {
   lines?: Line[];
   /** Areas to shade down to the x-axis. */
   regions?: { segments: Segment[]; positive: boolean }[];
+  /** More curves, each sampled for the view like the analysed one. */
+  extra?: ExtraCurve[];
   /** Extra dots: the rows of a value table. */
   dots?: [number, number][];
   selected: number | null;
@@ -34,6 +48,7 @@ interface Props {
 
 const ZOOM_STEP = 1.15;
 const NO_DEFINITIONS: string[] = [];
+const NO_CURVES: ExtraCurve[] = [];
 const RESAMPLE_DELAY = 120;
 /** The narrowest and widest view the wheel may zoom to. */
 const MIN_SPAN = 1e-6;
@@ -72,7 +87,7 @@ function ticks(min: number, max: number, count: number): number[] {
  * ticks, the curve, dashed asymptotes and the marked points. Wheel zooms around the cursor, drag
  * moves the view; each change asks the engine for segments that fit the new view.
  */
-export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITIONS, plot, points, asymptotes, lines = [], regions = [], dots = [], selected, onSelect }: Props) {
+export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITIONS, extra = NO_CURVES, plot, points, asymptotes, lines = [], regions = [], dots = [], selected, onSelect }: Props) {
   const { t, language } = useT();
   /** The graph filling the window; the view and everything drawn stay as they are. */
   const fullscreen = useFullscreen();
@@ -136,6 +151,31 @@ export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITION
     }, RESAMPLE_DELAY);
     return () => window.clearTimeout(timer);
   }, [latex, domain, definitions, view, initial, size.width]);
+
+  // The extra curves for the view, all of them again whenever it or they change. A curve the
+  // engine cannot draw (a typo in its field) is left out.
+  const [extraSegments, setExtraSegments] = useState<Segment[][]>([]);
+  const extraKey = JSON.stringify(extra);
+  useEffect(() => {
+    const curves: ExtraCurve[] = JSON.parse(extraKey);
+    if (curves.length === 0) {
+      setExtraSegments([]);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void Promise.all(
+        curves.map((curve) =>
+          api.sampleFunction(curve.latex, view, Math.round(size.width), null, curve.definitions).then(
+            (sampled) => sampled.segments,
+            () => [] as Segment[],
+          ),
+        ),
+      ).then((all) => {
+        if (alive.current) setExtraSegments(all);
+      });
+    }, RESAMPLE_DELAY);
+    return () => window.clearTimeout(timer);
+  }, [extraKey, view, size.width]);
 
   const { width, height } = size;
   const sx = useCallback((x: number) => ((x - view.xMin) / (view.xMax - view.xMin)) * width, [view, width]);
@@ -272,6 +312,11 @@ export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITION
             {lines.map((line, i) => (
               <line key={`l${i}`} className="plot-line" {...straight(line)} />
             ))}
+            {extraSegments.map((curve, i) =>
+              curve.map((segment, j) => (
+                <polyline key={`x${i}-${j}`} className="plot-curve extra" style={{ stroke: `var(--geometry-${extra[i]?.tone ?? 1})` }} points={path(segment)} />
+              )),
+            )}
             {segments.map((segment, i) => (
               <polyline key={`s${i}`} className="plot-curve" points={path(segment)} />
             ))}
@@ -327,6 +372,12 @@ export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITION
       <div className="plot-footer">
         {/* The marked points as a legend; hovering one shows its coordinates in the graph, a click selects it. */}
         <div className="plot-legend">
+          {extra.map((curve, i) => (
+            <span key={`c${i}`} className="legend-item legend-curve" style={{ '--point': `var(--geometry-${curve.tone})` } as React.CSSProperties}>
+              <span className="curve-swatch" />
+              <Katex latex={curve.label} />
+            </span>
+          ))}
           {points.map((point, i) => (
             <button
               key={`${point.kind}|${point.x}|${point.y}`}

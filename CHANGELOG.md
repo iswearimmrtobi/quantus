@@ -36,6 +36,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   their own prefix; the functions may use each other, also differentiated (`g(x) = f(x - 1) + 2`,
   `h(x) = f'(x)`), resolved in the engine before anything else. **Sketch** swaps a function into
   the main field.
+- Desktop, Analysis: the other functions are drawn in the graph in their own colours, with a
+  legend; two boxes above the graph draw f′ and f″ of the sketched function as well.
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

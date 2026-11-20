@@ -113,7 +113,7 @@ handheld keeps working.
 - [ ] 4. Several functions f, g, h …:
   - [x] A list of function fields, one sketch each; `g(x)=f'(x)` and `h(x)=f(x-1)+2` resolved
     in core.
-  - [ ] Several curves in the graph with a legend; f′ and f″ as a toggle.
+  - [x] Several curves in the graph with a legend; f′ and f″ as a toggle.
   - [ ] Intersections of two functions.
   - [ ] The area between two curves.
 - [ ] 5. Families f_a(x):

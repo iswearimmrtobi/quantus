@@ -75,6 +75,9 @@ $(x - 1)^2 + 2$ for $f(x) = x^2$. **Sketch** beside a function swaps it into the
 sketches it. A function may not use itself, directly or through others, and a piecewise
 function or one with a given domain cannot be used inside another.
 
+All functions are drawn in the graph, each in its own colour with its name in the legend. The
+boxes $f'$ and $f''$ above the graph draw the derivatives of the sketched function as well.
+
 ### A curve through points
 
 Type points instead of a function, and the analysis builds the curve through them:

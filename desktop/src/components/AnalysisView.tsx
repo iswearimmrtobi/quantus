@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
   api,
@@ -18,7 +18,7 @@ import { asDefinition, assignNames } from '../functionNames';
 import { isPointList } from '../pointList';
 import { copyText } from '../shell';
 import type { TextKey } from '../i18n';
-import { FunctionPlot } from './FunctionPlot';
+import { FunctionPlot, type ExtraCurve } from './FunctionPlot';
 import { displayStyle, Katex, latexLines } from './Katex';
 import { LatexInput, type LatexInputHandle } from './LatexInput';
 import { MathField, toReadableLatex, type MathFieldHandle } from './MathField';
@@ -113,6 +113,8 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   /** The other functions as definitions for the one in the main field. */
   const definitionsFor = (all: string[], skip: number) =>
     all.flatMap((latex, i) => (i === skip || !latex.trim() || isPointList(latex) ? [] : [asDefinition(latex, assignNames(all)[i])]));
+  /** Whether f′ and f″ are drawn as well. */
+  const [derivatives, setDerivatives] = useState({ first: false, second: false });
   /** The definitions the shown results belong to. */
   const [analysedDefinitions, setAnalysedDefinitions] = useState<string[]>([]);
   const [latexMode, setLatexMode] = useState(false);
@@ -290,6 +292,25 @@ export function AnalysisView({ settings }: { settings: Settings }) {
       return next;
     });
 
+  // The other functions and the chosen derivatives as extra curves, each with every other
+  // function to use; the analysed one goes in under its name.
+  const extraCurves: ExtraCurve[] = useMemo(() => {
+    if (!analysed) return [];
+    const all = [analysed, ...others];
+    const allNames = assignNames(all);
+    const definitions = (skip: number) => definitionsFor(all, skip);
+    const curves: ExtraCurve[] = [];
+    others.forEach((latex, i) => {
+      if (latex.trim() && !isPointList(latex)) curves.push({ label: allNames[i + 1], latex: asDefinition(latex, allNames[i + 1]), definitions: definitions(i + 1), tone: (i % 6) + 1 });
+    });
+    const name = allNames[0];
+    const own = spline ? [] : [asDefinition(analysed, name), ...definitions(0)];
+    if (derivatives.first && own.length) curves.push({ label: `${name}'`, latex: `${name}'(x)`, definitions: own, tone: 6 });
+    if (derivatives.second && own.length) curves.push({ label: `${name}''`, latex: `${name}''(x)`, definitions: own, tone: 7 });
+    return curves;
+    // definitionsFor only reads its arguments.
+  }, [analysed, others, derivatives, spline]);
+
   const taskPoints: MarkedPoint[] = tab === 'tangent' && tangent ? [tangent.point] : [];
   const points = analysis ? [...analysis.points, ...taskPoints] : [];
   const selectedIndex = selected === null ? null : points.findIndex((point) => pointKey(point) === selected);
@@ -401,10 +422,23 @@ export function AnalysisView({ settings }: { settings: Settings }) {
         {analysis && analysed && (
           <div className="analysis-body">
             <div className="analysis-graph">
+              {!spline && (
+                <div className="derivative-toggles">
+                  <label>
+                    <input type="checkbox" checked={derivatives.first} onChange={(e) => setDerivatives({ ...derivatives, first: e.target.checked })} />
+                    <Katex latex={`${names[0]}'`} />
+                  </label>
+                  <label>
+                    <input type="checkbox" checked={derivatives.second} onChange={(e) => setDerivatives({ ...derivatives, second: e.target.checked })} />
+                    <Katex latex={`${names[0]}''`} />
+                  </label>
+                </div>
+              )}
               <FunctionPlot
                 latex={analysed}
                 domain={analysedDomain}
                 definitions={analysedDefinitions}
+                extra={extraCurves}
                 plot={analysis.plot}
                 points={points}
                 asymptotes={analysis.asymptotes}

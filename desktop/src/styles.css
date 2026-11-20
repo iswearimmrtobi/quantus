@@ -2609,6 +2609,36 @@ select option {
   fill: var(--accent);
 }
 
+.derivative-toggles {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.derivative-toggles label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.plot-curve.extra {
+  stroke-width: 1.6;
+  opacity: 0.9;
+}
+
+.legend-curve {
+  cursor: default;
+}
+
+.curve-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--point);
+}
+
 .plot-dot {
   fill: var(--accent);
 }
