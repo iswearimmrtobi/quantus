@@ -214,6 +214,9 @@ pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
         points: Vec::new(),
         asymptotes: Vec::new(),
         breaks: Vec::new(),
+        tag: 0,
+        joins: Vec::new(),
+        extremes: Vec::new(),
     };
 
     let derivatives = derive_chain(f, 3, var, ctx.settings);
@@ -236,12 +239,17 @@ pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
         ("monotonicity", msg!("core.analysis.discussion.monotonicity"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.monotonicity(&d[0].result))),
         ("curvature", msg!("core.analysis.discussion.curvature"), Box::new(|s: &mut Sketch, d: &[Derivation]| s.curvature(&d[1].result))),
         ("behaviour", msg!("core.analysis.discussion.behaviour_edges_asymptotes"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.behaviour())),
+        ("globalExtrema", msg!("core.analysis.discussion.global_extrema"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.global_extrema())),
         ("antiderivative", msg!("core.analysis.discussion.antiderivative"), Box::new(|s: &mut Sketch, _: &[Derivation]| s.antiderivative())),
     ];
     for section in &mut sections {
         out_of_time(section);
     }
     for (id, title, build) in builders {
+        // The global extrema only where the domain was given; otherwise D is the largest one.
+        if id == "globalExtrema" && !function.is_restricted() {
+            continue;
+        }
         if budget::exceeded() {
             sections.push(Section {
                 id,
@@ -259,27 +267,7 @@ pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
         sections.push(section);
     }
     let mut points = sketch.points;
-    name_points(&mut points);
-    // The sections refer to the points by a token until the names are known.
-    let tokens: Vec<(String, String)> = points.iter().map(|p| (p.token.clone(), p.name.clone())).collect();
-    let rename = |text: &mut String| {
-        for (token, name) in &tokens {
-            if text.contains(token.as_str()) {
-                *text = text.replace(token.as_str(), name);
-            }
-        }
-    };
-    for section in &mut sections {
-        if let Some(result) = section.result.as_mut() {
-            rename(result);
-        }
-        for s in &mut section.steps {
-            rename(&mut s.latex);
-        }
-    }
-    for point in &mut points {
-        rename(&mut point.latex);
-    }
+    finish(&mut sections, &mut points);
     Ok(Discussion {
         function: format!("f({var}) = {}", function.to_latex(var, ctx.digits, ctx.settings.language)),
         variable: var.to_string(),
@@ -293,6 +281,31 @@ pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
         breaks: sketch.breaks,
         window,
     })
+}
+
+/// Names the points and puts the names into the sections, which refer to them by a token.
+fn finish(sections: &mut [Section], points: &mut [MarkedPoint]) {
+    name_points(points);
+    // The sections refer to the points by a token until the names are known.
+    let tokens: Vec<(String, String)> = points.iter().map(|p| (p.token.clone(), p.name.clone())).collect();
+    let rename = |text: &mut String| {
+        for (token, name) in &tokens {
+            if text.contains(token.as_str()) {
+                *text = text.replace(token.as_str(), name);
+            }
+        }
+    };
+    for section in sections.iter_mut() {
+        if let Some(result) = section.result.as_mut() {
+            rename(result);
+        }
+        for s in &mut section.steps {
+            rename(&mut s.latex);
+        }
+    }
+    for point in points.iter_mut() {
+        rename(&mut point.latex);
+    }
 }
 
 /// For f = ax + b + (a periodic part), a ≠ 0: the period of that part as a multiple of π, and a.
@@ -388,6 +401,13 @@ struct Sketch<'a> {
     points: Vec<MarkedPoint>,
     asymptotes: Vec<Asymptote>,
     breaks: Vec<f64>,
+    /// Tells the point tokens of the pieces' sketches apart.
+    tag: usize,
+    /// Where this piece meets another one: no boundary extremum and no limit there, the join
+    /// section looks at those points.
+    joins: Vec<Point>,
+    /// The local and boundary extrema found, as (x, y), for the global ones.
+    extremes: Vec<(Point, Point)>,
 }
 
 impl Sketch<'_> {
@@ -451,7 +471,10 @@ impl Sketch<'_> {
 
     /// Marks a point and returns `token(x | y)`; the token becomes the point's name.
     fn mark(&mut self, kind: PointKind, x: &Point, y: &Point) -> String {
-        let token = format!("@{}@", self.points.len());
+        let token = format!("@{}.{}@", self.tag, self.points.len());
+        if matches!(kind, PointKind::Max | PointKind::Min | PointKind::BoundaryMax | PointKind::BoundaryMin) {
+            self.extremes.push((x.clone(), y.clone()));
+        }
         let latex = self.coordinates(&token, x, y);
         self.points.push(MarkedPoint { kind, name: String::new(), x: x.approx, y: y.approx, latex: latex.clone(), period: None, token });
         latex
@@ -625,6 +648,10 @@ impl Sketch<'_> {
         out
     }
 
+    fn is_join(&self, p: &Point) -> bool {
+        self.joins.iter().any(|j| j.same(p))
+    }
+
     fn is_domain_end(&self, p: &Point) -> bool {
         self.domain.set.0.iter().any(|i| {
             [&i.lo, &i.hi].iter().any(|b| matches!(b, Bound::At { point, .. } if point.same(p)))
@@ -777,6 +804,9 @@ impl Sketch<'_> {
             })
             .collect();
         for (end, left_end) in ends {
+            if self.is_join(&end) {
+                continue;
+            }
             let inside = if left_end { end.approx + 1e-6 * end.approx.abs().max(1.0) } else { end.approx - 1e-6 * end.approx.abs().max(1.0) };
             let Some(slope) = f1.eval_f64(inside) else { continue };
             let rising = slope > 0.0;
@@ -1041,12 +1071,12 @@ impl Sketch<'_> {
         let mut ends: Vec<Approach> = Vec::new();
         match set.first().map(|i| &i.lo) {
             Some(Bound::NegInf) => ends.push(Approach::NegInf),
-            Some(Bound::At { point, closed: false }) => ends.push(Approach::Right(point.clone())),
+            Some(Bound::At { point, closed: false }) if !self.is_join(point) => ends.push(Approach::Right(point.clone())),
             _ => {}
         }
         match set.last().map(|i| &i.hi) {
             Some(Bound::PosInf) => ends.push(Approach::PosInf),
-            Some(Bound::At { point, closed: false }) => ends.push(Approach::Left(point.clone())),
+            Some(Bound::At { point, closed: false }) if !self.is_join(point) => ends.push(Approach::Left(point.clone())),
             _ => {}
         }
         let mut horizontal: Vec<(Point, Side)> = Vec::new();
@@ -1169,6 +1199,42 @@ impl Sketch<'_> {
         }
     }
 
+    /// The limits of f where D is open or unbounded: at ±∞, at open ends, and around the gaps of
+    /// a periodic family (tan), where f is unbounded.
+    fn edge_limits(&self) -> Vec<(Approach, Behaviour)> {
+        let ctx = LimitContext { var: self.ctx.var, digits: self.ctx.digits };
+        let mut out = Vec::new();
+        for interval in &self.domain.set.0 {
+            let approaches = [
+                match &interval.lo {
+                    Bound::NegInf => Some(Approach::NegInf),
+                    Bound::At { point, closed: false } => Some(Approach::Right(point.clone())),
+                    _ => None,
+                },
+                match &interval.hi {
+                    Bound::PosInf => Some(Approach::PosInf),
+                    Bound::At { point, closed: false } => Some(Approach::Left(point.clone())),
+                    _ => None,
+                },
+            ];
+            for approach in approaches.into_iter().flatten() {
+                let (found, _) = behaviour(&self.f, &approach, &ctx);
+                out.push((approach, found));
+            }
+        }
+        if !self.domain.excluded.is_empty() {
+            let pole = Point::approx(f64::NAN);
+            out.push((Approach::Left(pole.clone()), Behaviour::PosInf));
+            out.push((Approach::Right(pole), Behaviour::NegInf));
+        }
+        out
+    }
+
+    fn global_extrema(&mut self) -> Section {
+        let limits = self.edge_limits();
+        global_section(&self.extremes, &limits, self.ctx)
+    }
+
     fn antiderivative(&mut self) -> Section {
         let ctx = IntegrateContext { settings: self.ctx.settings, var: self.ctx.var, domain: &self.domain };
         match antiderivative(&self.f, &ctx) {
@@ -1185,6 +1251,77 @@ impl Sketch<'_> {
             }
         }
     }
+}
+
+/// The global maximum and minimum from the values f takes at its local and boundary extrema
+/// (`values`, as (x, y)) and the limits where D is open or unbounded: a value is the global
+/// maximum when no limit goes above it.
+fn global_section(values: &[(Point, Point)], limits: &[(Approach, Behaviour)], ctx: &Ctx) -> Section {
+    let d = ctx.digits;
+    let var = ctx.var;
+    let mut values: Vec<(Point, Point)> = values.to_vec();
+    values.sort_by(|a, b| a.0.approx.partial_cmp(&b.0.approx).unwrap_or(Ordering::Equal));
+    values.dedup_by(|a, b| a.0.same(&b.0));
+    let mut steps = Vec::new();
+    if !values.is_empty() {
+        let listed: Vec<String> = values.iter().map(|(x, y)| format!("f({}) = {}", x.to_latex(d), approx_text(y, d))).collect();
+        steps.push(step(AnalysisRule::GlobalExtremum, msg!("core.analysis.global.compare"), listed.join(", \\quad ")));
+    }
+    let shown: Vec<String> = limits
+        .iter()
+        .filter(|(a, _)| !matches!(a, Approach::Left(p) | Approach::Right(p) if p.approx.is_nan()))
+        .map(|(a, b)| format!("\\lim_{{{}}} f({var}) = {}", a.to_latex(var, d), b.to_latex(d)))
+        .collect();
+    if !shown.is_empty() {
+        steps.push(step(AnalysisRule::GlobalExtremum, msg!("core.analysis.global.limits"), shown.join(", \\quad ")));
+    }
+    let unknown = limits.iter().any(|(_, b)| matches!(b, Behaviour::Unknown));
+    let tolerance = |y: f64| 1e-9 * y.abs().max(1.0);
+    let mut lines = Vec::new();
+    for maximum in [true, false] {
+        let better = |a: f64, b: f64| if maximum { a > b } else { a < b };
+        let best = values.iter().map(|(_, y)| y.approx).fold(None, |acc: Option<f64>, y| match acc {
+            Some(b) if !better(y, b) => Some(b),
+            _ => Some(y),
+        });
+        let unbounded = limits.iter().any(|(_, b)| matches!(b, Behaviour::PosInf if maximum) || matches!(b, Behaviour::NegInf if !maximum) || matches!(b, Behaviour::Oscillates));
+        let beyond = limits.iter().filter_map(|(_, b)| match b {
+            Behaviour::Finite(l) => Some(l.clone()),
+            _ => None,
+        });
+        let mut sup: Option<Point> = None;
+        for l in beyond {
+            let wins = match &sup {
+                Some(s) => better(l.approx, s.approx),
+                None => true,
+            };
+            if wins {
+                sup = Some(l);
+            }
+        }
+        let name = if maximum { msg!("core.analysis.global.max") } else { msg!("core.analysis.global.min") };
+        let line = match (best, &sup) {
+            _ if unbounded => text(&if maximum { msg!("core.analysis.global.no_max_unbounded") } else { msg!("core.analysis.global.no_min_unbounded") }),
+            (Some(b), Some(l)) if better(l.approx, b) && (l.approx - b).abs() > tolerance(b) => {
+                let bound = if maximum { "\\sup" } else { "\\inf" };
+                format!("{} \\ {bound} f = {}", text(&if maximum { msg!("core.analysis.global.no_max_sup") } else { msg!("core.analysis.global.no_min_inf") }), approx_text(l, d))
+            }
+            (None, Some(l)) => {
+                let bound = if maximum { "\\sup" } else { "\\inf" };
+                format!("{} \\ {bound} f = {}", text(&if maximum { msg!("core.analysis.global.no_max_sup") } else { msg!("core.analysis.global.no_min_inf") }), approx_text(l, d))
+            }
+            (Some(b), _) => {
+                let at: Vec<&(Point, Point)> = values.iter().filter(|(_, y)| (y.approx - b).abs() <= tolerance(b)).collect();
+                let xs: Vec<String> = at.iter().map(|(x, _)| format!("f({})", x.to_latex(d))).collect();
+                format!("{} \\ {} = {}", text(&name), xs.join(" = "), approx_text(&at[0].1, d))
+            }
+            (None, None) => text(&if maximum { msg!("core.analysis.global.no_max_unbounded") } else { msg!("core.analysis.global.no_min_unbounded") }),
+        };
+        steps.push(step(AnalysisRule::GlobalExtremum, if maximum { msg!("core.analysis.global.max") } else { msg!("core.analysis.global.min") }, line.clone()));
+        lines.push(line);
+    }
+    let (status, message) = if unknown { (SectionStatus::Partial, Some(msg!("core.analysis.global.undecided"))) } else { (SectionStatus::Ok, None) };
+    Section { id: "globalExtrema", title: msg!("core.analysis.discussion.global_extrema"), status, message, steps, result: Some(lines.join(", \\quad ")) }
 }
 
 /// The lower bound point of an interval (a dummy at -∞, which no bound equals).

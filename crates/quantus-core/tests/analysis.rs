@@ -593,3 +593,16 @@ fn a_given_domain_restricts_the_sketch() {
     assert!(steps(&open, "behaviour").iter().any(|s| s.contains(r"x \to 0^{+}")), "{:?}", steps(&open, "behaviour"));
     assert!(open.points.iter().any(|p| p.kind == PointKind::BoundaryMin && p.x == 2.0));
 }
+
+#[test]
+fn global_extrema_compare_the_extrema_with_the_ends() {
+    let d = sketch(r"x^2, \ x \in [-1, 2]");
+    assert_eq!(result(&d, "globalExtrema"), r"\text{Global maximum} \ f(2) = 4, \quad \text{Global minimum} \ f(0) = 0");
+    let both = sketch(r"x^2, \ x \in [-1, 1]");
+    assert_eq!(result(&both, "globalExtrema"), r"\text{Global maximum} \ f(-1) = f(1) = 1, \quad \text{Global minimum} \ f(0) = 0");
+    let pole = sketch(r"\frac{1}{x}, \ 0 < x \le 2");
+    assert_eq!(result(&pole, "globalExtrema"), r"\text{No global maximum: f is unbounded above}, \quad \text{Global minimum} \ f(2) = \frac{1}{2}");
+    let decay = sketch(r"e^{-x}, \ x \ge 0");
+    assert_eq!(result(&decay, "globalExtrema"), r"\text{Global maximum} \ f(0) = 1, \quad \text{No global minimum, the infimum is not attained:} \ \inf f = 0");
+    assert!(sketch("x^2").sections.iter().all(|s| s.id != "globalExtrema"));
+}

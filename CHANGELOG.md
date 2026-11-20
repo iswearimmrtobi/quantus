@@ -13,6 +13,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   set, closed ends are boundary extrema, open ends get their limits, and the graph stops there
   with a filled dot at an end that belongs to the domain and a hollow one where it does not. The
   tangent, area and table tasks use it too.
+- Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
+  local and boundary extrema with the limits where the domain is open or unbounded, and says when
+  f is unbounded or a supremum or infimum is not attained.
 - Desktop, Analysis: the graph in full screen, with ⤢ beside *Reset view*; <kbd>Esc</kbd> leaves.
   The view, the tangent, the area and the table's dots stay as they were.
 - Desktop, circuit editors (Electronics, Kirchhoff, Logic): undo and redo, with Ctrl+Z and

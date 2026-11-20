@@ -103,7 +103,7 @@ handheld keeps working.
   - [x] Domain and plot per piece; open and closed ends as dots.
   - [ ] The curve sketch per piece; limits at ±∞ only where the domain is unbounded.
   - [ ] Continuity and differentiability at the joins.
-  - [ ] Global extrema on bounded domains.
+  - [x] Global extrema on given domains.
   - [ ] Tangent, area and value table respect the domain and the joins.
   - [ ] A piecewise antiderivative, continuous where f is.
 - [ ] 3. Splines through points (`analysis/spline.rs`): natural and clamped cubic splines, solved

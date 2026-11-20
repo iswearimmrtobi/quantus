@@ -37,7 +37,10 @@ f(x) = x^2 \quad D = [-1, 2]
 Intervals (`[0, 3)`, `]0; 3]`, `(-\infty, 2]`, joined with `\cup`), inequalities and chains of
 two, `x \neq a`, $\mathbb{R}^+$ and $\mathbb{R}_0^+$ are understood. The sketch cuts every
 section to the domain: the domain section shows $D = \mathbb{R} \cap [-1, 2] = [-1, 2]$, closed
-ends become boundary maxima or minima, open ends get a limit, and the graph stops at the ends.
+ends become boundary maxima or minima, open ends get a limit, and the graph stops at the ends. A
+section **Global extrema** compares the values at the local and boundary extrema with the limits
+at open or unbounded ends: $x^2$ on $[-1, 2]$ has the global maximum $f(2) = 4$ and the global
+minimum $f(0) = 0$; $e^{-x}$ for $x \ge 0$ has no global minimum, its infimum 0 is not attained.
 
 ## The curve sketch
 
