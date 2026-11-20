@@ -61,6 +61,21 @@ pub fn breaks_in(domain: &Domain, lo: f64, hi: f64) -> Vec<f64> {
     out
 }
 
+/// The breaks of a function of pieces in [lo, hi]: those of its domain and of each piece's own
+/// domain (poles of one piece), and the joins, where the graph may jump.
+pub fn function_breaks(f: &Function, domain: &Domain, pieces: &[Domain], lo: f64, hi: f64) -> Vec<f64> {
+    let mut out = breaks_in(domain, lo, hi);
+    if f.is_piecewise() {
+        for piece in pieces {
+            out.extend(breaks_in(piece, lo, hi));
+        }
+        out.extend(f.joins().iter().map(|p| p.approx).filter(|x| *x > lo && *x < hi));
+    }
+    out.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    out.dedup();
+    out
+}
+
 /// The finite ends of the domain intervals inside [lo, hi], where the graph starts or stops:
 /// sampled exactly, so `\sqrt{x}` reaches its endpoint at 0 in every view.
 pub fn ends_in(domain: &Domain, lo: f64, hi: f64) -> Vec<f64> {
@@ -302,5 +317,34 @@ mod tests {
         let w = default_window(&constant);
         assert_eq!((w.x_min, w.x_max), (-5.0, 5.0));
         assert!(w.y_max - w.y_min >= 2.0);
+    }
+
+    #[test]
+    fn pieces_are_drawn_apart_where_they_jump() {
+        let settings = Settings::default();
+        let request = |latex: &str| super::super::interface::SampleRequest {
+            latex: latex.into(),
+            x_min: -2.0,
+            x_max: 2.0,
+            samples: 200,
+            ..Default::default()
+        };
+        let jump = super::super::interface::sample_function(&settings, &request("\\begin{cases} x & x < 0 \\\\ x + 1 & x \\ge 0 \\end{cases}")).unwrap().segments;
+        assert_eq!(jump.len(), 2);
+        assert!(jump[0].last().unwrap()[1] < 0.01 && jump[1][0][1] > 0.99);
+        let restricted = super::super::interface::sample_function(&settings, &request("x^2, \\ x \\in [-1, 1)")).unwrap().segments;
+        assert_eq!(restricted.len(), 1);
+        assert_eq!(restricted[0][0], [-1.0, 1.0]);
+        assert!(restricted[0].iter().all(|p| p[0] < 1.0));
+    }
+
+    #[test]
+    fn the_ends_of_a_given_domain_are_dots() {
+        let (f, _) = crate::analysis::input::parse_function("x^2, \\ x \\in [-1, 1)", None, None, &Settings::default()).unwrap();
+        assert_eq!(f.ends(), [(-1.0, 1.0, true), (1.0, 1.0, false)]);
+        let (plain, _) = crate::analysis::input::parse_function("\\sqrt{x}", None, None, &Settings::default()).unwrap();
+        assert!(plain.ends().is_empty());
+        let (pieces, _) = crate::analysis::input::parse_function("\\begin{cases} \\frac{1}{x} & x < 0 \\\\ 1 & x \\ge 0 \\end{cases}", None, None, &Settings::default()).unwrap();
+        assert_eq!(pieces.ends(), [(0.0, 1.0, true)]);
     }
 }

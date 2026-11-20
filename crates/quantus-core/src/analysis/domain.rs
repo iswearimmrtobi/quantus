@@ -81,6 +81,45 @@ pub fn domain_on(f: &Expr, on: &IntervalSet, ctx: &DomainContext) -> Result<(Dom
     Ok((domain, steps))
 }
 
+/// The domain of a function of pieces: each piece's own domain on its set, and their union.
+/// The steps of a piecewise function name the piece first. Returns the union, the steps and the
+/// domain of each piece.
+pub fn function_domain(f: &super::function::Function, ctx: &DomainContext) -> Result<(Domain, Vec<Step>, Vec<Domain>)> {
+    if !f.is_piecewise() {
+        let (domain, steps) = domain_on(&f.pieces[0].expr, &f.pieces[0].on, ctx)?;
+        return Ok((domain.clone(), steps, vec![domain]));
+    }
+    let language = ctx.settings.language;
+    let mut steps = Vec::new();
+    let mut pieces = Vec::new();
+    let mut set = IntervalSet::empty();
+    let mut holes = Vec::new();
+    for (i, piece) in f.pieces.iter().enumerate() {
+        let condition = super::function::condition_latex(&piece.on, ctx.var, ctx.digits, language);
+        steps.push(step(AnalysisRule::Piecewise, msg!("core.analysis.domain.piece", i + 1), format!("f({}) = {}, \\ {condition}", ctx.var, piece.expr.to_latex(ctx.var))));
+        let (domain, piece_steps) = match domain_on(&piece.expr, &piece.on, ctx) {
+            Ok(found) => found,
+            Err(_) => return Err(QuantusError::other(msg!("core.analysis.domain.piece_nowhere", i + 1))),
+        };
+        steps.extend(piece_steps.into_iter().map(|s| s.with_level(StepDetail::Standard)));
+        // Periodic gaps (tan) stay with their piece: on the union they would cut the other pieces.
+        let mut own = domain.set.clone();
+        for family in &domain.excluded {
+            for p in family.points_in(own.0.first().map_or(-50.0, |i| i.lo.value().max(-50.0)), own.0.last().map_or(50.0, |i| i.hi.value().min(50.0)), 400) {
+                own = own.remove_point(&p);
+            }
+        }
+        set = set.union(&own);
+        holes.extend(domain.holes.iter().cloned());
+        pieces.push(domain);
+    }
+    let union = Domain { set, excluded: Vec::new(), holes };
+    let parts: Vec<String> = (1..=pieces.len()).map(|i| format!("D_{{{i}}}")).collect();
+    let latex = format!("D = {} = {}", parts.join(" \\cup "), union.to_latex(ctx.digits, language));
+    steps.push(step(AnalysisRule::DomainCondition, msg!("core.analysis.domain.domain"), latex));
+    Ok((union, steps, pieces))
+}
+
 fn domain_of(f: &Expr, ctx: &DomainContext) -> Result<(Domain, Vec<Step>)> {
     let mut conditions = Vec::new();
     collect(f, &mut conditions)?;

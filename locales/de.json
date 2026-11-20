@@ -913,6 +913,8 @@
     "core.analysis.domain.logarithm_argument": "Argument des Logarithmus > 0",
     "core.analysis.domain.negative_irrational_exponent_base": "Basis einer Potenz mit negativem irrationalem Exponenten > 0",
     "core.analysis.domain.periodic_unsupported": "Definitionsbereiche aus periodischen Intervallen werden noch nicht unterstützt.",
+    "core.analysis.domain.piece": "Teil {}",
+    "core.analysis.domain.piece_nowhere": "Teil {} ist auf seinem Intervall nirgends definiert",
     "core.analysis.domain.restricted": "Auf den angegebenen Definitionsbereich eingeschränkt",
     "core.analysis.domain.tan_undefined": "tan ist nicht definiert, wo cos = 0",
     "core.analysis.domain.variable_exponent_base": "Basis einer variablen Potenz > 0",

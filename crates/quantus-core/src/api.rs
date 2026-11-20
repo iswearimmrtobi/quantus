@@ -792,7 +792,7 @@ mod tests {
         };
         assert_eq!(keys_of(&body["sections"][0]), ["id", "message", "result", "status", "steps", "title"]);
         assert_eq!(keys_of(max), ["kind", "latex", "name", "period", "x", "y"]);
-        assert_eq!(keys_of(&body["plot"]), ["segments", "xMax", "xMin", "yMax", "yMin"]);
+        assert_eq!(keys_of(&body["plot"]), ["ends", "segments", "xMax", "xMin", "yMax", "yMin"]);
         let pole = json_of(&analyze(&Settings::default(), &AnalysisRequest { latex: "\\frac{1}{x}".into(), ..Default::default() }).unwrap());
         assert_eq!(keys_of(&pole["asymptotes"][0]), ["intercept", "kind", "latex", "period", "side", "slope", "x"]);
 

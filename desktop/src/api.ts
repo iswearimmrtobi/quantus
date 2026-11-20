@@ -913,6 +913,8 @@ export interface PlotData {
   yMin: number;
   yMax: number;
   segments: Segment[];
+  /** The ends of a given domain or of the pieces: filled where they belong to f, hollow where not. */
+  ends: { x: number; y: number; closed: boolean }[];
 }
 
 /** What `quantus_core::api::AnalysisResponse` serialises to. */

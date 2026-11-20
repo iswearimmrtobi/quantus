@@ -152,6 +152,8 @@ pub struct Discussion {
     pub period: Option<String>,
     pub f: Function,
     pub domain: Domain,
+    /// The domain of each piece; just `domain` for a function of one piece.
+    pub piece_domains: Vec<Domain>,
     /// Poles and other gaps inside the window, where the graph breaks.
     pub breaks: Vec<f64>,
     /// Where periodic families are listed.
@@ -286,6 +288,7 @@ pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
         asymptotes: sketch.asymptotes,
         period: period.map(times_pi).map(|p| tex(&p)),
         f: function.simplified(),
+        piece_domains: vec![dom.clone()],
         domain: dom,
         breaks: sketch.breaks,
         window,

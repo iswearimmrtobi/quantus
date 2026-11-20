@@ -2573,6 +2573,17 @@ select option {
   fill: var(--accent);
 }
 
+/* The end of a given domain or of a piece: hollow when it does not belong to f. */
+.plot-end {
+  fill: var(--background);
+  stroke: var(--primary);
+  stroke-width: 1.8;
+}
+
+.plot-end.closed {
+  fill: var(--primary);
+}
+
 .plot-point {
   stroke: var(--background);
   stroke-width: 1.5;

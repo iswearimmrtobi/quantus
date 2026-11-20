@@ -5,7 +5,8 @@ use dashu::rational::RBig;
 
 use super::budget;
 use super::derive::derive_chain;
-use super::domain::{domain_on, DomainContext};
+use super::domain::{function_domain, DomainContext};
+use super::function::Function;
 use super::expr::Expr;
 use super::integrate::{antiderivative, IntegrateContext};
 use super::interval::{Domain, Point};
@@ -65,21 +66,33 @@ pub struct TableRow {
 
 /// The function of a task, read and with its domain.
 pub(super) struct Prepared {
+    /// The function simplified, piece by piece.
+    pub function: Function,
+    /// The first piece, simplified: the function itself unless it is piecewise.
     pub f: Expr,
     pub var: String,
+    /// Where the function is defined: the union of the pieces' domains.
     pub domain: Domain,
+    /// The domain of each piece.
+    pub pieces: Vec<Domain>,
     pub digits: usize,
 }
 
 pub(super) fn prepare(latex: &str, variable: Option<&str>, given: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<Prepared> {
     let (function, var) = super::input::parse_function(latex, variable, given, settings)?;
-    if function.is_piecewise() {
+    let digits = super::digits(settings, precision);
+    let (domain, _, pieces) = function_domain(&function, &DomainContext { settings, var: &var, digits })?;
+    let function = function.simplified();
+    let f = function.pieces[0].expr.clone();
+    Ok(Prepared { function, f, var, domain, pieces, digits })
+}
+
+/// A task that does not handle pieces yet.
+fn single(p: &Prepared) -> Result<()> {
+    if p.function.is_piecewise() {
         return Err(QuantusError::other(msg!("core.analysis.input.piecewise_not_yet")));
     }
-    let piece = &function.pieces[0];
-    let digits = super::digits(settings, precision);
-    let (domain, _) = domain_on(&piece.expr, &piece.on, &DomainContext { settings, var: &var, digits })?;
-    Ok(Prepared { f: simplify(&piece.expr), var, domain, digits })
+    Ok(())
 }
 
 /// A number typed by the user: `2`, `\frac{\pi}{4}`, `-\sqrt{2}`.
@@ -99,6 +112,7 @@ pub fn tangent(latex: &str, variable: Option<&str>, given: Option<&str>, x0: &st
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, given, settings, precision)?;
+    single(&p)?;
     let var = p.var.as_str();
     let tex = |e: &Expr| e.to_latex(var);
     let x = parse_number(x0, settings, "x_0")?;
@@ -180,6 +194,7 @@ pub fn area(latex: &str, variable: Option<&str>, given: Option<&str>, from: Opti
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, given, settings, precision)?;
+    single(&p)?;
     let var = p.var.as_str();
     let improper = || QuantusError::other(msg!("core.analysis.tasks.improper_integral"));
     let enter_bounds = || QuantusError::other(msg!("core.analysis.tasks.please_enter_bounds"));
@@ -332,6 +347,7 @@ pub fn value_table(latex: &str, variable: Option<&str>, given: Option<&str>, fro
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
     let p = prepare(latex, variable, given, settings, precision)?;
+    single(&p)?;
     let (start, end, step) = (parse_number(from, settings, "from")?, parse_number(to, settings, "to")?, parse_number(step_size, settings, "step")?);
     if step.approx <= 0.0 {
         return Err(QuantusError::other(msg!("core.analysis.tasks.step_must_positive")));

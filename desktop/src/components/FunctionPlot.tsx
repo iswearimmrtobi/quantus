@@ -272,6 +272,12 @@ export function FunctionPlot({ latex, domain = null, plot, points, asymptotes, l
             {segments.map((segment, i) => (
               <polyline key={`s${i}`} className="plot-curve" points={path(segment)} />
             ))}
+            {/* Open ends first, so a filled end at the same place covers its hollow neighbour. */}
+            {[...plot.ends]
+              .sort((a, b) => Number(a.closed) - Number(b.closed))
+              .map((end, i) => (
+                <circle key={`e${i}`} className={end.closed ? 'plot-end closed' : 'plot-end'} cx={sx(end.x)} cy={sy(end.y)} r={3.5} />
+              ))}
             {dots.map(([x, y], i) => (
               <circle key={`d${i}`} className="plot-dot" cx={sx(x)} cy={sy(y)} r={2.5} />
             ))}

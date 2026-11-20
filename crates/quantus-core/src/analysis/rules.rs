@@ -43,6 +43,11 @@ pub enum AnalysisRule {
     Tangent,
     Normal,
     Area,
+    /// A piece of a piecewise function, or its condition.
+    Piecewise,
+    /// Continuity and differentiability where two pieces meet.
+    Continuity,
+    GlobalExtremum,
 }
 
 impl AnalysisRule {
@@ -83,6 +88,9 @@ impl AnalysisRule {
             AnalysisRule::Tangent => "TANGENT",
             AnalysisRule::Normal => "NORMAL",
             AnalysisRule::Area => "AREA",
+            AnalysisRule::Piecewise => "PIECEWISE",
+            AnalysisRule::Continuity => "CONTINUITY",
+            AnalysisRule::GlobalExtremum => "GLOBAL_EXTREMUM",
         }
     }
 }

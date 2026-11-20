@@ -913,6 +913,8 @@
     "core.analysis.domain.logarithm_argument": "Argument of the logarithm > 0",
     "core.analysis.domain.negative_irrational_exponent_base": "Base of a power with a negative irrational exponent > 0",
     "core.analysis.domain.periodic_unsupported": "Domains made of periodic intervals are not supported yet.",
+    "core.analysis.domain.piece": "Piece {}",
+    "core.analysis.domain.piece_nowhere": "Piece {} is defined nowhere on its interval",
     "core.analysis.domain.restricted": "Restricted to the given domain",
     "core.analysis.domain.tan_undefined": "tan is undefined where cos = 0",
     "core.analysis.domain.variable_exponent_base": "Base of a variable exponent > 0",

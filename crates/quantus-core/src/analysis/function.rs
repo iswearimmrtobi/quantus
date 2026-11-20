@@ -75,6 +75,31 @@ impl Function {
         self.pieces.iter().fold(IntervalSet::empty(), |all, p| all.union(&p.on))
     }
 
+    /// The ends of the pieces where the graph starts or stops, as (x, y, closed): a filled dot
+    /// where the end belongs to the piece, a hollow one where it does not. Only for a given
+    /// domain or pieces; an end where f runs off to infinity has no dot.
+    pub fn ends(&self) -> Vec<(f64, f64, bool)> {
+        if !self.is_piecewise() && !self.is_restricted() {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        for piece in &self.pieces {
+            for interval in &piece.on.0 {
+                for (bound, inward) in [(&interval.lo, 1.0), (&interval.hi, -1.0)] {
+                    let Bound::At { point, closed } = bound else { continue };
+                    let x = point.approx;
+                    let nudge = inward * 1e-9 * x.abs().max(1.0);
+                    // The value there, or the limit from inside where f has none (a pole is left out).
+                    let y = piece.expr.eval_f64(x).or_else(|| piece.expr.eval_f64(x + nudge));
+                    if let Some(y) = y.filter(|y| y.is_finite() && y.abs() < 1e6) {
+                        out.push((x, y, *closed));
+                    }
+                }
+            }
+        }
+        out
+    }
+
     /// `f(x) = …` as the sketch heads it: the expression, with its condition or as cases.
     pub fn to_latex(&self, var: &str, digits: usize, language: Language) -> String {
         if !self.is_piecewise() {

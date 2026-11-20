@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::discussion::{Asymptote, Discussion, MarkedPoint};
 use super::interval::Point;
-use super::plot::{breaks_in, default_window, ends_in, sample, Segment};
+use super::plot::{default_window, ends_in, function_breaks, sample, Segment};
 use super::tasks::{self, Line};
 use crate::api::StepResponse;
 use crate::eval::calculator::shown_steps;
@@ -98,6 +98,16 @@ pub struct PlotResponse {
     pub y_min: f64,
     pub y_max: f64,
     pub segments: Vec<Segment>,
+    /// The ends of a given domain or of the pieces: filled where they belong to f.
+    pub ends: Vec<EndResponse>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EndResponse {
+    pub x: f64,
+    pub y: f64,
+    pub closed: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -228,9 +238,15 @@ fn steps(steps: &[Step], settings: &Settings) -> Vec<StepResponse> {
 
 fn response(d: &Discussion, settings: &Settings) -> AnalysisResponse {
     let window = default_window(d);
-    let breaks = breaks_in(&d.domain, window.x_min, window.x_max);
+    let mut breaks = function_breaks(&d.f, &d.domain, &d.piece_domains, window.x_min, window.x_max);
+    breaks.extend(d.breaks.iter().copied().filter(|x| *x > window.x_min && *x < window.x_max));
+    breaks.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    breaks.dedup();
     let mut marks: Vec<f64> = d.points.iter().map(|p| p.x).collect();
     marks.extend(ends_in(&d.domain, window.x_min, window.x_max));
+    for piece in &d.piece_domains {
+        marks.extend(ends_in(piece, window.x_min, window.x_max));
+    }
     let segments = sample(&d.f, &breaks, &marks, window.x_min, window.x_max, INITIAL_SAMPLES, Some((window.y_min, window.y_max)));
     AnalysisResponse {
         function: d.function.clone(),
@@ -250,8 +266,12 @@ fn response(d: &Discussion, settings: &Settings) -> AnalysisResponse {
         points: d.points.iter().map(point).collect(),
         asymptotes: d.asymptotes.iter().map(asymptote).collect(),
         period: d.period.clone(),
-        plot: PlotResponse { x_min: window.x_min, x_max: window.x_max, y_min: window.y_min, y_max: window.y_max, segments },
+        plot: PlotResponse { x_min: window.x_min, x_max: window.x_max, y_min: window.y_min, y_max: window.y_max, segments, ends: ends(&d.f) },
     }
+}
+
+fn ends(f: &super::function::Function) -> Vec<EndResponse> {
+    f.ends().into_iter().map(|(x, y, closed)| EndResponse { x, y, closed }).collect()
 }
 
 fn point(p: &MarkedPoint) -> PointResponse {
@@ -294,9 +314,13 @@ fn asymptote(a: &Asymptote) -> AsymptoteResponse {
 pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<SampleResponse> {
     let _language = Scope::new(settings.language);
     let _budget = super::budget::Guard::new(super::SAMPLE_LIMIT);
-    let super::tasks::Prepared { f, domain, .. } = super::tasks::prepare(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?;
-    let breaks = breaks_in(&domain, request.x_min, request.x_max);
-    let ends = ends_in(&domain, request.x_min, request.x_max);
+    let p = super::tasks::prepare(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?;
+    let breaks = function_breaks(&p.function, &p.domain, &p.pieces, request.x_min, request.x_max);
+    let mut ends = ends_in(&p.domain, request.x_min, request.x_max);
+    for piece in &p.pieces {
+        ends.extend(ends_in(piece, request.x_min, request.x_max));
+    }
+    let f = p.function;
     let y_range = request.y_min.zip(request.y_max);
     Ok(SampleResponse { segments: sample(&f, &breaks, &ends, request.x_min, request.x_max, request.samples, y_range) })
 }

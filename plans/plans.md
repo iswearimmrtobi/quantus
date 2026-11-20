@@ -100,7 +100,7 @@ handheld keeps working.
   on an `IntervalSet`):
   - [x] Input: a domain clause (`x\in[0,3]`, `0\le x<3`, `D=…`), `\begin{cases}`, an optional
     `domain` request field.
-  - [ ] Domain and plot per piece; open and closed ends as dots.
+  - [x] Domain and plot per piece; open and closed ends as dots.
   - [ ] The curve sketch per piece; limits at ±∞ only where the domain is unbounded.
   - [ ] Continuity and differentiability at the joins.
   - [ ] Global extrema on bounded domains.
