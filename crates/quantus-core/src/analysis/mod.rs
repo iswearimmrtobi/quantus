@@ -8,6 +8,7 @@ pub mod discussion;
 pub mod domain;
 pub mod exact;
 pub mod expr;
+pub mod function;
 pub mod input;
 pub mod integrate;
 pub mod interface;
@@ -46,11 +47,17 @@ pub fn digits(settings: &Settings, precision: Option<usize>) -> usize {
     precision.unwrap_or_else(|| settings.precision.min(DEFAULT_DIGITS)).max(1)
 }
 
-/// The curve sketch of the function in `latex` (`f(x) = …`, `y = …` or a bare expression).
+/// The curve sketch of the function in `latex` (`f(x) = …`, `y = …` or a bare expression,
+/// optionally with a domain clause or as cases).
 pub fn analyze(latex: &str, variable: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<Discussion> {
+    analyze_on(latex, variable, None, settings, precision)
+}
+
+/// [`analyze`] with a domain from its own field, on top of what the input says.
+pub fn analyze_on(latex: &str, variable: Option<&str>, domain: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<Discussion> {
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(ANALYZE_LIMIT);
-    let (f, var) = input::parse_function(latex, variable, settings)?;
+    let (f, var) = input::parse_function(latex, variable, domain, settings)?;
     let ctx = discussion::Ctx { settings, var: &var, digits: digits(settings, precision) };
     discussion::discuss(&f, &ctx)
 }

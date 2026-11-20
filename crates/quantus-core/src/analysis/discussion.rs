@@ -9,9 +9,10 @@ use dashu::rational::RBig;
 
 use super::budget;
 use super::derive::{derive_chain, derivative_name, Derivation};
-use super::domain::{domain, sign_at, DomainContext};
+use super::domain::{domain, domain_on, sign_at, DomainContext};
 use super::exact::times_pi;
 use super::expr::{Expr, Fn};
+use super::function::Function;
 use super::integrate::{antiderivative, IntegrateContext};
 use super::interval::{simplest_between, Bound, Domain, Interval, PeriodicSet, Point};
 use super::limits::{approximating_curve, behaviour, infinity_working, oblique, pole, pole_working, Approach, Behaviour, LimitContext};
@@ -149,7 +150,7 @@ pub struct Discussion {
     pub asymptotes: Vec<Asymptote>,
     /// The period in LaTeX, for a periodic f.
     pub period: Option<String>,
-    pub f: Expr,
+    pub f: Function,
     pub domain: Domain,
     /// Poles and other gaps inside the window, where the graph breaks.
     pub breaks: Vec<f64>,
@@ -182,9 +183,14 @@ fn out_of_time(section: &mut Section) {
     }
 }
 
-/// The whole curve sketch of `f` (the tree as typed). Fails only when the domain is empty.
-pub fn discuss(f: &Expr, ctx: &Ctx) -> Result<Discussion> {
-    let (dom, domain_steps) = domain(f, &DomainContext { settings: ctx.settings, var: ctx.var, digits: ctx.digits })?;
+/// The whole curve sketch of `function` (the trees as typed). Fails only when the domain is empty.
+pub fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
+    if function.is_piecewise() {
+        return Err(crate::QuantusError::other(msg!("core.analysis.input.piecewise_not_yet")));
+    }
+    let piece = &function.pieces[0];
+    let f = &piece.expr;
+    let (dom, domain_steps) = domain_on(f, &piece.on, &DomainContext { settings: ctx.settings, var: ctx.var, digits: ctx.digits })?;
     let var = ctx.var;
     let tex = |e: &Expr| e.to_latex(var);
     let period = period_of(&simplify(f));
@@ -273,13 +279,13 @@ pub fn discuss(f: &Expr, ctx: &Ctx) -> Result<Discussion> {
         rename(&mut point.latex);
     }
     Ok(Discussion {
-        function: format!("f({var}) = {}", tex(f)),
+        function: format!("f({var}) = {}", function.to_latex(var, ctx.digits, ctx.settings.language)),
         variable: var.to_string(),
         sections,
         points,
         asymptotes: sketch.asymptotes,
         period: period.map(times_pi).map(|p| tex(&p)),
-        f: sketch.f,
+        f: function.simplified(),
         domain: dom,
         breaks: sketch.breaks,
         window,
@@ -1123,7 +1129,8 @@ impl Sketch<'_> {
             lines.push(format!("{} {latex}{}", text(&msg!("core.analysis.discussion.oblique_asymptote")), side_text(side)));
             self.asymptotes.push(Asymptote::Oblique { slope: m.approx, intercept: b.approx, side, latex });
         }
-        if let Some((curve, division)) = approximating_curve(&self.f, &ctx) {
+        let unbounded = !self.domain.set.is_bounded();
+        if let Some((curve, division)) = approximating_curve(&self.f, &ctx).filter(|_| unbounded) {
             steps.extend(division);
             let latex = format!("y = {}", self.tex(&curve));
             lines.push(format!("{} {latex}", text(&msg!("core.analysis.discussion.approximating_curve"))));

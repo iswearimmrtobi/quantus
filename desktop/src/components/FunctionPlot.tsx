@@ -15,6 +15,8 @@ interface View {
 interface Props {
   /** The function as analysed; panning asks the engine for fresh segments of it. */
   latex: string;
+  /** The domain from its own field, sent with every fresh sample. */
+  domain?: string | null;
   plot: PlotData;
   points: MarkedPoint[];
   asymptotes: Asymptote[];
@@ -67,7 +69,7 @@ function ticks(min: number, max: number, count: number): number[] {
  * ticks, the curve, dashed asymptotes and the marked points. Wheel zooms around the cursor, drag
  * moves the view; each change asks the engine for segments that fit the new view.
  */
-export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regions = [], dots = [], selected, onSelect }: Props) {
+export function FunctionPlot({ latex, domain = null, plot, points, asymptotes, lines = [], regions = [], dots = [], selected, onSelect }: Props) {
   const { t, language } = useT();
   /** The graph filling the window; the view and everything drawn stay as they are. */
   const fullscreen = useFullscreen();
@@ -121,7 +123,7 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
     if (view === initial) return;
     const id = ++request.current;
     const timer = window.setTimeout(() => {
-      api.sampleFunction(latex, view, Math.round(size.width)).then(
+      api.sampleFunction(latex, view, Math.round(size.width), domain).then(
         (sampled) => {
           if (alive.current && id === request.current) setSegments(sampled.segments);
         },
@@ -130,7 +132,7 @@ export function FunctionPlot({ latex, plot, points, asymptotes, lines = [], regi
       );
     }, RESAMPLE_DELAY);
     return () => window.clearTimeout(timer);
-  }, [latex, view, initial, size.width]);
+  }, [latex, domain, view, initial, size.width]);
 
   const { width, height } = size;
   const sx = useCallback((x: number) => ((x - view.xMin) / (view.xMax - view.xMin)) * width, [view, width]);

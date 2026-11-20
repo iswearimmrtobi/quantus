@@ -96,9 +96,13 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     window.setTimeout(() => setCopied(false), 1200);
   };
   const [input, setInput] = useState('');
+  /** The domain field: empty for the function's own domain. */
+  const [domainInput, setDomainInput] = useState('');
   const [latexMode, setLatexMode] = useState(false);
   /** The function the results belong to; tasks and the graph use it, not the half-typed input. */
   const [analysed, setAnalysed] = useState<string | null>(null);
+  /** The domain the results belong to. */
+  const [analysedDomain, setAnalysedDomain] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [tab, setTab] = useState<Tab>('sketch');
@@ -129,13 +133,14 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   }, []);
 
   const run = useCallback(
-    async (latex: string) => {
+    async (latex: string, domain: string | null) => {
       const id = ++analysisRequest.current;
       try {
-        const result = await api.analyze(latex);
+        const result = await api.analyze(latex, domain);
         if (id !== analysisRequest.current) return;
         setAnalysis(result);
         setAnalysed(latex);
+        setAnalysedDomain(domain);
         setError(null);
       } catch (failure) {
         if (id !== analysisRequest.current) return;
@@ -156,22 +161,22 @@ export function AnalysisView({ settings }: { settings: Settings }) {
       try {
         setTaskError(null);
         if (which === 'tangent') {
-          const result = await api.tangent(latex, x0);
+          const result = await api.tangent(latex, x0, analysedDomain);
           if (current()) setTangent(result);
         }
         if (which === 'area') {
-          const result = await api.areaUnderCurve(latex, bounds.from.trim() || null, bounds.to.trim() || null);
+          const result = await api.areaUnderCurve(latex, bounds.from.trim() || null, bounds.to.trim() || null, analysedDomain);
           if (current()) setArea(result);
         }
         if (which === 'table') {
-          const result = await api.valueTable(latex, table.from, table.to, table.step);
+          const result = await api.valueTable(latex, table.from, table.to, table.step, analysedDomain);
           if (current()) setRows(result);
         }
       } catch (failure) {
         if (current()) setTaskError(asError(failure));
       }
     },
-    [x0, bounds, table],
+    [x0, bounds, table, analysedDomain],
   );
 
   const submit = () => {
@@ -179,8 +184,9 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     if (!latex) return;
     clearTasks();
     setSelected(null);
-    if (latex !== analysed) setExpanded(new Set());
-    void run(latex);
+    const domain = domainInput.trim() || null;
+    if (latex !== analysed || domain !== analysedDomain) setExpanded(new Set());
+    void run(latex, domain);
   };
 
   const changeTab = (next: Tab) => {
@@ -192,12 +198,12 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   // A changed language, precision, output style or step detail shows at once.
   const { language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks } = settings;
   const hideSteps = stepDetail === 'none';
-  const latest = useRef({ analysed, tab, runTask });
-  latest.current = { analysed, tab, runTask };
+  const latest = useRef({ analysed, analysedDomain, tab, runTask });
+  latest.current = { analysed, analysedDomain, tab, runTask };
   useEffect(() => {
-    const { analysed: latex, tab: active, runTask: task } = latest.current;
+    const { analysed: latex, analysedDomain: domain, tab: active, runTask: task } = latest.current;
     if (!latex) return;
-    void run(latex);
+    void run(latex, domain);
     if (active !== 'sketch') void task(active, latex);
   }, [language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks, run]);
 
@@ -241,6 +247,19 @@ export function AnalysisView({ settings }: { settings: Settings }) {
             {latexMode ? 'TeX' : 'f(x)'}
           </button>
         </div>
+        <label className="domain-row" title={t('analysis.domain.hint')}>
+          <span className="domain-row-label">
+            <Katex latex="D =" />
+          </span>
+          <input
+            className="task-input domain-input"
+            value={domainInput}
+            placeholder={t('analysis.domain.placeholder')}
+            onChange={(e) => setDomainInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
+            spellCheck={false}
+          />
+        </label>
         {/* The other view of the input below it, as in the calculator: typeset while writing LaTeX, the source otherwise. */}
         <div className="source-row" style={{ '--lines': latexMode && input ? latexLines(input) : 1 } as CSSProperties}>
           {latexMode && input ? <Katex className="source-preview" latex={`\\displaystyle ${input}`} /> : <code className="source">{input || PLACEHOLDER}</code>}
@@ -267,6 +286,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
             <div className="analysis-graph">
               <FunctionPlot
                 latex={analysed}
+                domain={analysedDomain}
                 plot={analysis.plot}
                 points={points}
                 asymptotes={analysis.asymptotes}

@@ -40,6 +40,7 @@ pub fn solve(settings: &Settings, request: &Request, core_settings: impl Fn(Core
                 let request = TableRequest {
                     latex: latex.to_string(),
                     variable: None,
+                    domain: None,
                     from: from.clone(),
                     to: to.clone(),
                     step: step.clone(),

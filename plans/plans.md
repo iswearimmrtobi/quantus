@@ -98,7 +98,7 @@ handheld keeps working.
   - [x] `u^v` continued after `e^{v \ln u}` with the chain and product rules.
 - [ ] 2. Restricted domains and piecewise functions (`analysis/function.rs`: pieces of `Expr`
   on an `IntervalSet`):
-  - [ ] Input: a domain clause (`x\in[0,3]`, `0\le x<3`, `D=…`), `\begin{cases}`, an optional
+  - [x] Input: a domain clause (`x\in[0,3]`, `0\le x<3`, `D=…`), `\begin{cases}`, an optional
     `domain` request field.
   - [ ] Domain and plot per piece; open and closed ends as dots.
   - [ ] The curve sketch per piece; limits at ±∞ only where the domain is unbounded.

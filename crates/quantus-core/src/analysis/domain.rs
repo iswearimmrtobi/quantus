@@ -62,6 +62,25 @@ pub fn domain(f: &Expr, ctx: &DomainContext) -> Result<(Domain, Vec<Step>)> {
     Ok((domain, steps))
 }
 
+/// The domain of `f` on the set `on` it was given for: its own domain cut down to `on`.
+pub fn domain_on(f: &Expr, on: &IntervalSet, ctx: &DomainContext) -> Result<(Domain, Vec<Step>)> {
+    let (mut domain, mut steps) = domain(f, ctx)?;
+    if on.is_reals() {
+        return Ok((domain, steps));
+    }
+    let language = ctx.settings.language;
+    let own = domain.to_latex(ctx.digits, language);
+    let ends = super::function::finite_bounds(on);
+    domain.set = domain.set.intersect(on);
+    domain.holes.retain(|h| on.contains(h.approx) && !ends.iter().any(|e| e.same(h)));
+    if domain.set.is_empty() {
+        return Err(QuantusError::other(msg!("core.analysis.input.empty_domain")));
+    }
+    let latex = format!("D = {own} \\cap {} = {}", on.to_latex(ctx.digits, language), domain.to_latex(ctx.digits, language));
+    steps.push(step(AnalysisRule::DomainCondition, msg!("core.analysis.domain.restricted"), latex));
+    Ok((domain, steps))
+}
+
 fn domain_of(f: &Expr, ctx: &DomainContext) -> Result<(Domain, Vec<Step>)> {
     let mut conditions = Vec::new();
     collect(f, &mut conditions)?;

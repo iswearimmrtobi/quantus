@@ -3,9 +3,27 @@
 
 use super::discussion::Discussion;
 use super::expr::Expr;
+use super::function::Function;
 use super::interval::{Bound, Domain};
 
 pub type Segment = Vec<[f64; 2]>;
+
+/// What can be drawn: f(x) in floating point, `None` where it is undefined.
+pub trait Curve {
+    fn at(&self, x: f64) -> Option<f64>;
+}
+
+impl Curve for Expr {
+    fn at(&self, x: f64) -> Option<f64> {
+        self.eval_f64(x)
+    }
+}
+
+impl Curve for Function {
+    fn at(&self, x: f64) -> Option<f64> {
+        self.eval_f64(x)
+    }
+}
 
 /// Most samples one call may ask for.
 pub const MAX_SAMPLES: usize = 2000;
@@ -61,7 +79,7 @@ pub fn ends_in(domain: &Domain, lo: f64, hi: f64) -> Vec<f64> {
 
 /// The graph of f on [x_min, x_max] from about `samples` points, plus points just beside each
 /// break and at each of `marks`. With a y-range, values are clipped to ten heights beyond it.
-pub fn sample(f: &Expr, breaks: &[f64], marks: &[f64], x_min: f64, x_max: f64, samples: usize, y_range: Option<(f64, f64)>) -> Vec<Segment> {
+pub fn sample(f: &impl Curve, breaks: &[f64], marks: &[f64], x_min: f64, x_max: f64, samples: usize, y_range: Option<(f64, f64)>) -> Vec<Segment> {
     if !x_min.is_finite() || !x_max.is_finite() || x_min >= x_max {
         return Vec::new();
     }
@@ -77,7 +95,7 @@ pub fn sample(f: &Expr, breaks: &[f64], marks: &[f64], x_min: f64, x_max: f64, s
     xs.retain(|x| *x >= x_min && *x <= x_max && !breaks.contains(x));
     xs.sort_by(|a, b| a.partial_cmp(b).unwrap());
     xs.dedup();
-    let mut points: Vec<(f64, Option<f64>)> = xs.into_iter().map(|x| (x, f.eval_f64(x))).collect();
+    let mut points: Vec<(f64, Option<f64>)> = xs.into_iter().map(|x| (x, f.at(x))).collect();
 
     // Where neighbours differ a lot relative to the spread of the values, halve the step.
     let spread = spread(&points).max(1e-12);
@@ -92,7 +110,7 @@ pub fn sample(f: &Expr, breaks: &[f64], marks: &[f64], x_min: f64, x_max: f64, s
             let edge = a.1.is_some() != b.1.is_some();
             if !crosses && (steep || edge) && b.0 - a.0 > span * 1e-7 && refined.len() < 8 * MAX_SAMPLES {
                 let mid = (a.0 + b.0) / 2.0;
-                refined.push((mid, f.eval_f64(mid)));
+                refined.push((mid, f.at(mid)));
                 added = true;
             }
         }
@@ -246,6 +264,7 @@ mod tests {
         let request = super::super::interface::SampleRequest {
             latex: "\\sqrt{x}".into(),
             variable: None,
+            domain: None,
             x_min: -3.3,
             x_max: 7.7,
             samples: 100,

@@ -1,7 +1,7 @@
 //! The analysis mode end to end: the function in, each section's result and the marked points
 //! out, for the cases of `design/analysis-mode.md` (§17).
 
-use quantus_core::analysis::{analyze, Asymptote, Discussion};
+use quantus_core::analysis::{analyze, Asymptote, Discussion, PointKind};
 use quantus_core::settings::{Language, QuadraticFormula, Settings};
 
 fn sketch(latex: &str) -> Discussion {
@@ -326,7 +326,8 @@ fn every_antiderivative_differentiates_back() {
 
     let settings = Settings::default();
     for input in ["x^3-3x", "x e^x", "\\frac{x^2-1}{x-2}", "\\frac{\\ln x}{x}", "\\sin x", "\\frac{1}{x^2+1}", "\\arctan x", "x^4-2x^2", "\\sqrt{x}", "e^{x}-2"] {
-        let (f, var) = parse_function(input, None, &settings).unwrap();
+        let (f, var) = parse_function(input, None, None, &settings).unwrap();
+        let f = f.pieces[0].expr.clone();
         let (d, _) = domain(&f, &DomainContext { settings: &settings, var: &var, digits: 6 }).unwrap();
         let found = antiderivative(&simplify(&f), &IntegrateContext { settings: &settings, var: &var, domain: &d }).unwrap_or_else(|| panic!("{input}"));
         let back = simplify(&Expr::Sum(vec![derivative(&found.result), Expr::negate(f.clone())]));
@@ -469,7 +470,7 @@ fn task_working(steps: &[quantus_core::eval::Step], detail: quantus_core::settin
 #[test]
 fn the_tangent_puts_x0_in_and_multiplies_out() {
     use quantus_core::settings::StepDetail;
-    let r = quantus_core::analysis::tasks::tangent("x^2-3x", None, "1", &Settings::default(), None).unwrap();
+    let r = quantus_core::analysis::tasks::tangent("x^2-3x", None, None, "1", &Settings::default(), None).unwrap();
     let brief = task_working(&r.steps, StepDetail::Brief);
     let standard = task_working(&r.steps, StepDetail::Standard);
     assert_eq!(brief[0].0, "f(1) = -2");
@@ -483,7 +484,7 @@ fn the_tangent_puts_x0_in_and_multiplies_out() {
 #[test]
 fn an_area_puts_the_bounds_into_the_antiderivative() {
     use quantus_core::settings::StepDetail;
-    let r = quantus_core::analysis::tasks::area("x^2-1", None, Some("0"), Some("2"), &Settings::default(), None).unwrap();
+    let r = quantus_core::analysis::tasks::area("x^2-1", None, None, Some("0"), Some("2"), &Settings::default(), None).unwrap();
     let standard = task_working(&r.steps, StepDetail::Standard);
     let at = standard.iter().position(|(_, text)| text == "Upper minus lower bound").unwrap();
     assert!(standard[at].0.starts_with("A_{1} = F(1) - F(0) = "));
@@ -573,4 +574,22 @@ fn a_sign_condition_of_the_domain_solves_for_the_zeros_first() {
     assert_eq!(standard[0], ("x^{2} - 4 = 0".to_string(), "Where the sign can change".to_string()));
     assert!(standard.contains(&(r"x_{1,2} = \pm 2".to_string(), "Take the root".to_string())));
     assert_eq!(working(&d, "domain", StepDetail::Brief).len(), 2);
+}
+
+#[test]
+fn a_given_domain_restricts_the_sketch() {
+    let d = sketch(r"f(x) = x^2, \ x \in [-1, 2]");
+    assert_eq!(d.function, r"f(x) = x^{2}, \ -1 \le x \le 2");
+    assert_eq!(result(&d, "domain"), r"D = \mathbb{R} \cap [-1, 2] = [-1, 2]");
+    let kinds: Vec<(PointKind, f64)> = d.points.iter().filter(|p| p.kind != PointKind::YIntercept && p.kind != PointKind::Zero).map(|p| (p.kind, p.x)).collect();
+    assert_eq!(kinds, [(PointKind::BoundaryMax, -1.0), (PointKind::Min, 0.0), (PointKind::BoundaryMax, 2.0)]);
+    assert!(d.f.eval_f64(3.0).is_none() && d.f.eval_f64(1.0) == Some(1.0));
+
+    let log = sketch(r"\ln x, \ x > 1");
+    assert_eq!(result(&log, "zeros"), r"\text{No zeros}");
+    assert_eq!(result(&log, "yIntercept"), r"\text{0 ∉ D: no y-intercept}");
+
+    let open = sketch(r"\frac{1}{x}, \ 0 < x \le 2");
+    assert!(steps(&open, "behaviour").iter().any(|s| s.contains(r"x \to 0^{+}")), "{:?}", steps(&open, "behaviour"));
+    assert!(open.points.iter().any(|p| p.kind == PointKind::BoundaryMin && p.x == 2.0));
 }

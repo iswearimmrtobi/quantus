@@ -5,7 +5,7 @@ use dashu::rational::RBig;
 
 use super::budget;
 use super::derive::derive_chain;
-use super::domain::{domain, DomainContext};
+use super::domain::{domain_on, DomainContext};
 use super::expr::Expr;
 use super::integrate::{antiderivative, IntegrateContext};
 use super::interval::{Domain, Point};
@@ -63,18 +63,23 @@ pub struct TableRow {
     pub y_value: Option<f64>,
 }
 
-struct Prepared {
-    f: Expr,
-    var: String,
-    domain: Domain,
-    digits: usize,
+/// The function of a task, read and with its domain.
+pub(super) struct Prepared {
+    pub f: Expr,
+    pub var: String,
+    pub domain: Domain,
+    pub digits: usize,
 }
 
-fn prepare(latex: &str, variable: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<Prepared> {
-    let (f, var) = super::input::parse_function(latex, variable, settings)?;
+pub(super) fn prepare(latex: &str, variable: Option<&str>, given: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<Prepared> {
+    let (function, var) = super::input::parse_function(latex, variable, given, settings)?;
+    if function.is_piecewise() {
+        return Err(QuantusError::other(msg!("core.analysis.input.piecewise_not_yet")));
+    }
+    let piece = &function.pieces[0];
     let digits = super::digits(settings, precision);
-    let (domain, _) = domain(&f, &DomainContext { settings, var: &var, digits })?;
-    Ok(Prepared { f: simplify(&f), var, domain, digits })
+    let (domain, _) = domain_on(&piece.expr, &piece.on, &DomainContext { settings, var: &var, digits })?;
+    Ok(Prepared { f: simplify(&piece.expr), var, domain, digits })
 }
 
 /// A number typed by the user: `2`, `\frac{\pi}{4}`, `-\sqrt{2}`.
@@ -90,10 +95,10 @@ fn parse_number(latex: &str, settings: &Settings, what: &str) -> Result<Point> {
 }
 
 /// Tangent and normal to the graph at `x0`.
-pub fn tangent(latex: &str, variable: Option<&str>, x0: &str, settings: &Settings, precision: Option<usize>) -> Result<TangentResult> {
+pub fn tangent(latex: &str, variable: Option<&str>, given: Option<&str>, x0: &str, settings: &Settings, precision: Option<usize>) -> Result<TangentResult> {
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
-    let p = prepare(latex, variable, settings, precision)?;
+    let p = prepare(latex, variable, given, settings, precision)?;
     let var = p.var.as_str();
     let tex = |e: &Expr| e.to_latex(var);
     let x = parse_number(x0, settings, "x_0")?;
@@ -171,10 +176,10 @@ fn bracket(text: &str) -> String {
 }
 
 /// The area between the graph and the x-axis over [from, to], or between the outermost zeros.
-pub fn area(latex: &str, variable: Option<&str>, from: Option<&str>, to: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<AreaResult> {
+pub fn area(latex: &str, variable: Option<&str>, given: Option<&str>, from: Option<&str>, to: Option<&str>, settings: &Settings, precision: Option<usize>) -> Result<AreaResult> {
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
-    let p = prepare(latex, variable, settings, precision)?;
+    let p = prepare(latex, variable, given, settings, precision)?;
     let var = p.var.as_str();
     let improper = || QuantusError::other(msg!("core.analysis.tasks.improper_integral"));
     let enter_bounds = || QuantusError::other(msg!("core.analysis.tasks.please_enter_bounds"));
@@ -322,10 +327,11 @@ fn closed_form(y: &Point, f: &Expr, x: &Expr) -> bool {
 }
 
 /// f at `from`, `from + step`, … up to `to`.
-pub fn value_table(latex: &str, variable: Option<&str>, from: &str, to: &str, step_size: &str, settings: &Settings, precision: Option<usize>) -> Result<Vec<TableRow>> {
+#[allow(clippy::too_many_arguments, reason = "the fields of a table request")]
+pub fn value_table(latex: &str, variable: Option<&str>, given: Option<&str>, from: &str, to: &str, step_size: &str, settings: &Settings, precision: Option<usize>) -> Result<Vec<TableRow>> {
     let _language = Scope::new(settings.language);
     let _budget = budget::Guard::new(super::TASK_LIMIT);
-    let p = prepare(latex, variable, settings, precision)?;
+    let p = prepare(latex, variable, given, settings, precision)?;
     let (start, end, step) = (parse_number(from, settings, "from")?, parse_number(to, settings, "to")?, parse_number(step_size, settings, "step")?);
     if step.approx <= 0.0 {
         return Err(QuantusError::other(msg!("core.analysis.tasks.step_must_positive")));
@@ -361,24 +367,24 @@ mod tests {
 
     #[test]
     fn tangent_and_normal() {
-        let r = tangent("x^2", None, "1", &Settings::default(), None).unwrap();
+        let r = tangent("x^2", None, None, "1", &Settings::default(), None).unwrap();
         assert_eq!(line(&r.tangent), "t(x) = 2x - 1");
         assert_eq!(line(&r.normal), "n(x) = -\\frac{1}{2}x + \\frac{3}{2}");
         let brief = crate::eval::calculator::shown_steps(&r.steps, StepDetail::Brief);
         assert_eq!(brief.len(), 5);
         assert_eq!(brief[2].latex, "t(x) = 2 \\cdot (x - 1) + 1");
         assert_eq!(brief[3].latex, "t(x) = 2x - 1");
-        let flat = tangent("x^2", None, "0", &Settings::default(), None).unwrap();
+        let flat = tangent("x^2", None, None, "0", &Settings::default(), None).unwrap();
         assert_eq!(line(&flat.normal), "x = 0");
-        let exact = tangent("\\sin x", None, "\\frac{\\pi}{2}", &Settings::default(), None).unwrap();
+        let exact = tangent("\\sin x", None, None, "\\frac{\\pi}{2}", &Settings::default(), None).unwrap();
         assert_eq!(line(&exact.tangent), "t(x) = 1");
-        assert!(tangent("\\ln x", None, "-1", &Settings::default(), None).unwrap_err().to_string().contains("not differentiable"));
-        assert!(tangent("|x|", None, "0", &Settings::default(), None).is_err());
+        assert!(tangent("\\ln x", None, None, "-1", &Settings::default(), None).unwrap_err().to_string().contains("not differentiable"));
+        assert!(tangent("|x|", None, None, "0", &Settings::default(), None).is_err());
     }
 
     #[test]
     fn area_between_the_zeros() {
-        let r = area("x^3-3x", None, None, None, &Settings::default(), None).unwrap();
+        let r = area("x^3-3x", None, None, None, None, &Settings::default(), None).unwrap();
         assert_eq!(r.area.to_latex(6), "\\frac{9}{2}");
         assert_eq!(r.signed.to_latex(6), "0");
         assert_eq!(r.regions.len(), 2);
@@ -388,39 +394,39 @@ mod tests {
         let brief = crate::eval::calculator::shown_steps(&r.steps, StepDetail::Brief);
         let parts: Vec<String> = brief.iter().filter(|s| s.latex.starts_with("A_{")).map(|s| s.latex.rsplit(" = ").next().unwrap().to_string()).collect();
         assert_eq!(parts, ["\\frac{9}{4}", "-\\frac{9}{4}"]);
-        let wide = area("x - 12", None, Some("0"), Some("20"), &Settings::default(), None).unwrap();
+        let wide = area("x - 12", None, None, Some("0"), Some("20"), &Settings::default(), None).unwrap();
         assert_eq!(wide.regions.len(), 2);
         assert_eq!(wide.area.to_latex(6), "104");
-        assert!(area("e^{-x}", None, Some("0"), Some("\\infty"), &Settings::default(), None).unwrap_err().to_string().contains("Improper integral"));
-        let bounded = area("x^2", None, Some("0"), Some("3"), &Settings::default(), None).unwrap();
+        assert!(area("e^{-x}", None, None, Some("0"), Some("\\infty"), &Settings::default(), None).unwrap_err().to_string().contains("Improper integral"));
+        let bounded = area("x^2", None, None, Some("0"), Some("3"), &Settings::default(), None).unwrap();
         assert_eq!(bounded.area.to_latex(6), "9");
-        let numeric = area("e^{x^2}", None, Some("0"), Some("1"), &Settings::default(), None).unwrap();
+        let numeric = area("e^{x^2}", None, None, Some("0"), Some("1"), &Settings::default(), None).unwrap();
         assert_eq!(numeric.area.to_latex(6), "1{,}46265");
-        assert!(area("\\frac{1}{x}", None, Some("-1"), Some("1"), &Settings::default(), None).unwrap_err().to_string().contains("Improper integral, not supported yet"));
-        assert!(area("x^2 + 1", None, None, None, &Settings::default(), None).unwrap_err().to_string().contains("Please enter the bounds"));
-        assert!(area("\\sin x", None, None, None, &Settings::default(), None).unwrap_err().to_string().contains("Please enter the bounds"));
+        assert!(area("\\frac{1}{x}", None, None, Some("-1"), Some("1"), &Settings::default(), None).unwrap_err().to_string().contains("Improper integral, not supported yet"));
+        assert!(area("x^2 + 1", None, None, None, None, &Settings::default(), None).unwrap_err().to_string().contains("Please enter the bounds"));
+        assert!(area("\\sin x", None, None, None, None, &Settings::default(), None).unwrap_err().to_string().contains("Please enter the bounds"));
     }
 
     #[test]
     fn out_of_time_the_tasks_still_answer() {
         let _budget = budget::Guard::new(std::time::Duration::ZERO);
-        assert!(tangent("x^2", None, "1", &Settings::default(), None).is_ok());
-        assert!(value_table("x^2", None, "-2", "2", "1", &Settings::default(), None).is_ok());
+        assert!(tangent("x^2", None, None, "1", &Settings::default(), None).is_ok());
+        assert!(value_table("x^2", None, None, "-2", "2", "1", &Settings::default(), None).is_ok());
     }
 
     #[test]
     fn a_table_of_values() {
-        let rows = value_table("x^2", None, "-2", "2", "1", &Settings::default(), None).unwrap();
+        let rows = value_table("x^2", None, None, "-2", "2", "1", &Settings::default(), None).unwrap();
         let ys: Vec<_> = rows.iter().map(|r| (r.x.clone(), r.y.clone().unwrap())).collect();
         assert_eq!(ys[0], ("-2".into(), "4".into()));
         assert_eq!(rows.len(), 5);
-        let log = value_table("\\ln x", None, "0", "2", "1", &Settings::default(), None).unwrap();
+        let log = value_table("\\ln x", None, None, "0", "2", "1", &Settings::default(), None).unwrap();
         assert_eq!(log[0].y, None);
         assert_eq!(log[2].y.as_deref(), Some("0{,}693147"));
         assert_eq!(log[2].y_value, Some(std::f64::consts::LN_2));
-        let root = value_table("\\sqrt{x}", None, "0", "2", "1", &Settings::default(), None).unwrap();
+        let root = value_table("\\sqrt{x}", None, None, "0", "2", "1", &Settings::default(), None).unwrap();
         assert_eq!(root[2].y.as_deref(), Some("\\sqrt{2}"));
-        assert!(value_table("x", None, "0", "1000", "1", &Settings::default(), None).is_err());
-        assert!(value_table("x", None, "0", "1", "-1", &Settings::default(), None).is_err());
+        assert!(value_table("x", None, None, "0", "1000", "1", &Settings::default(), None).is_err());
+        assert!(value_table("x", None, None, "0", "1", "-1", &Settings::default(), None).is_err());
     }
 }

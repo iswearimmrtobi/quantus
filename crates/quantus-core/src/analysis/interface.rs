@@ -26,6 +26,8 @@ pub struct AnalysisRequest {
     pub latex: String,
     /// The variable, when it is not to be read off the input.
     pub variable: Option<String>,
+    /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
+    pub domain: Option<String>,
     /// Significant digits of approximate values; by default at most 6.
     pub precision: Option<usize>,
 }
@@ -103,6 +105,8 @@ pub struct PlotResponse {
 pub struct SampleRequest {
     pub latex: String,
     pub variable: Option<String>,
+    /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
+    pub domain: Option<String>,
     pub x_min: f64,
     pub x_max: f64,
     pub samples: usize,
@@ -122,6 +126,8 @@ pub struct SampleResponse {
 pub struct TangentRequest {
     pub latex: String,
     pub variable: Option<String>,
+    /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
+    pub domain: Option<String>,
     pub x0: String,
     pub precision: Option<usize>,
 }
@@ -151,6 +157,8 @@ pub struct TangentResponse {
 pub struct AreaRequest {
     pub latex: String,
     pub variable: Option<String>,
+    /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
+    pub domain: Option<String>,
     /// The bounds; both missing means between the outermost zeros.
     pub from: Option<String>,
     pub to: Option<String>,
@@ -182,6 +190,8 @@ pub struct RegionResponse {
 pub struct TableRequest {
     pub latex: String,
     pub variable: Option<String>,
+    /// The domain from its own field (`[0, 3]`, `x > 0`), on top of what the input says.
+    pub domain: Option<String>,
     pub from: String,
     pub to: String,
     pub step: String,
@@ -207,7 +217,7 @@ pub struct TableRowResponse {
 
 /// The curve sketch with the initial plot.
 pub fn analyze(settings: &Settings, request: &AnalysisRequest) -> Result<AnalysisResponse> {
-    let d = super::analyze(&request.latex, request.variable.as_deref(), settings, request.precision)?;
+    let d = super::analyze_on(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, request.precision)?;
     Ok(response(&d, settings))
 }
 
@@ -284,10 +294,7 @@ fn asymptote(a: &Asymptote) -> AsymptoteResponse {
 pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<SampleResponse> {
     let _language = Scope::new(settings.language);
     let _budget = super::budget::Guard::new(super::SAMPLE_LIMIT);
-    let (f, var) = super::input::parse_function(&request.latex, request.variable.as_deref(), settings)?;
-    let digits = super::digits(settings, None);
-    let (domain, _) = super::domain::domain(&f, &super::domain::DomainContext { settings, var: &var, digits })?;
-    let f = super::simplify::simplify(&f);
+    let super::tasks::Prepared { f, domain, .. } = super::tasks::prepare(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?;
     let breaks = breaks_in(&domain, request.x_min, request.x_max);
     let ends = ends_in(&domain, request.x_min, request.x_max);
     let y_range = request.y_min.zip(request.y_max);
@@ -295,7 +302,7 @@ pub fn sample_function(settings: &Settings, request: &SampleRequest) -> Result<S
 }
 
 pub fn tangent(settings: &Settings, request: &TangentRequest) -> Result<TangentResponse> {
-    let r = tasks::tangent(&request.latex, request.variable.as_deref(), &request.x0, settings, request.precision)?;
+    let r = tasks::tangent(&request.latex, request.variable.as_deref(), request.domain.as_deref(), &request.x0, settings, request.precision)?;
     let digits = super::digits(settings, request.precision);
     let latex = format!("\\left({} \\mid {}\\right)", r.x.to_latex(digits), r.y.to_latex(digits));
     Ok(TangentResponse {
@@ -320,11 +327,10 @@ fn line(l: &Line) -> LineResponse {
 }
 
 pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> {
-    let r = tasks::area(&request.latex, request.variable.as_deref(), request.from.as_deref(), request.to.as_deref(), settings, request.precision)?;
+    let r = tasks::area(&request.latex, request.variable.as_deref(), request.domain.as_deref(), request.from.as_deref(), request.to.as_deref(), settings, request.precision)?;
     let digits = super::digits(settings, request.precision);
     let shown = |p: &Point| if p.exact.is_some() { p.to_latex(digits) } else { format!("\\approx {}", p.to_latex(digits)) };
-    let (f, _) = super::input::parse_function(&request.latex, request.variable.as_deref(), settings)?;
-    let f = super::simplify::simplify(&f);
+    let f = super::tasks::prepare(&request.latex, request.variable.as_deref(), request.domain.as_deref(), settings, None)?.f;
     let regions = r
         .regions
         .iter()
@@ -339,6 +345,6 @@ pub fn area(settings: &Settings, request: &AreaRequest) -> Result<AreaResponse> 
 }
 
 pub fn value_table(settings: &Settings, request: &TableRequest) -> Result<TableResponse> {
-    let rows = tasks::value_table(&request.latex, request.variable.as_deref(), &request.from, &request.to, &request.step, settings, request.precision)?;
+    let rows = tasks::value_table(&request.latex, request.variable.as_deref(), request.domain.as_deref(), &request.from, &request.to, &request.step, settings, request.precision)?;
     Ok(TableResponse { rows: rows.into_iter().map(|r| TableRowResponse { x: r.x, y: r.y, x_value: r.x_value, y_value: r.y_value }).collect() })
 }

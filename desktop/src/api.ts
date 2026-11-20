@@ -1090,21 +1090,21 @@ export const api = {
   /** Writes a file the frontend made (a picture, a scene) to a path from the save dialog. */
   saveFile: (path: string, bytes: Uint8Array) => call<void>('save_file', { path, bytes: Array.from(bytes) }),
 
-  /** The curve sketch; the variable is read off the input (`f(t) = …`). */
-  analyze: (latex: string) => call<Analysis>('analyze', { request: { latex } }),
+  /** The curve sketch; the variable is read off the input (`f(t) = …`). `domain` restricts it (`[0, 3]`, `x > 0`). */
+  analyze: (latex: string, domain: string | null = null) => call<Analysis>('analyze', { request: { latex, domain } }),
 
   /** Fresh curve segments for a panned or zoomed view; the y-range is for clipping. */
-  sampleFunction: (latex: string, view: { xMin: number; xMax: number; yMin: number; yMax: number }, samples: number) =>
-    call<{ segments: Segment[] }>('sample_function', { request: { latex, ...view, samples } }),
+  sampleFunction: (latex: string, view: { xMin: number; xMax: number; yMin: number; yMax: number }, samples: number, domain: string | null = null) =>
+    call<{ segments: Segment[] }>('sample_function', { request: { latex, domain, ...view, samples } }),
 
-  tangent: (latex: string, x0: string) => call<TangentResult>('tangent', { request: { latex, x0 } }),
+  tangent: (latex: string, x0: string, domain: string | null = null) => call<TangentResult>('tangent', { request: { latex, domain, x0 } }),
 
   /** Without bounds, the area between the outermost zeros. */
-  areaUnderCurve: (latex: string, from: string | null, to: string | null) =>
-    call<AreaResult>('area_under_curve', { request: { latex, from, to } }),
+  areaUnderCurve: (latex: string, from: string | null, to: string | null, domain: string | null = null) =>
+    call<AreaResult>('area_under_curve', { request: { latex, domain, from, to } }),
 
-  valueTable: (latex: string, from: string, to: string, step: string) =>
-    call<TableResult>('value_table', { request: { latex, from, to, step } }),
+  valueTable: (latex: string, from: string, to: string, step: string, domain: string | null = null) =>
+    call<TableResult>('value_table', { request: { latex, domain, from, to, step } }),
 
   /** Solves a linear system; it uses no session variables. */
   solveLinearSystem: (request: LinearSystemRequest) => call<LinearSystem>('solve_linear_system', { request }),

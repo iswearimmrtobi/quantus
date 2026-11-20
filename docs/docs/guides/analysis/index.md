@@ -22,6 +22,23 @@ Press <kbd>Enter</kbd>. Polynomials, rational functions, $e^x$, $a^x$, logarithm
 trigonometric functions and their inverses and $|x|$ work, also combined. See
 [Known limits](../../reference/limits.md#analysis-mode) for what is rejected.
 
+### A given domain
+
+To sketch $f$ on less than its largest possible domain, write the domain after the function, or
+type it into the **D =** field below the input (leave it empty for the largest one):
+
+```latex
+f(x) = x^2, \ x \in [-1, 2]
+f(x) = x^2, \ 0 \le x < 3
+f(x) = \ln x \text{ für } x > 1
+f(x) = x^2 \quad D = [-1, 2]
+```
+
+Intervals (`[0, 3)`, `]0; 3]`, `(-\infty, 2]`, joined with `\cup`), inequalities and chains of
+two, `x \neq a`, $\mathbb{R}^+$ and $\mathbb{R}_0^+$ are understood. The sketch cuts every
+section to the domain: the domain section shows $D = \mathbb{R} \cap [-1, 2] = [-1, 2]$, closed
+ends become boundary maxima or minima, open ends get a limit, and the graph stops at the ends.
+
 ## The curve sketch
 
 The **Curve sketch** tab lists one section per question. For $f(x) = x^3 - 3x$:

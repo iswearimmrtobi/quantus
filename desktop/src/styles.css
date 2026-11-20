@@ -2407,6 +2407,24 @@ select option {
   padding: 5px 8px;
 }
 
+.domain-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.domain-row-label {
+  color: var(--text-muted);
+  flex: none;
+}
+
+.domain-input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
 .task-input:focus {
   outline: none;
   border-color: var(--primary);

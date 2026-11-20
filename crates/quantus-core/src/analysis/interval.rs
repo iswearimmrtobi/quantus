@@ -138,7 +138,7 @@ impl Interval {
         above && below
     }
 
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         let (lo, hi) = (self.lo.value(), self.hi.value());
         lo > hi || (same_value(lo, hi) && !(self.lo.closed() && self.hi.closed()))
     }
@@ -274,6 +274,49 @@ impl IntervalSet {
         }
         out.sort_by(|x, y| x.lo.value().partial_cmp(&y.lo.value()).unwrap_or(Ordering::Equal));
         IntervalSet(merged(out))
+    }
+
+    /// Both sets together, touching intervals joined.
+    pub fn union(&self, other: &IntervalSet) -> IntervalSet {
+        let mut all: Vec<Interval> = self.0.iter().chain(&other.0).cloned().collect();
+        all.sort_by(|x, y| {
+            x.lo.value().partial_cmp(&y.lo.value()).unwrap_or(Ordering::Equal).then_with(|| y.lo.closed().cmp(&x.lo.closed()))
+        });
+        IntervalSet(merged(all))
+    }
+
+    /// Every real number not in the set.
+    pub fn complement(&self) -> IntervalSet {
+        let flip = |b: &Bound| match b {
+            Bound::At { point, closed } => Bound::At { point: point.clone(), closed: !closed },
+            other => other.clone(),
+        };
+        let mut out = Vec::new();
+        let mut lo = Bound::NegInf;
+        for interval in &self.0 {
+            if !matches!(interval.lo, Bound::NegInf) {
+                let gap = Interval { lo: lo.clone(), hi: flip(&interval.lo) };
+                if !gap.is_empty() {
+                    out.push(gap);
+                }
+            }
+            lo = match &interval.hi {
+                Bound::PosInf => return IntervalSet(out),
+                hi => flip(hi),
+            };
+        }
+        out.push(Interval { lo, hi: Bound::PosInf });
+        IntervalSet(out.into_iter().filter(|i| !i.is_empty()).collect())
+    }
+
+    /// Whether the set has a lower and an upper bound.
+    pub fn is_bounded(&self) -> bool {
+        !self.0.is_empty() && !matches!(self.0[0].lo, Bound::NegInf) && !matches!(self.0[self.0.len() - 1].hi, Bound::PosInf)
+    }
+
+    /// Whether the set is all of ℝ.
+    pub fn is_reals(&self) -> bool {
+        matches!(self.0.as_slice(), [Interval { lo: Bound::NegInf, hi: Bound::PosInf }])
     }
 
     /// Whether the set is its own mirror image at 0.
@@ -511,6 +554,20 @@ mod tests {
         assert_eq!(touching.intersect(&IntervalSet::reals()).to_latex(6, Language::De), "[-1; 1]");
         let gap = IntervalSet::reals().remove_point(&Point::rational(RBig::ZERO));
         assert_eq!(gap.intersect(&IntervalSet::reals()).0.len(), 2);
+    }
+
+    #[test]
+    fn unions_and_complements() {
+        let left = IntervalSet(vec![Interval { lo: Bound::NegInf, hi: at(0, false) }]);
+        let right = IntervalSet(vec![Interval { lo: at(0, true), hi: at(2, true) }]);
+        assert_eq!(left.union(&right).to_latex(6, Language::En), "(-\\infty, 2]");
+        assert_eq!(right.complement().to_latex(6, Language::En), "(-\\infty, 0) \\cup (2, \\infty)");
+        assert_eq!(left.complement().to_latex(6, Language::En), "[0, \\infty)");
+        assert!(IntervalSet::reals().complement().is_empty());
+        assert!(IntervalSet::empty().complement().is_reals());
+        let apart = left.union(&IntervalSet(vec![Interval { lo: at(0, false), hi: Bound::PosInf }]));
+        assert_eq!(apart.to_latex(6, Language::En), "\\mathbb{R} \\setminus \\{0\\}");
+        assert!(right.is_bounded() && !left.is_bounded());
     }
 
     #[test]

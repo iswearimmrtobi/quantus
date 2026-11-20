@@ -7,6 +7,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Analysis: a given domain. Write it after the function (`f(x) = x^2, \ x \in [-1, 2]`,
+  `0 \le x < 3`, `\text{für } x > 1`, `D = [0, 3]`) or into the new **D =** field below the
+  input. Every section keeps to it: the domain is the function's own one cut down to the given
+  set, closed ends are boundary extrema, open ends get their limits, and the graph stops there.
+  The tangent, area and table tasks use it too.
 - Desktop, Analysis: the graph in full screen, with ⤢ beside *Reset view*; <kbd>Esc</kbd> leaves.
   The view, the tangent, the area and the table's dots stay as they were.
 - Desktop, circuit editors (Electronics, Kirchhoff, Logic): undo and redo, with Ctrl+Z and
