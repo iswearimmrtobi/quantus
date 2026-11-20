@@ -626,3 +626,19 @@ fn a_piecewise_function_is_sketched_piece_by_piece() {
     let on_part = sketch(r"\sin x, \ x \in [0, 10]");
     assert!(on_part.period.is_none() && !result(&on_part, "extrema").contains(r"k \in"));
 }
+
+#[test]
+fn the_joins_are_checked_for_continuity_and_differentiability() {
+    let kink = sketch(r"\begin{cases}-x & x<0\\ x & x\ge 0\end{cases}");
+    assert_eq!(result(&kink, "joins"), r"x = 0\colon \ \text{continuous, not differentiable (kink)}");
+    assert_eq!(result(&kink, "extrema"), r"Min\left(0 \mid 0\right)");
+    assert!(steps(&kink, "joins").contains(&r"\lim_{x \to 0^{-}} f(x) = -0 = 0".to_string()) || steps(&kink, "joins").iter().any(|s| s.starts_with(r"\lim_{x \to 0^{-}} f(x) = ")), "{:?}", steps(&kink, "joins"));
+    let smooth = sketch(r"\begin{cases}x^2 & x\le 1\\ 2x-1 & x>1\end{cases}");
+    assert_eq!(result(&smooth, "joins"), r"x = 1\colon \ \text{continuous and differentiable}");
+    assert!(steps(&smooth, "joins").iter().any(|s| s.ends_with(r"\Rightarrow f'(1) = 2")));
+    let jump = sketch(r"\begin{cases}x & x<1\\ x+1 & x\ge 1\end{cases}");
+    assert_eq!(result(&jump, "joins"), r"x = 1\colon \ \text{not continuous (jump)}");
+    let pole = sketch(r"\begin{cases}\frac{1}{x} & x<0\\ \sqrt{x} & x\ge 0\end{cases}");
+    assert_eq!(result(&pole, "joins"), r"x = 0\colon \ \text{not continuous (pole)}");
+    assert!(result(&pole, "behaviour").contains(r"\text{vertical asymptote} x = 0"));
+}

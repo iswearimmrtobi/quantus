@@ -20,7 +20,7 @@ struct PieceSketch<'a> {
 }
 
 /// What the joins section found at one join.
-#[allow(dead_code, reason = "the joins section reads them next")]
+#[allow(dead_code, reason = "the antiderivative reads them next")]
 struct Join {
     at: Point,
     /// The pieces on its left and right.
@@ -80,7 +80,8 @@ pub(super) fn discuss(function: &Function, ctx: &Ctx) -> Result<Discussion> {
         result: domain_steps.last().map(|s| s.latex.clone()),
         steps: domain_steps,
     });
-    let (_, found) = joins_section(&pieces, &joins, ctx);
+    let (joins_section, found) = joins_section(&pieces, &joins, ctx);
+    sections.push(joins_section);
 
     type Builder<'b> = Box<dyn std::ops::Fn(&mut Vec<PieceSketch<'b>>, &[Join], &Domain) -> Section + 'b>;
     let builders: Vec<(&'static str, String, Builder)> = vec![
@@ -383,9 +384,65 @@ fn y_intercept(pieces: &mut [PieceSketch]) -> Section {
     }
 }
 
-/// The pieces' extrema.
-fn extrema(pieces: &mut [PieceSketch], _joins: &[Join], _ctx: &Ctx) -> Section {
-    each(pieces, "extrema", |s, d| s.extrema(d))
+/// Which way f goes from the value at a join on one side: below it (-1), above it (1), or
+/// undecided (0). From the one-sided limit, or from the slope where the limit equals the value.
+fn side_of(join: &Join, pieces: &[PieceSketch], left: bool) -> i32 {
+    let (Some(value), Some(index)) = (&join.value, if left { join.left } else { join.right }) else { return 0 };
+    let limit = if left { &join.left_limit } else { &join.right_limit };
+    match limit {
+        Some(Behaviour::PosInf) => 1,
+        Some(Behaviour::NegInf) => -1,
+        Some(Behaviour::Finite(l)) if !l.same(value) => {
+            if l.approx < value.approx {
+                -1
+            } else {
+                1
+            }
+        }
+        Some(Behaviour::Finite(_)) => {
+            let x = join.at.approx;
+            let h = 1e-6 * x.abs().max(1.0);
+            let slope = pieces[index].derivations[0].result.eval_f64(if left { x - h } else { x + h }).unwrap_or(0.0);
+            // Rising towards the join from the left, or falling away to the right: below.
+            let below = if left { slope > 0.0 } else { slope < 0.0 };
+            if slope == 0.0 {
+                0
+            } else if below {
+                -1
+            } else {
+                1
+            }
+        }
+        _ => 0,
+    }
+}
+
+/// The pieces' extrema, plus those at the joins: f(c) above (below) the values on both sides.
+fn extrema(pieces: &mut [PieceSketch], joins: &[Join], ctx: &Ctx) -> Section {
+    let mut section = each(pieces, "extrema", |s, d| s.extrema(d));
+    let mut lines = Vec::new();
+    for join in joins {
+        let (l, r) = (side_of(join, pieces, true), side_of(join, pieces, false));
+        let kind = match (l, r) {
+            (-1, -1) => PointKind::Max,
+            (1, 1) => PointKind::Min,
+            _ => continue,
+        };
+        let Some(value) = join.value.clone() else { continue };
+        let Some(owner) = pieces.iter_mut().find(|p| p.sketch.domain.contains(join.at.approx)) else { continue };
+        let c = join.at.to_latex(ctx.digits);
+        let explanation = if kind == PointKind::Max { msg!("core.analysis.joins.maximum", c.clone()) } else { msg!("core.analysis.joins.minimum", c.clone()) };
+        section.steps.push(step(AnalysisRule::SignChangeTest, explanation, format!("f({c}) = {}", approx_text(&value, ctx.digits))));
+        lines.push(owner.sketch.mark(kind, &join.at, &value));
+    }
+    if !lines.is_empty() {
+        let found = lines.join(", \\quad ");
+        section.result = Some(match section.result.take() {
+            Some(old) if !is_verdict(&old) => format!("{old}, \\quad {found}"),
+            _ => found,
+        });
+    }
+    section
 }
 
 /// Monotonicity (`order` 0, signs of f′) or curvature (1, signs of f″) in one table over all

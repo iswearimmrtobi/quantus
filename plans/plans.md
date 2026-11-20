@@ -102,7 +102,7 @@ handheld keeps working.
     `domain` request field.
   - [x] Domain and plot per piece; open and closed ends as dots.
   - [x] The curve sketch per piece; limits at ±∞ only where the domain is unbounded.
-  - [ ] Continuity and differentiability at the joins.
+  - [x] Continuity and differentiability at the joins.
   - [x] Global extrema on given domains.
   - [ ] Tangent, area and value table respect the domain and the joins.
   - [ ] A piecewise antiderivative, continuous where f is.

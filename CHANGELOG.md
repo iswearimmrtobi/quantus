@@ -18,6 +18,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
   its part of the domain and the sections put the pieces' working one after the other; the
   derivatives come as cases, monotonicity and curvature as one table, symmetry is compared at
   sample points, and the global extrema cover all pieces. The graph is drawn piece by piece.
+- Analysis: a section *Continuity at the joins* for piecewise functions: f at the join, both
+  one-sided limits and, where f is continuous, both one-sided slopes, ending in "continuous and
+  differentiable", "kink", "jump" or "pole". A join where f is lower (higher) on both sides is a
+  maximum (minimum).
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.
