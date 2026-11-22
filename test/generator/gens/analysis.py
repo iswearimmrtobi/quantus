@@ -387,7 +387,9 @@ def errors(rng, diff):
     if kind == "equation":
         request, contains = {"latex": "x^{2} = 4"}, "not an equation"
     elif kind == "two-variables":
-        request, contains = {"latex": rng.choice(["x^{2} + a x", "x y", "t + x"])}, "one variable"
+        # Two letters, neither of them x and no prefix: which is the variable? (With x, the other
+        # letters are the parameters of a family.)
+        request, contains = {"latex": rng.choice(["t^{2} + a t", "s t", "t + u"])}, "which is the variable"
     else:
         request, contains = {"latex": rng.choice(["x^{2} +", "\\frac{x}{", "(x + 1"])}, ""
     return _case("errors", diff, "analyze", request, expect_error(contains), kind)
