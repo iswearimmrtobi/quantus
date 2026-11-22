@@ -1115,7 +1115,9 @@ export const api = {
   saveFile: (path: string, bytes: Uint8Array) => call<void>('save_file', { path, bytes: Array.from(bytes) }),
 
   /** The curve sketch; the variable is read off the input (`f(t) = …`). `domain` restricts it (`[0, 3]`, `x > 0`). */
-  analyze: (latex: string, domain: string | null = null, definitions: string[] = []) => call<Analysis>('analyze', { request: { latex, domain, definitions } }),
+  /** `parameters`: values for a family's parameters, for one member of it. */
+  analyze: (latex: string, domain: string | null = null, definitions: string[] = [], parameters: Record<string, string> = {}) =>
+    call<Analysis>('analyze', { request: { latex, domain, definitions, parameters } }),
 
   /** Fresh curve segments for a panned or zoomed view; the y-range is for clipping. */
   sampleFunction: (
@@ -1124,14 +1126,22 @@ export const api = {
     samples: number,
     domain: string | null = null,
     definitions: string[] = [],
-  ) => call<{ segments: Segment[] }>('sample_function', { request: { latex, domain, definitions, ...view, samples } }),
+    parameters: Record<string, string> = {},
+  ) => call<{ segments: Segment[] }>('sample_function', { request: { latex, domain, definitions, parameters, ...view, samples } }),
 
-  tangent: (latex: string, x0: string, domain: string | null = null, definitions: string[] = []) =>
-    call<TangentResult>('tangent', { request: { latex, domain, definitions, x0 } }),
+  tangent: (latex: string, x0: string, domain: string | null = null, definitions: string[] = [], parameters: Record<string, string> = {}) =>
+    call<TangentResult>('tangent', { request: { latex, domain, definitions, parameters, x0 } }),
 
   /** Without bounds, the area between the outermost zeros. */
-  areaUnderCurve: (latex: string, from: string | null, to: string | null, domain: string | null = null, definitions: string[] = [], other: string | null = null) =>
-    call<AreaResult>('area_under_curve', { request: { latex, domain, definitions, other, from, to } }),
+  areaUnderCurve: (
+    latex: string,
+    from: string | null,
+    to: string | null,
+    domain: string | null = null,
+    definitions: string[] = [],
+    other: string | null = null,
+    parameters: Record<string, string> = {},
+  ) => call<AreaResult>('area_under_curve', { request: { latex, domain, definitions, parameters, other, from, to } }),
 
   /** Where the analysed function meets another; both may use `definitions`. */
   intersections: (latex: string, other: string, definitions: string[] = []) =>
@@ -1141,8 +1151,8 @@ export const api = {
   spline: (points: string, ends: SplineEnds, startSlope: string | null = null, endSlope: string | null = null) =>
     call<SplineResult>('spline', { request: { points, ends, startSlope, endSlope } }),
 
-  valueTable: (latex: string, from: string, to: string, step: string, domain: string | null = null, definitions: string[] = []) =>
-    call<TableResult>('value_table', { request: { latex, domain, definitions, from, to, step } }),
+  valueTable: (latex: string, from: string, to: string, step: string, domain: string | null = null, definitions: string[] = [], parameters: Record<string, string> = {}) =>
+    call<TableResult>('value_table', { request: { latex, domain, definitions, parameters, from, to, step } }),
 
   /** Solves a linear system; it uses no session variables. */
   solveLinearSystem: (request: LinearSystemRequest) => call<LinearSystem>('solve_linear_system', { request }),

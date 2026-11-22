@@ -2610,6 +2610,24 @@ select option {
   fill: var(--accent);
 }
 
+.family-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.family-slider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.family-value {
+  width: 64px;
+}
+
 .derivative-toggles {
   display: flex;
   gap: 12px;
@@ -2626,6 +2644,11 @@ select option {
 .plot-curve.extra {
   stroke-width: 1.6;
   opacity: 0.9;
+}
+
+.plot-curve.extra.faint {
+  stroke-width: 1.2;
+  opacity: 0.3;
 }
 
 .legend-curve {

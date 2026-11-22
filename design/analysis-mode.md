@@ -10,7 +10,6 @@ Quantus can differentiate symbolically (`eval/derivative.rs`), but it only uses 
 - Every combination of these by `+ − · /`, powers and composition.
 
 **Not in v1 (each one gets a clear error, and all are listed in `docs/unsupported-inputs.md`):**
-- Function families (a second free letter)
 - Implicit or parametric curves
 - Complex results
 - Domains made of periodic intervals (e.g. `\ln(\sin x)`)
@@ -30,6 +29,12 @@ tasks take the piece that holds x; the area is split at the joins.
 `definitions`; a reference `f(x - 1)`, `f'(x)` is put in before anything else reads the input.
 Intersections solve f − g = 0 piece pair by piece pair; the area between two curves is the area
 task on `Function::minus`.
+
+**Families** (`analysis/family.rs`): `Expr::Param` is a constant atom, a variable of the algebra
+pipeline; `ParameterScope` (thread-local) tells the reader which letters are parameters and
+gives values for a member. The family's sketch solves polynomial conditions of degree ≤ 2 in x
+with coefficients in the parameter and splits cases by the sign of what decides, found by
+solving it as a function of the parameter; the loci invert x₀(a) step by step.
 
 **Error policy:** `analyze` fails as a whole only on input errors: a parse error (with position), an unsupported construct, a second variable, or an empty domain. Every other problem degrades one section, which gets `status: "partial" | "failed"` and a message. The other sections still appear.
 

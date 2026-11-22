@@ -75,7 +75,7 @@ nested in any way.
 
 Rejected with an error that names the reason:
 
-- **function families** with a second free letter ($x^2 + a$)
+- a second free letter without a prefix when neither is x ($t^2 + a$): write $f(t) = …$
 - implicit or parametric curves, complex results
 - units, sums, integrals, limits, derivatives, matrices, $n!$ and the other integer functions
 - **domains made of periodic intervals**, such as $\ln(\sin x)$ (periodic gaps like those of

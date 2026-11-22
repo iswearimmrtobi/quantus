@@ -119,6 +119,12 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   const [derivatives, setDerivatives] = useState({ first: false, second: false });
   /** The definitions the shown results belong to. */
   const [analysedDefinitions, setAnalysedDefinitions] = useState<string[]>([]);
+  /** A family's parameters (`a` of `f_a`), empty for one function, and the values the slider shows. */
+  const [family, setFamily] = useState<string[]>([]);
+  const [values, setValues] = useState<Record<string, string>>({});
+  /** The values one member of the family was sketched for; empty for the family's own sketch. */
+  const [analysedParameters, setAnalysedParameters] = useState<Record<string, string>>({});
+  const member = Object.keys(analysedParameters).length > 0;
   const [latexMode, setLatexMode] = useState(false);
   /** The function the results belong to; tasks and the graph use it, not the half-typed input. */
   const [analysed, setAnalysed] = useState<string | null>(null);
@@ -160,15 +166,23 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   }, []);
 
   const run = useCallback(
-    async (latex: string, domain: string | null, definitions: string[]) => {
+    async (latex: string, domain: string | null, definitions: string[], parameters: Record<string, string> = {}) => {
       const id = ++analysisRequest.current;
       try {
-        const result = await api.analyze(latex, domain, definitions);
+        const result = await api.analyze(latex, domain, definitions, parameters);
         if (id !== analysisRequest.current) return;
         setAnalysis(result);
         setAnalysed(latex);
         setAnalysedDomain(domain);
         setAnalysedDefinitions(definitions);
+        setAnalysedParameters(parameters);
+        if (result.parameters.length > 0) {
+          // The family's plot shows each parameter at 1.
+          setFamily(result.parameters);
+          setValues(Object.fromEntries(result.parameters.map((p) => [p, '1'])));
+        } else if (Object.keys(parameters).length === 0) {
+          setFamily([]);
+        }
         setError(null);
       } catch (failure) {
         if (id !== analysisRequest.current) return;
@@ -189,7 +203,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
       try {
         setTaskError(null);
         if (which === 'tangent') {
-          const result = await api.tangent(latex, x0, analysedDomain, analysedDefinitions);
+          const result = await api.tangent(latex, x0, analysedDomain, analysedDefinitions, analysedParameters);
           if (current()) setTangent(result);
         }
         if (which === 'area') {
@@ -197,7 +211,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
           const other = areaPartner >= 0 && others[areaPartner]?.trim() ? asDefinition(others[areaPartner], assignNames(all)[areaPartner + 1]) : null;
           const own = other ? asDefinition(latex, assignNames(all)[0]) : latex;
           const definitions = other ? definitionsFor(all, -1) : analysedDefinitions;
-          const result = await api.areaUnderCurve(own, bounds.from.trim() || null, bounds.to.trim() || null, analysedDomain, definitions, other);
+          const result = await api.areaUnderCurve(own, bounds.from.trim() || null, bounds.to.trim() || null, analysedDomain, definitions, other, analysedParameters);
           if (current()) setArea(result);
         }
         if (which === 'intersect') {
@@ -209,7 +223,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
           if (current()) setMeeting(result);
         }
         if (which === 'table') {
-          const result = await api.valueTable(latex, table.from, table.to, table.step, analysedDomain, analysedDefinitions);
+          const result = await api.valueTable(latex, table.from, table.to, table.step, analysedDomain, analysedDefinitions, analysedParameters);
           if (current()) setRows(result);
         }
       } catch (failure) {
@@ -217,7 +231,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
       }
     },
     // definitionsFor only reads its arguments.
-    [x0, bounds, table, analysedDomain, analysedDefinitions, others, partner, areaPartner, t],
+    [x0, bounds, table, analysedDomain, analysedDefinitions, analysedParameters, others, partner, areaPartner, t],
   );
 
   /** The curve through the points, then its sketch like any function's. */
@@ -287,14 +301,23 @@ export function AnalysisView({ settings }: { settings: Settings }) {
   // A changed language, precision, output style or step detail shows at once.
   const { language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks } = settings;
   const hideSteps = stepDetail === 'none';
-  const latest = useRef({ analysed, analysedDomain, analysedDefinitions, tab, runTask, spline, input, runSpline });
-  latest.current = { analysed, analysedDomain, analysedDefinitions, tab, runTask, spline, input, runSpline };
+  const latest = useRef({ analysed, analysedDomain, analysedDefinitions, analysedParameters, tab, runTask, spline, input, runSpline });
+  latest.current = { analysed, analysedDomain, analysedDefinitions, analysedParameters, tab, runTask, spline, input, runSpline };
   useEffect(() => {
-    const { analysed: latex, analysedDomain: domain, analysedDefinitions: definitions, tab: active, runTask: task, spline: curve, input: typed, runSpline: again } =
-      latest.current;
+    const {
+      analysed: latex,
+      analysedDomain: domain,
+      analysedDefinitions: definitions,
+      analysedParameters: parameters,
+      tab: active,
+      runTask: task,
+      spline: curve,
+      input: typed,
+      runSpline: again,
+    } = latest.current;
     if (!latex) return;
     if (curve) void again(typed.trim());
-    else void run(latex, domain, definitions);
+    else void run(latex, domain, definitions, parameters);
     if (active !== 'sketch') void task(active, latex);
   }, [language, precision, binomialForm, denominatorForm, quadraticFormula, stepDetail, cancelMarks, run]);
 
@@ -328,9 +351,28 @@ export function AnalysisView({ settings }: { settings: Settings }) {
     const own = spline ? [] : [asDefinition(analysed, name), ...definitions(0)];
     if (derivatives.first && own.length) curves.push({ label: `${name}'`, latex: `${name}'(x)`, definitions: own, tone: 6 });
     if (derivatives.second && own.length) curves.push({ label: `${name}''`, latex: `${name}''(x)`, definitions: own, tone: 7 });
+    // A family's neighbouring members, pale, around the chosen value of its one parameter.
+    if (family.length === 1) {
+      const [p] = family;
+      const value = Number((values[p] ?? '').replace(',', '.'));
+      if (Number.isFinite(value)) {
+        for (const step of [-2, -1, 1, 2]) {
+          curves.push({ label: '', latex: analysed, definitions: analysedDefinitions, tone: 0, faint: true, parameters: { [p]: String(Math.round((value + step) * 100) / 100) } });
+        }
+      }
+    }
     return curves;
     // definitionsFor only reads its arguments.
-  }, [analysed, others, derivatives, spline]);
+  }, [analysed, others, derivatives, spline, family, values, analysedDefinitions]);
+
+  /** The member for the slider's values sketched in full, or the family's own sketch again. */
+  const sketchMember = (back: boolean) => {
+    if (!analysed) return;
+    clearTasks();
+    setSelected(null);
+    void run(analysed, analysedDomain, analysedDefinitions, back ? {} : values);
+  };
+  const shownValues = family.map((p) => `${p} = ${values[p] ?? ''}`).join(', ');
 
   const taskPoints: MarkedPoint[] = tab === 'tangent' && tangent ? [tangent.point] : tab === 'intersect' && meeting ? meeting.points : [];
   const points = analysis ? [...analysis.points, ...taskPoints] : [];
@@ -443,6 +485,37 @@ export function AnalysisView({ settings }: { settings: Settings }) {
         {analysis && analysed && (
           <div className="analysis-body">
             <div className="analysis-graph">
+              {family.length > 0 && (
+                <div className="family-row" title={t('analysis.family.hint')}>
+                  {family.map((p) => (
+                    <label key={p} className="family-slider">
+                      <Katex latex={`${p} =`} />
+                      <input
+                        type="range"
+                        min={-5}
+                        max={5}
+                        step={0.1}
+                        value={Number((values[p] ?? '1').replace(',', '.')) || 0}
+                        onChange={(e) => setValues({ ...values, [p]: e.target.value })}
+                      />
+                      <input
+                        className="task-input family-value"
+                        value={values[p] ?? ''}
+                        onChange={(e) => setValues({ ...values, [p]: e.target.value })}
+                        onKeyDown={(e) => e.key === 'Enter' && sketchMember(false)}
+                      />
+                    </label>
+                  ))}
+                  <button className="copy-btn" onClick={() => sketchMember(false)}>
+                    {t('analysis.family.member', { values: shownValues })}
+                  </button>
+                  {member && (
+                    <button className="copy-btn" onClick={() => sketchMember(true)}>
+                      {t('analysis.family.back')}
+                    </button>
+                  )}
+                </div>
+              )}
               {!spline && (
                 <div className="derivative-toggles">
                   <label>
@@ -459,6 +532,7 @@ export function AnalysisView({ settings }: { settings: Settings }) {
                 latex={analysed}
                 domain={analysedDomain}
                 definitions={analysedDefinitions}
+                parameters={family.length > 0 ? values : analysedParameters}
                 extra={extraCurves}
                 plot={analysis.plot}
                 points={points}

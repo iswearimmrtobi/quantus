@@ -116,12 +116,12 @@ handheld keeps working.
   - [x] Several curves in the graph with a legend; f′ and f″ as a toggle.
   - [x] Intersections of two functions.
   - [x] The area between two curves.
-- [ ] 5. Families f_a(x):
+- [x] 5. Families f_a(x):
   - [x] `Expr::Param`; the other letters are parameters, conditions like `a>0` from the domain
     clause.
   - [x] The symbolic sketch with case splits on the parameter's sign, `partial` beyond that.
   - [x] The locus (Ortskurve) of the extrema and inflection points.
-  - [ ] A slider per parameter in the graph; the numeric sketch for one value as the fallback.
+  - [x] A slider per parameter in the graph; the numeric sketch for one value as the fallback.
 
 Further ideas for the mode: [feature-ideas.md](feature-ideas.md) §39.
 

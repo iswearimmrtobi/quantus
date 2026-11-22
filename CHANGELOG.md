@@ -56,6 +56,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Analysis: the loci (Ortskurven) of a family's extrema and inflection points: x of the point
   solved for the parameter and put into y, with |x| resolved where x keeps its sign
   (`y = -2x^3 (x < 0)` for the maxima of `x^3 - ax`).
+- Desktop, Analysis: a slider and a field per parameter of a family choose a member; the graph
+  draws it with its neighbours pale around it, **Sketch for a = …** sketches the member in full
+  (with tangent, area and table), **Back to the family** returns to the family's sketch.
 - Analysis: with a given domain the sketch adds the global extrema. It compares the values at the
   local and boundary extrema with the limits where the domain is open or unbounded, and says when
   f is unbounded or a supremum or infimum is not attained.

@@ -87,6 +87,31 @@ In the **Area** tab, *Down to* chooses another function instead of the x-axis: t
 the two curves is the area of $f - g$, split where they cross, by default between their outermost
 intersections. For $x^2$ and $x$ it is $\frac{1}{6}$; the graph shades the region between them.
 
+### Families of functions
+
+A letter other than the variable is a parameter, and the input a family of functions:
+
+```latex
+f_a(x) = x^3 - ax
+f_k(x) = kx^2 - 4x, \ k > 0
+x e^{ax}
+```
+
+Without a prefix x is the variable. A condition on the parameter after the function (`k > 0`)
+restricts it. The sketch is then written in terms of the parameter: the derivatives, the
+symmetry, the y-intercept, and the zeros, extrema and inflection points where the condition is
+a polynomial in x of degree at most two, with cases where the result depends on the parameter:
+
+$$\text{for } a \le 0\colon \ \text{no extrema}, \quad \text{for } a > 0\colon \ Max\left(-\sqrt{\tfrac{a}{3}} \mid \tfrac{2a}{3}\sqrt{\tfrac{a}{3}}\right), \ Min\left(\sqrt{\tfrac{a}{3}} \mid -\tfrac{2a}{3}\sqrt{\tfrac{a}{3}}\right)$$
+
+The section **Loci** gives the curves the extrema and inflection points run along as the
+parameter changes: $y = -2x^3$ for this family. Monotonicity and curvature depend on the
+parameter and are left to one member.
+
+Above the graph a slider and a field per parameter choose a member; the graph draws it, with its
+neighbours pale around it. **Sketch for a = …** sketches that member in full, with the tasks;
+**Back to the family** returns to the sketch in terms of the parameter.
+
 ### A curve through points
 
 Type points instead of a function, and the analysis builds the curve through them:

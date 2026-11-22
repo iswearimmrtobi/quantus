@@ -22,6 +22,10 @@ export interface ExtraCurve {
   definitions: string[];
   /** Its colour, one of the theme's `--geometry-*` tones. */
   tone: number;
+  /** Values for a family's parameters: this curve is one member. */
+  parameters?: Record<string, string>;
+  /** Drawn pale and left out of the legend: a neighbouring member of a family. */
+  faint?: boolean;
 }
 
 interface Props {
@@ -31,6 +35,8 @@ interface Props {
   domain?: string | null;
   /** The other functions the analysed one may use, sent with every fresh sample. */
   definitions?: string[];
+  /** For a family: the values of its parameters the curve is drawn for. */
+  parameters?: Record<string, string>;
   plot: PlotData;
   points: MarkedPoint[];
   asymptotes: Asymptote[];
@@ -49,6 +55,7 @@ interface Props {
 const ZOOM_STEP = 1.15;
 const NO_DEFINITIONS: string[] = [];
 const NO_CURVES: ExtraCurve[] = [];
+const NO_PARAMETERS: Record<string, string> = {};
 const RESAMPLE_DELAY = 120;
 /** The narrowest and widest view the wheel may zoom to. */
 const MIN_SPAN = 1e-6;
@@ -87,7 +94,7 @@ function ticks(min: number, max: number, count: number): number[] {
  * ticks, the curve, dashed asymptotes and the marked points. Wheel zooms around the cursor, drag
  * moves the view; each change asks the engine for segments that fit the new view.
  */
-export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITIONS, extra = NO_CURVES, plot, points, asymptotes, lines = [], regions = [], dots = [], selected, onSelect }: Props) {
+export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITIONS, parameters = NO_PARAMETERS, extra = NO_CURVES, plot, points, asymptotes, lines = [], regions = [], dots = [], selected, onSelect }: Props) {
   const { t, language } = useT();
   /** The graph filling the window; the view and everything drawn stay as they are. */
   const fullscreen = useFullscreen();
@@ -136,12 +143,20 @@ export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITION
     // Full screen mounts the canvas anew in the page's body.
   }, [fullscreen.full]);
 
-  // Fresh segments for a moved or zoomed view, once the movement pauses.
+  // The parameter values the analysis' own segments were drawn for; others need fresh ones.
+  const parameterKey = JSON.stringify(parameters);
+  const plottedFor = useRef(parameterKey);
   useEffect(() => {
-    if (view === initial) return;
+    plottedFor.current = parameterKey;
+    // Only a new analysis sets what its plot was drawn for.
+  }, [plot]);
+
+  // Fresh segments for a moved or zoomed view, or other parameter values, once the change pauses.
+  useEffect(() => {
+    if (view === initial && parameterKey === plottedFor.current) return;
     const id = ++request.current;
     const timer = window.setTimeout(() => {
-      api.sampleFunction(latex, view, Math.round(size.width), domain, definitions).then(
+      api.sampleFunction(latex, view, Math.round(size.width), domain, definitions, JSON.parse(parameterKey)).then(
         (sampled) => {
           if (alive.current && id === request.current) setSegments(sampled.segments);
         },
@@ -150,7 +165,7 @@ export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITION
       );
     }, RESAMPLE_DELAY);
     return () => window.clearTimeout(timer);
-  }, [latex, domain, definitions, view, initial, size.width]);
+  }, [latex, domain, definitions, parameterKey, view, initial, size.width]);
 
   // The extra curves for the view, all of them again whenever it or they change. A curve the
   // engine cannot draw (a typo in its field) is left out.
@@ -165,7 +180,7 @@ export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITION
     const timer = window.setTimeout(() => {
       void Promise.all(
         curves.map((curve) =>
-          api.sampleFunction(curve.latex, view, Math.round(size.width), null, curve.definitions).then(
+          api.sampleFunction(curve.latex, view, Math.round(size.width), null, curve.definitions, curve.parameters ?? {}).then(
             (sampled) => sampled.segments,
             () => [] as Segment[],
           ),
@@ -326,7 +341,12 @@ export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITION
             ))}
             {extraSegments.map((curve, i) =>
               curve.map((segment, j) => (
-                <polyline key={`x${i}-${j}`} className="plot-curve extra" style={{ stroke: `var(--geometry-${extra[i]?.tone ?? 1})` }} points={path(segment)} />
+                <polyline
+                  key={`x${i}-${j}`}
+                  className={extra[i]?.faint ? 'plot-curve extra faint' : 'plot-curve extra'}
+                  style={{ stroke: `var(--geometry-${extra[i]?.tone ?? 1})` }}
+                  points={path(segment)}
+                />
               )),
             )}
             {segments.map((segment, i) => (
@@ -384,7 +404,7 @@ export function FunctionPlot({ latex, domain = null, definitions = NO_DEFINITION
       <div className="plot-footer">
         {/* The marked points as a legend; hovering one shows its coordinates in the graph, a click selects it. */}
         <div className="plot-legend">
-          {extra.map((curve, i) => (
+          {extra.filter((curve) => !curve.faint).map((curve, i) => (
             <span key={`c${i}`} className="legend-item legend-curve" style={{ '--point': `var(--geometry-${curve.tone})` } as React.CSSProperties}>
               <span className="curve-swatch" />
               <Katex latex={curve.label} />

@@ -96,7 +96,9 @@ numbers, `\pi`, `e`, `+ − · /`, powers, roots, `e^u`, `a^u`, `\exp`, `\ln`, `
 
 Rejected with an error that names the reason:
 
-- **Function families** (a second free letter, `x^2 + a`).
+- **Two free letters without x** and without a prefix (`t^2 + a`): which is the variable?
+- A family's monotonicity and curvature, and its zeros, extrema and inflection points where the
+  condition is not a polynomial of degree at most two in x: these sections ask for a member.
 - Implicit or parametric curves, complex results.
 - Units, sums, integrals, limits, derivatives, matrices, `n!` and the other integer functions.
 - **Domains made of periodic intervals**, such as `\ln(\sin x)` (periodic gaps like those of
