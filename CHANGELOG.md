@@ -237,6 +237,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Basis-N: the keys `f32(` and `f64(` work. MathLive writes them `\operatorname{\mathrm{f32}}`,
+  which was refused; a word command nested in another is now read.
+- Desktop: typed `xor`, `xnor`, `nand`, `nor` and `ror` stay words. MathLive turned the `or` and
+  `and` at their end into `\lor` and `\land`, so `xor` became `x \lor`.
 - Logic: `\mathopen{(}A + B\mathclose{)}` is read as brackets; it was refused as an empty
   group. `\mathopen{}` and `\mathclose{}` change nothing.
 - Geometry: a negative coordinate after a bar is set as a sign, `(4|0|-1)`, instead of as a

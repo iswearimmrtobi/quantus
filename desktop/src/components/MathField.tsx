@@ -55,6 +55,16 @@ function completeCommand(mathfield: MathfieldElement): void {
   mathfield.insert(SKELETONS[command], { focus: true, selectionMode: 'placeholder' });
 }
 
+/**
+ * Words that end in one of MathLive's own shortcuts (`and` → `\land`, `or` → `\lor`) and must
+ * stay words: typed `xor` would otherwise become `x\lor`. MathLive tries the longest typed run
+ * first, so these win over `or` and `and`. They are what the Basis-N keys insert, and the Logic
+ * mode reads them too.
+ */
+export const WORD_SHORTCUTS: Record<string, string> = Object.fromEntries(
+  ['xor', 'xnor', 'nand', 'nor', 'ror'].map((word) => [word, `\\operatorname{${word}}`]),
+);
+
 /** An entry of the context menu that the app handles. */
 export interface Tool {
   label: string;
@@ -155,6 +165,7 @@ export function MathField({
     // neither, so there MathLive's own keyboard comes up with the field instead of the system's.
     mathfield.mathVirtualKeyboardPolicy = window.matchMedia('(pointer: coarse)').matches ? 'auto' : 'manual';
     mathfield.smartMode = false;
+    mathfield.inlineShortcuts = { ...mathfield.inlineShortcuts, ...WORD_SHORTCUTS };
     if (placeholder) mathfield.placeholder = placeholder;
     mathfield.value = value;
 
