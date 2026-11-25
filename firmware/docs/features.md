@@ -263,7 +263,7 @@ The two-screen handheld ([duo.md](duo.md)).
 - [ ] Main screen touch (GT911) and backlight over I²C
 - [~] UI profile for 1280×720: the layout on a logical 720×405 drawn at 16/9 with fonts of 25–49 — no wallpaper; Greek letters stay at 20 px
 - [~] Input screen: the 3.5" display draws the soft keys, SHIFT/ALPHA/UNIT with their legends, two pages of function keys and the number block and its own touch calibration after the main screen's — not on the board; no key repeat
-- [ ] Key layouts of each mode's own on the input screen
+- [ ] Key layouts of each mode's own on the input screen: specified in [duo-keys.md](duo-keys.md), not built
 - [~] Hardware buttons: EXE, MENU, arrows, OK, power — in the simulator; power does nothing
 - [x] Simulator with both screens (`--duo`)
 - [ ] Fonts of our own from a TTF at build time, for every size and Greek

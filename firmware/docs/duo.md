@@ -55,6 +55,7 @@ What it shows:
 - The SHIFT, ALPHA and UNIT layers: the keys show the layer in force.
 
 A tap sends the same `Key` a physical key would, so the UI's logic is the handheld's.
+Which keys each mode shows, and in what order: [duo-keys.md](duo-keys.md).
 
 It has a touch calibration of its own, the same five crosses as the main screen's: SETUP → Touch
 kalibrieren calibrates the main screen and then the input screen. The main screen's mode menu
