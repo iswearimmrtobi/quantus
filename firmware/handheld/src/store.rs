@@ -12,6 +12,8 @@ const NAMESPACE: &str = "quantus";
 /// Not "touch_cal": that one was made for the resistive panel's readings and would be wrong for
 /// the capacitive panel.
 const CALIBRATION: &str = "touch_cal_i2c";
+/// The Duo's main screen's calibration; the 3.5" screen's above is its input screen's.
+const MAIN_CALIBRATION: &str = "touch_cal_dsi";
 const WALLPAPER: &str = "wallpaper";
 const THEME: &str = "theme";
 const SETTINGS: &str = "settings";
@@ -24,13 +26,26 @@ impl Store {
     }
 
     pub fn load(&self) -> Option<Calibration> {
-        let mut buffer = [0u8; 24];
-        let bytes = self.0.get_blob(CALIBRATION, &mut buffer).ok()??;
-        Calibration::from_bytes(bytes)
+        self.load_calibration(CALIBRATION)
     }
 
     pub fn save(&self, calibration: &Calibration) -> Result<(), EspError> {
         self.0.set_blob(CALIBRATION, &calibration.to_bytes())
+    }
+
+    /// The Duo's main screen's calibration.
+    pub fn load_main(&self) -> Option<Calibration> {
+        self.load_calibration(MAIN_CALIBRATION)
+    }
+
+    pub fn save_main(&self, calibration: &Calibration) -> Result<(), EspError> {
+        self.0.set_blob(MAIN_CALIBRATION, &calibration.to_bytes())
+    }
+
+    fn load_calibration(&self, key: &str) -> Option<Calibration> {
+        let mut buffer = [0u8; 24];
+        let bytes = self.0.get_blob(key, &mut buffer).ok()??;
+        Calibration::from_bytes(bytes)
     }
 
     /// The name of the wallpaper set, if any.

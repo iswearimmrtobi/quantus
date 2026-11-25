@@ -3,6 +3,14 @@ CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_SPIRAM=y
 # The boot screen must not wait for a test of 32 MB.
 CONFIG_SPIRAM_MEMTEST=n
+# The Duo's main screen (`duo` feature) scans two 2 MB frame buffers out of PSRAM 60 times a
+# second: the fastest PSRAM clock, as the SmartPanel firmware runs the same panel on this board.
+CONFIG_SPIRAM_SPEED_200M=y
+# Its DPI stream is restarted by an interrupt after every frame; while the flash is written (the
+# settings, the calibration) the cache is off and only IRAM interrupts run: without this the
+# stream stops and the screen flashes. The frame callback in src/dsi.rs is in IRAM for the same
+# reason.
+CONFIG_LCD_DSI_ISR_CACHE_SAFE=y
 
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=16384
 CONFIG_ESP_TASK_WDT_EN=n

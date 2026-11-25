@@ -15,6 +15,9 @@ default = ["engine"]
 # quantus-core behind the UI. Without it (`--no-default-features`) a stub answers with the input
 # itself, which builds and flashes much faster for work on the UI.
 engine = ["dep:quantus-engine"]
+# The Duo (firmware/docs/duo.md) on the dev kit: the main screen on MIPI-DSI (for now the 10.1"
+# 1280×800 bench panel), the 3.5" screen as its input screen.
+duo = []
 
 [dependencies]
 quantus-engine = { path = "../engine", optional = true }
@@ -50,3 +53,8 @@ remote_component = { name = "espressif/esp_wifi_remote", version = "1.6.5" }
 
 [[package.metadata.esp-idf-sys.extra_components]]
 remote_component = { name = "espressif/esp_hosted", version = "3.0.10" }
+
+# Bindings for the P4's pixel processing accelerator (src/bindings.h), which turns the Duo's
+# main screen picture onto its portrait panel (`duo` feature, src/dsi.rs).
+[[package.metadata.esp-idf-sys.extra_components]]
+bindings_header = "src/bindings.h"

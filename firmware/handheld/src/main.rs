@@ -1,6 +1,8 @@
 //! The handheld's firmware on the ESP32-P4 dev kit with the 3.5" ST7796S capacitive touch display:
 //! the UI of `quantus-ui` with the engine (`quantus-core`, or a stub without the `engine` feature),
 //! keys from the serial monitor or a USB keyboard, and the display's touch panel. See the README.
+//! With the `duo` feature, the Duo (firmware/docs/duo.md): the main screen on MIPI-DSI, and the
+//! 3.5" display as its input screen.
 
 #[cfg(feature = "engine")]
 mod engine;
@@ -79,6 +81,17 @@ fn main() {
 
     let peripherals = Peripherals::take().expect("peripherals");
     let (mut display, mut touch) = open_display!(peripherals);
+    // The Duo's main screen, switched on over the I²C bus of the 3.5" screen's touch, which
+    // also carries its own touch controller.
+    #[cfg(feature = "duo")]
+    let (mut main_screen, mut main_touch) = {
+        quantus_ui::profile::set(quantus_ui::profile::Profile::DUO_BENCH);
+        if let Err(error) = quantus_handheld::dsi::power_on(touch.bus()) {
+            println!("main screen: no power/backlight chip at 0x45: {error}");
+        }
+        let screen = quantus_handheld::dsi::MainScreen::open().expect("main screen");
+        (screen, quantus_handheld::goodix::Goodix::probe(touch.bus()))
+    };
     println!("display ready after {} ms", start.elapsed().as_millis());
 
     splash(&mut display);
@@ -151,14 +164,34 @@ fn main() {
         app.set_wallpaper(name, picture);
     }
     // Without a calibration, the calibration screen comes first.
+    #[cfg(not(feature = "duo"))]
     match store.as_ref().and_then(Store::load) {
         Some(calibration) => app.calibration = calibration,
         None => app.calibrate(),
     }
+    // On the Duo the 3.5" screen is the input screen, and keeps its calibration; the main
+    // screen's touch is turned to the layout already, so it works roughly without one.
+    #[cfg(feature = "duo")]
+    {
+        let mut pad = quantus_ui::pad::Pad::new();
+        match store.as_ref().and_then(Store::load) {
+            Some(calibration) => pad.calibration = calibration,
+            None => pad.calibrate(),
+        }
+        app.pad = Some(pad);
+        if let Some(calibration) = store.as_ref().and_then(Store::load_main) {
+            app.calibration = calibration;
+        }
+    }
     let mut kept_wallpaper = app.wallpaper_name.clone();
     let mut renderer = Renderer::new();
+    #[cfg(feature = "duo")]
+    let mut pad_renderer = Renderer::new();
     let drawn = Instant::now();
+    #[cfg(not(feature = "duo"))]
     let bands = renderer.render(&Frame::new(&app), &mut display).expect("render");
+    #[cfg(feature = "duo")]
+    let bands = duo_render(&app, &mut renderer, &mut main_screen, &mut pad_renderer, &mut display);
     println!("first frame: {bands} bands in {} ms, {} ms after boot", drawn.elapsed().as_millis(), start.elapsed().as_millis());
     println!("Type keys here or on a USB keyboard, or touch the screen; the README lists them.");
 
@@ -182,6 +215,7 @@ fn main() {
             last_debug = Instant::now();
             touch.debug();
         }
+        #[cfg(not(feature = "duo"))]
         if let Some(report) = touch.poll() {
             if let Touch::Press(raw) = report {
                 let at = app.calibration.map(raw);
@@ -189,10 +223,44 @@ fn main() {
             }
             changed |= app.touch(report);
         }
+        #[cfg(not(feature = "duo"))]
         if let Some(calibration) = app.take_calibration() {
             match store.as_ref().map(|store| store.save(&calibration)) {
                 Some(Ok(())) => println!("touch calibration saved: {:?}", calibration.0),
                 _ => println!("touch calibration in use, but not saved"),
+            }
+        }
+        #[cfg(feature = "duo")]
+        {
+            if let Some(report) = touch.poll() {
+                changed |= app.pad_touch(report);
+            }
+            // The main screen's touch: the panel's portrait point turned to the picture, then
+            // to the layout's canvas.
+            if let Some(report) = main_touch.as_mut().and_then(|main| main.poll(touch.bus())) {
+                let profile = quantus_ui::profile::get();
+                let at = |raw| profile.logical(main_screen.landscape(raw));
+                let report = match report {
+                    Touch::Press(raw) => {
+                        log::info!("main touch: raw x {}, y {} at {:?}", raw.x, raw.y, app.calibration.map(at(raw)));
+                        Touch::Press(at(raw))
+                    }
+                    Touch::Drag(raw) => Touch::Drag(at(raw)),
+                    Touch::Release => Touch::Release,
+                };
+                changed |= app.touch(report);
+            }
+            if let Some(calibration) = app.take_calibration() {
+                match store.as_ref().map(|store| store.save_main(&calibration)) {
+                    Some(Ok(())) => println!("main screen calibration saved: {:?}", calibration.0),
+                    _ => println!("main screen calibration in use, but not saved"),
+                }
+            }
+            if let Some(calibration) = app.pad.as_mut().and_then(|pad| pad.take_calibration()) {
+                match store.as_ref().map(|store| store.save(&calibration)) {
+                    Some(Ok(())) => println!("input screen calibration saved: {:?}", calibration.0),
+                    _ => println!("input screen calibration in use, but not saved"),
+                }
             }
         }
         if app.wallpaper_name != kept_wallpaper {
@@ -206,6 +274,10 @@ fn main() {
             if let Err(error) = display.set_brightness(app.settings.brightness) {
                 println!("brightness not set: {error}");
             }
+            #[cfg(feature = "duo")]
+            if let Err(error) = quantus_handheld::dsi::set_brightness(touch.bus(), app.settings.brightness) {
+                println!("main screen brightness not set: {error}");
+            }
         }
         changed |= app.tick(start.elapsed().as_millis() as u64);
         if changed {
@@ -218,12 +290,31 @@ fn main() {
                 }
             }
             let drawn = Instant::now();
+            #[cfg(not(feature = "duo"))]
             let bands = renderer.render(&Frame::new(&app), &mut display).expect("render");
+            #[cfg(feature = "duo")]
+            let bands = duo_render(&app, &mut renderer, &mut main_screen, &mut pad_renderer, &mut display);
             if bands > 1 {
                 log::info!("{bands} bands in {} ms", drawn.elapsed().as_millis());
             }
         }
     }
+}
+
+/// The Duo's two screens: the main screen in its profile, sent out by DSI, and the input screen
+/// at the 3.5" screen's own size. The bands drawn on both.
+#[cfg(feature = "duo")]
+fn duo_render<B>(
+    app: &App<B>,
+    renderer: &mut Renderer,
+    main: &mut quantus_handheld::dsi::MainScreen,
+    pad_renderer: &mut Renderer,
+    pad: &mut Display,
+) -> usize {
+    let bands = renderer.render(&Frame::new(app), main).expect("render");
+    main.present();
+    let frame = quantus_ui::render::pad::frame(app);
+    bands + pad_renderer.render_on(&frame, pad, quantus_ui::profile::Profile::HANDHELD).expect("render pad")
 }
 
 /// The engine on its thread (or the stub), printing what it is asked over serial, and the SD

@@ -77,6 +77,11 @@ impl<'d> TouchPanel<'d> {
         Ok(panel)
     }
 
+    /// The I²C bus the controller is on, for the other devices on it.
+    pub fn bus(&mut self) -> &mut I2cDriver<'d> {
+        &mut self.i2c
+    }
+
     /// What the finger did since the last poll, if anything, as the panel's coordinates.
     pub fn poll(&mut self) -> Option<Touch> {
         match self.reading() {
