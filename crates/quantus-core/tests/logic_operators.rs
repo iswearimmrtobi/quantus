@@ -167,3 +167,11 @@ fn every_bracket_and_spacing_is_read() {
         r"\displaystyle A + B",
     ], &[1, 2, 3]);
 }
+
+/// Found by these tests: `\mathopen` and `\mathclose` are skipped, but their braced argument is
+/// then read as a group, so `\mathopen{(}` is `{(}`, an empty bracket.
+#[test]
+#[ignore = "finding: \\mathopen{(} and \\mathclose{)} are read as an empty group"]
+fn mathopen_and_mathclose_are_brackets() {
+    assert_spellings("brackets", &[r"\mathopen{(}A + B\mathclose{)}"], &[1, 2, 3]);
+}
