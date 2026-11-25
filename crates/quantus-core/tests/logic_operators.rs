@@ -1,6 +1,7 @@
 //! Every operator of the logic mode, one at a time: its truth table, its spellings, its
 //! precedence, how it is written back, and its gate (`docs/docs/guides/logic/operators.md`).
 
+use quantus_core::logic::circuit::{Element, GateType, Netlist};
 use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::parse::parse_expr;
 
@@ -455,5 +456,144 @@ fn nand_alone_and_nor_alone_build_every_operator() {
     ];
     for (operator, built) in nand.iter().chain(&nor) {
         assert!(equivalent(operator, built), "{operator} = {built}");
+    }
+}
+
+const GATES: [GateType; 8] =
+    [GateType::And, GateType::Or, GateType::Not, GateType::Nand, GateType::Nor, GateType::Xor, GateType::Xnor, GateType::Buffer];
+
+/// What gate `gate` gives for the input values `v`, as the textbooks define it.
+fn gate_reference(gate: GateType, v: &[bool]) -> bool {
+    match gate {
+        GateType::And => v.iter().all(|b| *b),
+        GateType::Or => v.iter().any(|b| *b),
+        GateType::Not => !v[0],
+        GateType::Nand => !v.iter().all(|b| *b),
+        GateType::Nor => !v.iter().any(|b| *b),
+        GateType::Xor => odd(v),
+        GateType::Xnor => !odd(v),
+        GateType::Buffer => v[0],
+    }
+}
+
+/// One gate with `n` inputs, switched by the inputs A, B, … on nets 1 to n, its output f on net 100.
+fn one_gate(gate: GateType, n: usize) -> Netlist {
+    let mut elements: Vec<Element> = (0..n).map(|k| {
+        let name = ((b'A' + k as u8) as char).to_string();
+        Element::input(&name, &name, k as u32 + 1)
+    }).collect();
+    let nets: Vec<u32> = (1..=n as u32).collect();
+    elements.push(Element::gate("G1", gate, &nets, 100));
+    elements.push(Element::output("f", "f", 100));
+    Netlist { elements }
+}
+
+#[test]
+fn each_gate_has_its_input_counts() {
+    let counts: Vec<(GateType, (usize, usize))> = GATES.iter().map(|g| (*g, g.inputs())).collect();
+    assert_eq!(counts, [
+        (GateType::And, (2, 8)), (GateType::Or, (2, 8)), (GateType::Not, (1, 1)), (GateType::Nand, (2, 8)),
+        (GateType::Nor, (2, 8)), (GateType::Xor, (2, 8)), (GateType::Xnor, (2, 8)), (GateType::Buffer, (1, 1)),
+    ]);
+    let names: Vec<&str> = GATES.iter().map(|g| g.name()).collect();
+    assert_eq!(names, ["AND", "OR", "NOT", "NAND", "NOR", "XOR", "XNOR", "Buffer"]);
+}
+
+#[test]
+fn each_gate_evaluates_every_row_of_every_input_count() {
+    for gate in GATES {
+        let (low, high) = gate.inputs();
+        for n in low..=high {
+            for row in 0..1 << n {
+                let v = bits(row, n);
+                assert_eq!(gate.eval(&v), gate_reference(gate, &v), "{} {v:?}", gate.name());
+            }
+        }
+    }
+}
+
+#[test]
+fn each_gate_in_a_circuit_gives_its_table() {
+    for gate in GATES {
+        let (low, high) = gate.inputs();
+        for n in low..=high {
+            let circuit = one_gate(gate, n).check().unwrap_or_else(|e| panic!("{} of {n}: {e:?}", gate.name()));
+            for row in 0..1 << n {
+                assert_eq!(circuit.output_values(row), [gate_reference(gate, &bits(row, n))], "{} of {n}, row {row}", gate.name());
+            }
+        }
+    }
+}
+
+#[test]
+fn each_gate_traced_back_is_its_operator() {
+    let (a, b, c) = (|| Expr::var("A"), || Expr::var("B"), || Expr::var("C"));
+    let traced = |gate: GateType, n: usize| one_gate(gate, n).check().unwrap().expr(0);
+    assert_eq!(traced(GateType::Buffer, 1), a());
+    assert_eq!(traced(GateType::Not, 1), Expr::negation(a()));
+    assert_eq!(traced(GateType::And, 3), Expr::And(vec![a(), b(), c()]));
+    assert_eq!(traced(GateType::Or, 3), Expr::Or(vec![a(), b(), c()]));
+    assert_eq!(traced(GateType::Xor, 3), Expr::Xor(vec![a(), b(), c()]));
+    assert_eq!(traced(GateType::Xnor, 3), Expr::Xnor(vec![a(), b(), c()]));
+    assert_eq!(traced(GateType::Nand, 2), Expr::Nand(Box::new(a()), Box::new(b())));
+    assert_eq!(traced(GateType::Nor, 2), Expr::Nor(Box::new(a()), Box::new(b())));
+    // NAND and NOR of more than two are not chains: they become the negated AND and OR.
+    assert_eq!(traced(GateType::Nand, 3), Expr::negation(Expr::And(vec![a(), b(), c()])));
+    assert_eq!(traced(GateType::Nor, 3), Expr::negation(Expr::Or(vec![a(), b(), c()])));
+    // Every traced expression has the gate's table, and so does its LaTeX read back.
+    for gate in GATES {
+        let (low, high) = gate.inputs();
+        for n in low..=high {
+            let vars: Vec<String> = (0..n).map(|k| ((b'A' + k as u8) as char).to_string()).collect();
+            let expr = traced(gate, n);
+            let back = parse_expr(&expr.latex(Notation::Logic)).unwrap();
+            for row in 0..1 << n {
+                let expected = gate_reference(gate, &bits(row, n));
+                assert_eq!(expr.eval_row(&vars, row), expected, "{} of {n}, row {row}", gate.name());
+                assert_eq!(back.eval_row(&vars, row), expected, "{} of {n} read back, row {row}", gate.name());
+            }
+        }
+    }
+}
+
+#[test]
+fn a_gate_with_too_few_or_too_many_inputs_is_an_error() {
+    for gate in GATES {
+        let (low, high) = gate.inputs();
+        for n in [low - 1, high + 1] {
+            let issues = one_gate(gate, n).check().unwrap_err();
+            let expected = if low == high {
+                format!("{} has {low} inputs, not {n}.", gate.name())
+            } else {
+                format!("{} has {low} to {high} inputs, not {n}.", gate.name())
+            };
+            assert!(issues.iter().any(|i| i.message == expected && i.elements == ["G1"]), "{} of {n}: {issues:?}", gate.name());
+        }
+    }
+}
+
+#[test]
+fn a_gate_on_one_net_twice_or_on_constants_works_as_its_table_says() {
+    // A NAND with both inputs on A is a NOT; a NOR too.
+    for gate in [GateType::Nand, GateType::Nor] {
+        let netlist = Netlist { elements: vec![
+            Element::input("A", "A", 1),
+            Element::gate("G1", gate, &[1, 1], 2),
+            Element::output("f", "f", 2),
+        ] };
+        let circuit = netlist.check().unwrap();
+        assert_eq!((circuit.output_values(0), circuit.output_values(1)), (vec![true], vec![false]), "{}", gate.name());
+    }
+    // An XOR with a constant 1 is a NOT, an XNOR with a 1 a buffer.
+    for (gate, inverts) in [(GateType::Xor, true), (GateType::Xnor, false)] {
+        let netlist = Netlist { elements: vec![
+            Element::input("A", "A", 1),
+            Element::constant("K", true, 2),
+            Element::gate("G1", gate, &[1, 2], 3),
+            Element::output("f", "f", 3),
+        ] };
+        let circuit = netlist.check().unwrap();
+        assert_eq!(circuit.output_values(0), [inverts], "{}", gate.name());
+        assert_eq!(circuit.output_values(1), [!inverts], "{}", gate.name());
     }
 }
