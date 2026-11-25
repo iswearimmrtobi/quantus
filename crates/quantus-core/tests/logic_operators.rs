@@ -228,3 +228,65 @@ fn xor_and_xnor_mix_from_the_left() {
     assert_eq!(expr, Expr::Xnor(vec![Expr::Xor(vec![Expr::var("A"), Expr::var("B")]), Expr::var("C")]));
     assert_eq!(ones_of(r"A \oplus B \odot C", "A B C"), ones_by(3, |v| (v[0] != v[1]) == v[2]));
 }
+
+/// The binary operators with their level, highest first (NOT is above them all).
+const LEVELS: [(&str, usize); 6] =
+    [(r"\land", 1), (r"\uparrow", 2), (r"\oplus", 3), (r"\odot", 3), (r"\lor", 4), (r"\downarrow", 5)];
+
+#[test]
+fn every_pair_of_levels_binds_the_higher_first() {
+    for (high, high_level) in LEVELS {
+        for (low, _) in LEVELS.iter().filter(|(_, level)| *level > high_level) {
+            let left = format!(r"A {high} B {low} C");
+            let right = format!(r"A {low} B {high} C");
+            assert_eq!(ones_of(&left, "A B C"), ones_of(&format!(r"(A {high} B) {low} C"), "A B C"), "{left}");
+            assert_eq!(ones_of(&right, "A B C"), ones_of(&format!(r"A {low} (B {high} C)"), "A B C"), "{right}");
+            assert_eq!(parse_expr(&left).unwrap(), parse_expr(&format!(r"(A {high} B) {low} C")).unwrap(), "{left}");
+            assert_eq!(parse_expr(&right).unwrap(), parse_expr(&format!(r"A {low} (B {high} C)")).unwrap(), "{right}");
+        }
+    }
+}
+
+#[test]
+fn the_levels_differ_where_the_table_shows_it() {
+    // The other reading is another function: each pair below differs in some row.
+    let differing = [
+        (r"A \lor B \land C", r"(A \lor B) \land C"),
+        (r"A \oplus B \land C", r"(A \oplus B) \land C"),
+        (r"A \uparrow B \land C", r"(A \uparrow B) \land C"),
+        (r"A \lor B \oplus C", r"(A \lor B) \oplus C"),
+        (r"A \lor B \downarrow C", r"A \lor (B \downarrow C)"),
+        (r"A \oplus B \uparrow C", r"(A \oplus B) \uparrow C"),
+    ];
+    for (typed, other) in differing {
+        assert_ne!(ones_of(typed, "A B C"), ones_of(other, "A B C"), "{typed}");
+    }
+}
+
+#[test]
+fn not_binds_tighter_than_every_binary_operator() {
+    for (op, _) in LEVELS {
+        for not in [r"\lnot A", "!A", "A'", r"\neg A", "not A"] {
+            let typed = format!("{not} {op} B");
+            assert_eq!(ones_of(&typed, "A B"), ones_of(&format!(r"(\lnot A) {op} B"), "A B"), "{typed}");
+        }
+        // An overline covers just what is under it.
+        let typed = format!(r"\overline{{A {op} B}} {op} C");
+        assert_eq!(ones_of(&typed, "A B C"), ones_of(&format!(r"(\lnot (A {op} B)) {op} C"), "A B C"), "{typed}");
+    }
+    // `not` before a bracket negates the bracket; a prime after one too.
+    assert_eq!(ones_of(r"\lnot (A \lor B)", "A B"), [0]);
+    assert_eq!(ones_of(r"(A \lor B)'", "A B"), [0]);
+    assert_eq!(ones_of(r"A \lor B'", "A B"), [0, 2, 3]);
+}
+
+#[test]
+fn juxtaposition_is_and_at_its_level() {
+    // `AB` is the same as `A \land B`, above NAND and below NOT.
+    assert_eq!(parse_expr(r"A \lor BC").unwrap(), parse_expr(r"A \lor (B \land C)").unwrap());
+    assert_eq!(parse_expr(r"AB \uparrow C").unwrap(), parse_expr(r"(A \land B) \uparrow C").unwrap());
+    assert_eq!(parse_expr(r"A' B").unwrap(), parse_expr(r"(\lnot A) \land B").unwrap());
+    assert_eq!(parse_expr(r"A \land BC").unwrap(), parse_expr("ABC").unwrap());
+    assert_eq!(parse_expr(r"(A \lor B)(C \lor D)").unwrap(), parse_expr(r"(A \lor B) \land (C \lor D)").unwrap());
+    assert_eq!(parse_expr(r"A \overline{B}").unwrap(), parse_expr(r"A \land \lnot B").unwrap());
+}
