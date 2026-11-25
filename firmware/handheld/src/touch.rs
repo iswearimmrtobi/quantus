@@ -11,7 +11,7 @@ use embedded_graphics::prelude::Point;
 use esp_idf_svc::hal::delay::{FreeRtos, BLOCK};
 use esp_idf_svc::hal::gpio::{Output, PinDriver};
 use esp_idf_svc::hal::i2c::I2cDriver;
-use esp_idf_svc::sys::EspError;
+use esp_idf_svc::sys::{self, EspError};
 use quantus_ui::touch::Touch;
 
 /// The controller's 7-bit address.
@@ -31,6 +31,14 @@ const LIFTED: u8 = 2;
 /// Polls in a row that fail before the finger counts as lifted anyway.
 const SILENT: u8 = 10;
 
+/// Polls in a row that fail before the bus counts as stuck and is freed ([`TouchPanel::recover`]).
+const STUCK: u8 = 20;
+
+/// The bus's pins and port, as `open_display!` sets them up.
+const SDA: i32 = 7;
+const SCL: i32 = 8;
+const PORT: sys::i2c_port_t = 0;
+
 /// What one poll says.
 enum Reading {
     Pressed(Point),
@@ -42,7 +50,7 @@ enum Reading {
 pub struct TouchPanel<'d> {
     i2c: I2cDriver<'d>,
     /// Kept so TP_RST stays driven high: dropping a `PinDriver` floats the pin.
-    _reset: PinDriver<'d, Output>,
+    reset: PinDriver<'d, Output>,
     down: bool,
     lifted: u8,
     silent: u8,
@@ -58,7 +66,7 @@ impl<'d> TouchPanel<'d> {
         reset.set_high()?;
         // The controller needs about 300 ms after reset before it answers.
         FreeRtos::delay_ms(300);
-        let mut panel = TouchPanel { i2c, _reset: reset, down: false, lifted: 0, silent: 0 };
+        let mut panel = TouchPanel { i2c, reset, down: false, lifted: 0, silent: 0 };
         let mut id = [0u8];
         match panel.i2c.write_read(ADDRESS, &[CHIP_ID], &mut id, BLOCK) {
             Ok(()) if id[0] == FT6336U => log::info!("touch: FT6336U ready"),
@@ -97,9 +105,67 @@ impl<'d> TouchPanel<'d> {
             }
             Reading::Unknown => {
                 self.silent = self.silent.saturating_add(1);
+                if self.silent % STUCK == 0 {
+                    self.recover();
+                }
                 self.lift(SILENT <= self.silent)
             }
         }
+    }
+
+    /// Frees a bus that a device holds: a device that lost count of the clock in the middle of
+    /// a transfer keeps SDA low, and the driver can do nothing until it lets go. The FT6336U is
+    /// reset, then SCL clocked until SDA comes up, then a STOP sent, and the pins handed back to
+    /// the driver. The lines' levels are logged on the way, to tell which device held it.
+    pub fn recover(&mut self) {
+        // SAFETY: plain GPIO and I²C driver calls on the bus's own pins and port, from the only
+        // thread that uses the bus.
+        unsafe {
+            let level = |pin| sys::gpio_get_level(pin);
+            let (sda, scl) = (level(SDA), level(SCL));
+            let _ = self.reset.set_low();
+            FreeRtos::delay_ms(10);
+            let _ = self.reset.set_high();
+            let after_reset = level(SDA);
+            sys::gpio_reset_pin(SCL);
+            sys::gpio_reset_pin(SDA);
+            sys::gpio_set_direction(SCL, sys::gpio_mode_t_GPIO_MODE_INPUT_OUTPUT_OD);
+            sys::gpio_set_direction(SDA, sys::gpio_mode_t_GPIO_MODE_INPUT_OUTPUT_OD);
+            sys::gpio_set_pull_mode(SCL, sys::gpio_pull_mode_t_GPIO_PULLUP_ONLY);
+            sys::gpio_set_pull_mode(SDA, sys::gpio_pull_mode_t_GPIO_PULLUP_ONLY);
+            sys::gpio_set_level(SDA, 1);
+            sys::gpio_set_level(SCL, 1);
+            sys::esp_rom_delay_us(10);
+            let mut clocks = 0;
+            while level(SDA) == 0 && clocks < 16 {
+                sys::gpio_set_level(SCL, 0);
+                sys::esp_rom_delay_us(10);
+                sys::gpio_set_level(SCL, 1);
+                sys::esp_rom_delay_us(10);
+                clocks += 1;
+            }
+            // STOP: SDA rises while SCL is high.
+            sys::gpio_set_level(SCL, 0);
+            sys::esp_rom_delay_us(10);
+            sys::gpio_set_level(SDA, 0);
+            sys::esp_rom_delay_us(10);
+            sys::gpio_set_level(SCL, 1);
+            sys::esp_rom_delay_us(10);
+            sys::gpio_set_level(SDA, 1);
+            sys::esp_rom_delay_us(10);
+            let freed = (level(SDA), level(SCL));
+            sys::i2c_set_pin(PORT, SDA, SCL, true, true, sys::i2c_mode_t_I2C_MODE_MASTER);
+            sys::i2c_reset_tx_fifo(PORT);
+            sys::i2c_reset_rx_fifo(PORT);
+            log::warn!(
+                "touch: bus stuck (SDA {sda}, SCL {scl}); after the FT6336U's reset SDA {after_reset}; \
+                 {clocks} clocks; now SDA {}, SCL {}",
+                freed.0,
+                freed.1
+            );
+        }
+        // The controller answers about 300 ms after its reset.
+        FreeRtos::delay_ms(300);
     }
 
     /// The finger is up if `gone`.
