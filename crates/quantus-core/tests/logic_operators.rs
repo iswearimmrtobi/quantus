@@ -597,3 +597,46 @@ fn a_gate_on_one_net_twice_or_on_constants_works_as_its_table_says() {
         assert_eq!(circuit.output_values(1), [!inverts], "{}", gate.name());
     }
 }
+
+/// The response of `api::logic` to a scene given as JSON.
+fn logic_api(scene: serde_json::Value) -> serde_json::Value {
+    let request: quantus_core::api::LogicRequest = serde_json::from_value(serde_json::json!({ "scene": scene, "task": null })).unwrap();
+    let response = quantus_core::api::logic(&quantus_core::settings::Settings::default(), &request).unwrap();
+    serde_json::to_value(&response).unwrap()
+}
+
+#[test]
+fn the_api_gives_the_table_of_each_operator_typed() {
+    let typed = [
+        (r"f = \lnot A", vec!["A"], vec!["1", "0"]),
+        (r"f = A \land B", vec!["A", "B"], vec!["0", "0", "0", "1"]),
+        (r"f = A \lor B", vec!["A", "B"], vec!["0", "1", "1", "1"]),
+        (r"f = A \oplus B", vec!["A", "B"], vec!["0", "1", "1", "0"]),
+        (r"f = A \odot B", vec!["A", "B"], vec!["1", "0", "0", "1"]),
+        (r"f = A \uparrow B", vec!["A", "B"], vec!["1", "1", "1", "0"]),
+        (r"f = A \downarrow B", vec!["A", "B"], vec!["1", "0", "0", "0"]),
+    ];
+    for (latex, inputs, table) in typed {
+        let response = logic_api(serde_json::json!({ "outputs": [{ "source": { "kind": "expression", "latex": latex } }] }));
+        assert_eq!(response["errors"], serde_json::json!([]), "{latex}");
+        assert_eq!(response["inputs"], serde_json::json!(inputs), "{latex}");
+        assert_eq!(response["outputs"][0]["table"], serde_json::json!(table), "{latex}");
+    }
+}
+
+#[test]
+fn the_api_gives_the_table_of_each_gate_drawn() {
+    for (gate, n) in [("and", 2), ("or", 2), ("not", 1), ("nand", 2), ("nor", 2), ("xor", 3), ("xnor", 3), ("buffer", 1)] {
+        let mut elements: Vec<serde_json::Value> = (0..n).map(|k| {
+            let name = ((b'A' + k as u8) as char).to_string();
+            serde_json::json!({ "id": format!("S{k}"), "kind": "input", "name": name, "output": k + 1 })
+        }).collect();
+        elements.push(serde_json::json!({ "id": "G1", "kind": "gate", "gate": gate, "inputs": (1..=n).collect::<Vec<_>>(), "output": 100 }));
+        elements.push(serde_json::json!({ "id": "L1", "kind": "output", "name": "f", "inputs": [100] }));
+        let response = logic_api(serde_json::json!({ "outputs": [], "circuit": { "elements": elements } }));
+        assert_eq!(response["errors"], serde_json::json!([]), "{gate}");
+        let gate_type: GateType = serde_json::from_value(serde_json::json!(gate)).unwrap();
+        let table: Vec<&str> = (0..1 << n).map(|row| if gate_reference(gate_type, &bits(row, n)) { "1" } else { "0" }).collect();
+        assert_eq!(response["outputs"][0]["table"], serde_json::json!(table), "{gate}");
+    }
+}
