@@ -233,6 +233,9 @@ fn main() {
         #[cfg(feature = "duo")]
         {
             if let Some(report) = touch.poll() {
+                if let Touch::Press(raw) = report {
+                    log::info!("input touch: raw x {}, y {}", raw.x, raw.y);
+                }
                 changed |= app.pad_touch(report);
             }
             // The main screen's touch: the panel's portrait point turned to the picture, then
