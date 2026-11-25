@@ -176,7 +176,10 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
       nudge: (dx, dy) => {
         const origins = new Map(elements.filter((e) => selection.includes(e.id)).map((e) => [e.id, e]));
         if (!origins.size) return false;
-        history.change(editing.tidied(editing.following(movedBy(elements, origins, dx * GRID, dy * GRID), origins.keys())), 'arrows');
+        const next = movedBy(elements, origins, dx * GRID, dy * GRID);
+        // A step onto a wire would join the parts to it: they stay.
+        if (editing.touchesWire(next, origins.keys())) return;
+        history.change(editing.tidied(editing.following(next, origins.keys())), 'arrows');
       },
       view: canvasView,
     }),

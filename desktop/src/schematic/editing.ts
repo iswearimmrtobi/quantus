@@ -1,12 +1,16 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { drawnPath, inRectangle, movedBy, pointKey, rotatedQuarter, wireEnds, withPath, type Path, type Placeable, type Point } from './geometry';
-import { attachments, followed, pulledEnd, type Attachment, type Merged } from './wiring';
+import { attachments, followed, pulledEnd, touchesNewWire, wireContacts, type Attachment, type Merged } from './wiring';
 import type { useCanvasView, View } from './view';
 
 export type Drag<E> =
   /** `moved`: whether the pointer has left the grid point it started on; if not, it was a tap. */
-  /** `attached`: the ends of other wires on the moving parts' pins, which follow them. */
-  | { type: 'move'; from: Point; origins: Map<string, E>; attached: Attachment<E>[]; moved: boolean }
+  /**
+   * `attached`: the ends of other wires on the moving parts' pins, which follow them. `contacts`:
+   * the wires the moving parts' pins touched when the drag began (`wireContacts`); they may touch
+   * no other.
+   */
+  | { type: 'move'; from: Point; origins: Map<string, E>; attached: Attachment<E>[]; contacts: Set<string>; moved: boolean }
   /** `origin`: the wire as it was when the drag began. */
   | { type: 'end'; id: string; end: 'a' | 'b'; origin: E; moved: boolean }
   /**
@@ -80,6 +84,9 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
   /** `next`, the parts of `moving` moved or turned in it, with the wires on their pins following. */
   const following = (next: E[], moving: Iterable<string>): E[] => followed(next, attachments(elements, new Set(moving), pins), pins);
 
+  /** Whether the parts of `moving` would land with a pin on a wire they did not touch in `next`. */
+  const touchesWire = (next: E[], moving: Iterable<string>) => touchesNewWire(elements, next, new Set(moving), pins);
+
   const remove = (ids: string[]) => {
     onChange(tidied(elements.filter((e) => !ids.includes(e.id)), []));
     setInspected(null);
@@ -87,7 +94,10 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
 
   const rotateSelected = () => {
     if (!elements.some((e) => selection.includes(e.id))) return;
-    onChange(tidied(following(rotatedQuarter(elements, selection, pins, turned), selection)));
+    const next = rotatedQuarter(elements, selection, pins, turned);
+    // A part turned onto a wire would be joined to it; it stays as it is.
+    if (touchesWire(next, selection)) return;
+    onChange(tidied(following(next, selection)));
   };
 
   const capture = (event: ReactPointerEvent) => canvas.current?.setPointerCapture(event.pointerId);
@@ -106,6 +116,7 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
       from: toGrid(event),
       origins: new Map(elements.filter((e) => group.includes(e.id)).map((e) => [e.id, e])),
       attached: attachments(elements, new Set(group), pins),
+      contacts: wireContacts(elements, new Set(group), pins),
       moved: false,
     });
   };
@@ -173,8 +184,12 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
     } else {
       const [dx, dy] = [at.x - drag.from.x, at.y - drag.from.y];
       if (!drag.moved && dx === 0 && dy === 0) return;
+      const next = movedBy(elements, drag.origins, dx, dy);
+      // Over a wire the parts would be joined to it: they wait where they were until it is clear.
+      const contacts = wireContacts(next, new Set(drag.origins.keys()), pins);
+      if ([...contacts].some((contact) => !drag.contacts.has(contact))) return;
       if (!drag.moved) setDrag({ ...drag, moved: true });
-      onChange(followed(movedBy(elements, drag.origins, dx, dy), drag.attached, pins));
+      onChange(followed(next, drag.attached, pins));
     }
   };
 
@@ -225,6 +240,7 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
     update,
     tidied,
     following,
+    touchesWire,
     remove,
     rotateSelected,
     startMove,

@@ -38,6 +38,32 @@ export function attachments<E extends Placeable>(elements: E[], moving: Set<stri
   return found;
 }
 
+/**
+ * Which pins of the parts in `moving` touch which wires not in `moving`, at an end, a corner or in
+ * the middle, as `part:pin|wire`. A part is connected by drawing wires, never by being moved onto
+ * one: see `touchesNewWire`.
+ */
+export function wireContacts<E extends Placeable>(elements: E[], moving: Set<string>, pins: (e: E) => Point[]): Set<string> {
+  const wires = elements.filter((e) => e.kind === 'wire' && !moving.has(e.id)).map((wire) => ({ id: wire.id, path: wirePoints(wire) }));
+  const contacts = new Set<string>();
+  for (const part of elements) {
+    if (part.kind === 'wire' || !moving.has(part.id)) continue;
+    pins(part).forEach((point, pin) => {
+      const key = pointKey(point);
+      for (const { id, path } of wires) {
+        if (key === pointKey(path[0]) || key === pointKey(path[path.length - 1]) || onPath(path, point)) contacts.add(`${part.id}:${pin}|${id}`);
+      }
+    });
+  }
+  return contacts;
+}
+
+/** Whether moving or turning the parts of `moving` from `before` to `after` puts a pin on a wire it did not touch. */
+export function touchesNewWire<E extends Placeable>(before: E[], after: E[], moving: Set<string>, pins: (e: E) => Point[]): boolean {
+  const had = wireContacts(before, moving, pins);
+  return [...wireContacts(after, moving, pins)].some((contact) => !had.has(contact));
+}
+
 /** Whether a path leaves its start sideways: a straight path that goes nowhere counts as sideways. */
 const leavesAcross = (path: Path) => path[0].y === path[1].y;
 

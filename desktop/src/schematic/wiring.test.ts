@@ -3,7 +3,7 @@ import { ends, idealPaths, isIdealWire, toKirchhoffRequest, type EditorElement }
 import { pasteInto } from './clipboard';
 import { drawnPath, longestPiece, movedBy, onPath, rotatedQuarter, route, simplify, wirePoints, withPath, type Point } from './geometry';
 import { joinPoints } from './nets';
-import { attachments, followed, mergedWires, pulledEnd, rerouted } from './wiring';
+import { attachments, followed, mergedWires, pulledEnd, rerouted, touchesNewWire } from './wiring';
 
 const p = (x: number, y: number): Point => ({ x, y });
 const resistor = (id: string, x: number, y: number, rotation = 0): EditorElement => ({ id, kind: 'resistor', x, y, rotation });
@@ -112,6 +112,25 @@ describe('wires follow their parts', () => {
   it('slides only the last leg of a wire with many corners', () => {
     const w = wire('W1', p(0, 0), p(40, 0), p(40, 40), p(80, 40), p(80, 80), p(120, 80));
     expect(wirePoints(rerouted(w, p(0, 0), p(120, 120)))).toEqual([p(0, 0), p(40, 0), p(40, 40), p(80, 40), p(80, 120), p(120, 120)]);
+  });
+});
+
+describe('moving a part onto a wire', () => {
+  const r1 = resistor('R1', 0, 0);
+  const w1 = wire('W1', p(40, 0), p(120, 0));
+  const lone = wire('W9', p(200, -40), p(200, 40), p(280, 40));
+  const move = (dx: number, dy: number) => movedBy([r1, w1, lone], new Map([['R1', r1]]), dx, dy);
+
+  it('touches a new wire with a pin on its end, its middle or a corner', () => {
+    // R1's b pin lands on W9's start, then its middle, then its corner.
+    expect(touchesNewWire([r1, w1, lone], move(160, -40), new Set(['R1']), ends)).toBe(true);
+    expect(touchesNewWire([r1, w1, lone], move(160, 0), new Set(['R1']), ends)).toBe(true);
+    expect(touchesNewWire([r1, w1, lone], move(160, 40), new Set(['R1']), ends)).toBe(true);
+  });
+  it('does not count the wires it touched already, nor a free spot', () => {
+    expect(touchesNewWire([r1, w1, lone], move(0, -80), new Set(['R1']), ends)).toBe(false);
+    // Along W1, which R1's pin touched before.
+    expect(touchesNewWire([r1, w1, lone], move(40, 0), new Set(['R1']), ends)).toBe(false);
   });
 });
 
