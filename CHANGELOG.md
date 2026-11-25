@@ -7,6 +7,10 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Handheld: the Duo, a second handheld with two screens, in the simulator (`--duo`): the
+  calculation on a 5" 1280×720 screen, drawn from the same layout with larger fonts, and a 3.5"
+  touch screen under it in place of the keypad, with the mode's soft keys as buttons, SHIFT,
+  ALPHA and UNIT with their legends, the function keys in two pages and the number block.
 - Docs: the Base-N mode's operators, one by one: their meaning on the word (two's complement,
   wrapping, truncation, shifts and rotations, IEEE 754), every spelling, the precedence and what
   is refused.
@@ -275,6 +279,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Handheld: a menu list at rest no longer shows the top of the next page under its last line.
 - Analysis: the chain rule names the outer function g(z) with g′(z) and the inner function h(x)
   with h′(x), and goes on to every level: in `\sin(e^{2x})` h′ is found by the chain rule again
   (g₂, h₂). The quotient rule finds u′ and v′ by the chain rule as the product rule does, and
