@@ -5,7 +5,7 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyleBuilder, Rectangle, RoundedRectangle, StrokeAlignment};
 
 use super::{colors, Frame, Shape, BAND};
-use crate::profile;
+use crate::profile::{self, Profile};
 use crate::wallpaper::blend;
 
 /// Draws frames band by band and sends the bands that changed since the last frame. A band
@@ -37,9 +37,8 @@ impl Renderer {
         self.drawn.fill(None);
     }
 
-    /// Sizes the bands for the panel of the profile in force, all to be drawn if it changed.
-    fn fit(&mut self) {
-        let size = profile::get().physical();
+    /// Sizes the bands for a panel of `size`, all to be drawn if it changed.
+    fn fit(&mut self, size: Size) {
         if size != self.size {
             let bands = size.height.div_ceil(BAND) as usize;
             *self = Renderer {
@@ -57,8 +56,18 @@ impl Renderer {
         frame: &Frame,
         display: &mut D,
     ) -> Result<usize, D::Error> {
-        self.fit();
-        let profile = profile::get();
+        self.render_on(frame, display, profile::get())
+    }
+
+    /// [`Renderer::render`] for the panel of `profile` rather than the thread's: the Duo's input
+    /// screen beside its main screen.
+    pub fn render_on<D: DrawTarget<Color = Rgb565>>(
+        &mut self,
+        frame: &Frame,
+        display: &mut D,
+        profile: Profile,
+    ) -> Result<usize, D::Error> {
+        self.fit(profile.physical());
         let Size { width, height } = self.size;
         let mut sent = 0;
         let backdrop = fingerprint(&frame.1);

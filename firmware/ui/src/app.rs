@@ -535,6 +535,9 @@ pub struct App<B> {
     last_wlan: Option<u64>,
     /// How many soft keys a row has: 6 on the big unit, 5 on the small one.
     pub soft_columns: usize,
+    /// Whether the soft keys' labels show at the bottom of the screen, over keys under it; the
+    /// Duo shows its soft keys on the input screen instead (firmware/docs/duo.md §3).
+    pub soft_strips: bool,
     /// The page of the soft keys shown; back to the first with any other key.
     pub soft_page: usize,
     /// The page of SYMB's symbols on the soft keys, while they are open.
@@ -692,6 +695,7 @@ impl<B: Backend> App<B> {
             wlan_connected: false,
             last_wlan: None,
             soft_columns: 6,
+            soft_strips: true,
             soft_page: 0,
             symbols: None,
             units: Units::default(),

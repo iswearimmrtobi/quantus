@@ -125,7 +125,12 @@ const FORMS: [(&str, Key); 3] = [(r"S\Leftrightarrow D", Key::SwapForm), ("ENG",
 
 /// Whether the strips are on the screen.
 pub fn shows<B>(app: &App<B>) -> bool {
-    bar(app).is_some()
+    strips(app).is_some()
+}
+
+/// The soft keys as the strips at the bottom of the screen show them, `None` where they do not.
+pub fn strips<B>(app: &App<B>) -> Option<Bar> {
+    if app.soft_strips { bar(app) } else { None }
 }
 
 /// The soft keys as the screen is now, or `None` where they are hidden.

@@ -12,6 +12,8 @@ use crate::profile::Profile;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scale {
+    /// FreeUniversal 11, only for words on the Duo's keys that are too wide for 14.
+    Tiny,
     /// FreeUniversal 14.
     Small,
     /// 17, only for the exponents of [`Scale::Large`].
@@ -64,6 +66,12 @@ static NORMAL: [FontRenderer; 3] = [
     FontRenderer::new::<fonts::u8g2_font_10x20_t_greek>(),
 ];
 
+static TINY: [FontRenderer; 3] = [
+    FontRenderer::new::<fonts::u8g2_font_fur11_tf>(),
+    FontRenderer::new::<fonts::u8g2_font_fur11_t_symbol>(),
+    FontRenderer::new::<fonts::u8g2_font_cu12_t_greek>(),
+];
+
 static SMALL: [FontRenderer; 3] = [
     FontRenderer::new::<fonts::u8g2_font_fur14_tf>(),
     FontRenderer::new::<fonts::u8g2_font_fur14_t_symbol>(),
@@ -86,6 +94,7 @@ pub struct Metrics {
 impl Scale {
     fn fonts(self) -> &'static [FontRenderer; 3] {
         match self {
+            Scale::Tiny => &TINY,
             Scale::Small => &SMALL,
             Scale::Middle => &MIDDLE,
             Scale::Normal => &NORMAL,
@@ -101,6 +110,7 @@ impl Scale {
     /// comes out as [`Scale::Large`] does.
     pub fn larger(self) -> Scale {
         match self {
+            Scale::Tiny => Scale::Normal,
             Scale::Small => Scale::Large,
             Scale::Middle => Scale::Huge,
             Scale::Normal => Scale::Xl,
@@ -111,6 +121,7 @@ impl Scale {
     /// The size of exponents, indices and nested fractions in text of this size.
     pub fn script(self) -> Scale {
         match self {
+            Scale::Tiny => Scale::Tiny,
             Scale::Small | Scale::Middle | Scale::Normal => Scale::Small,
             Scale::Large => Scale::Middle,
             Scale::Huge => Scale::Normal,
@@ -122,7 +133,7 @@ impl Scale {
     /// The width of drawn signs and brackets, as thick as the font's strokes.
     pub fn stroke(self) -> u32 {
         match self {
-            Scale::Small | Scale::Middle => 1,
+            Scale::Tiny | Scale::Small | Scale::Middle => 1,
             Scale::Normal | Scale::Large => 2,
             Scale::Huge | Scale::Xl => 3,
             Scale::Xxl => 4,

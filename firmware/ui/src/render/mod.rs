@@ -9,6 +9,7 @@ mod analysis;
 mod bar;
 pub mod bmp;
 mod graph;
+pub mod pad;
 mod renderer;
 mod screens;
 mod sheet;
@@ -371,7 +372,7 @@ impl Frame {
                 }
             }
         }
-        if let Some(keys) = crate::soft::bar(app) {
+        if let Some(keys) = crate::soft::strips(app) {
             soft::strips(&mut shapes, app, &keys);
         }
         bar(&mut shapes, app);

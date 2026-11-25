@@ -29,7 +29,7 @@ pub fn slot_rect(index: usize, columns: usize) -> Rectangle {
 
 /// The soft key under `point`, if the strips show and it is on them.
 pub fn soft_at<B>(app: &App<B>, point: Point) -> Option<Target> {
-    let bar = soft::bar(app)?;
+    let bar = soft::strips(app)?;
     let index = (0..2 * bar.columns).find(|&index| slot_rect(index, bar.columns).contains(point))?;
     Some(Target::Soft(index))
 }

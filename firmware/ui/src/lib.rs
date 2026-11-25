@@ -17,6 +17,7 @@ pub mod latex;
 pub mod layout;
 pub mod legend;
 pub mod menu;
+pub mod pad;
 pub mod profile;
 pub mod render;
 pub mod search;
