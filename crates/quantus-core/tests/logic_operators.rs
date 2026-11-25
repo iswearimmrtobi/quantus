@@ -395,3 +395,65 @@ fn an_xnor_of_three_is_written_as_the_negated_xor() {
     let back = parse_expr(&gate.latex(Notation::Logic)).unwrap();
     assert!((0..8).all(|r| back.eval_row(&abc, r) == gate.eval_row(&abc, r)));
 }
+
+/// Whether `a` and `b` have the same table over A, B, C.
+fn equivalent(a: &str, b: &str) -> bool {
+    ones_of(a, "A B C") == ones_of(b, "A B C")
+}
+
+#[test]
+fn the_laws_of_boolean_algebra_hold() {
+    let laws = [
+        // Commutative.
+        (r"A \land B", r"B \land A"), (r"A \lor B", r"B \lor A"), (r"A \oplus B", r"B \oplus A"),
+        (r"A \odot B", r"B \odot A"), (r"A \uparrow B", r"B \uparrow A"), (r"A \downarrow B", r"B \downarrow A"),
+        // Associative (XNOR of two is associative too; NAND and NOR are not, see below).
+        (r"(A \land B) \land C", r"A \land (B \land C)"), (r"(A \lor B) \lor C", r"A \lor (B \lor C)"),
+        (r"(A \oplus B) \oplus C", r"A \oplus (B \oplus C)"), (r"(A \odot B) \odot C", r"A \odot (B \odot C)"),
+        // Distributive.
+        (r"A \land (B \lor C)", r"A \land B \lor A \land C"), (r"A \lor B \land C", r"(A \lor B) \land (A \lor C)"),
+        (r"A \land (B \oplus C)", r"A \land B \oplus A \land C"),
+        // De Morgan.
+        (r"\overline{A \land B}", r"\lnot A \lor \lnot B"), (r"\overline{A \lor B}", r"\lnot A \land \lnot B"),
+        (r"\overline{A \land B \land C}", r"\lnot A \lor \lnot B \lor \lnot C"),
+        // Absorption, idempotence, complement, involution.
+        (r"A \lor A \land B", "A"), (r"A \land (A \lor B)", "A"), (r"A \land A", "A"), (r"A \lor A", "A"),
+        (r"A \land \lnot A", "0"), (r"A \lor \lnot A", "1"), (r"\lnot \lnot A", "A"),
+        // XOR and XNOR.
+        (r"A \oplus B", r"A \lnot B \lor \lnot A B"), (r"A \oplus B", r"(A \lor B) \land \overline{A \land B}"),
+        (r"A \odot B", r"\overline{A \oplus B}"), (r"A \odot B", r"A B \lor \lnot A \lnot B"),
+        (r"A \oplus \lnot B", r"A \odot B"), (r"A \oplus A", "0"), (r"A \oplus 1", r"\lnot A"), (r"A \odot A", "1"),
+        // NAND and NOR are the negated AND and OR.
+        (r"A \uparrow B", r"\overline{A \land B}"), (r"A \downarrow B", r"\overline{A \lor B}"),
+        (r"A \uparrow B", r"\lnot A \lor \lnot B"), (r"A \downarrow B", r"\lnot A \land \lnot B"),
+    ];
+    for (a, b) in laws {
+        assert!(equivalent(a, b), "{a} = {b}");
+    }
+    assert!(!equivalent(r"(A \uparrow B) \uparrow C", r"A \uparrow (B \uparrow C)"));
+    assert!(!equivalent(r"(A \downarrow B) \downarrow C", r"A \downarrow (B \downarrow C)"));
+    assert!(!equivalent(r"A \lor (B \oplus C)", r"A \lor B \oplus A \lor C"));
+}
+
+#[test]
+fn nand_alone_and_nor_alone_build_every_operator() {
+    let nand = [
+        (r"\lnot A", r"A \uparrow A"),
+        (r"A \land B", r"(A \uparrow B) \uparrow (A \uparrow B)"),
+        (r"A \lor B", r"(A \uparrow A) \uparrow (B \uparrow B)"),
+        (r"A \oplus B", r"(A \uparrow (A \uparrow B)) \uparrow (B \uparrow (A \uparrow B))"),
+        (r"A \downarrow B", r"((A \uparrow A) \uparrow (B \uparrow B)) \uparrow ((A \uparrow A) \uparrow (B \uparrow B))"),
+        ("1", r"A \uparrow (A \uparrow A)"),
+    ];
+    let nor = [
+        (r"\lnot A", r"A \downarrow A"),
+        (r"A \lor B", r"(A \downarrow B) \downarrow (A \downarrow B)"),
+        (r"A \land B", r"(A \downarrow A) \downarrow (B \downarrow B)"),
+        (r"A \odot B", r"(A \downarrow (A \downarrow B)) \downarrow (B \downarrow (A \downarrow B))"),
+        (r"A \uparrow B", r"((A \downarrow A) \downarrow (B \downarrow B)) \downarrow ((A \downarrow A) \downarrow (B \downarrow B))"),
+        ("0", r"A \downarrow (A \downarrow A)"),
+    ];
+    for (operator, built) in nand.iter().chain(&nor) {
+        assert!(equivalent(operator, built), "{operator} = {built}");
+    }
+}
