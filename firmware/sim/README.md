@@ -26,6 +26,7 @@ cargo run -- --charging --busy                      # start charging, with the s
 cargo run -- --sd ~/quantus-sd                      # another folder as the SD card
 cargo run -- --tour                                 # a walk through the UI with the wallpaper
 cargo run -- --seed 7                               # the apps' random numbers fixed, a game repeats
+cargo run -- --duo                                  # the Duo: main screen, input screen, buttons
 ```
 
 The folder `sd` (or the one after `--sd`) stands for the SD card; its `wallpapers` folder holds
@@ -85,6 +86,16 @@ the keys without code. The soft keys F1–F12 at the top of the pad do what thei
 bottom of the screen say; a click on a label does the same. `--keypad=small` draws the small unit, `--no-keypad` leaves the pad out,
 `--scale <n>` sets the window's scale (2 by default, `--scale 1` for a small monitor).
 With `--png` the pad is only in the picture with `--keypad`.
+
+## The Duo
+
+`--duo` shows the Duo ([duo.md](../docs/duo.md)) instead of the handheld: its 1280×720 main screen
+on top, the 480×320 input screen under it, the arrows with OK left of it and MENU, EXE and ON
+right of it, all at one pixel per pixel (`--scale` still sets it). The mouse taps both screens:
+the input screen's keys type as the keypad's do, its top rows are the mode's soft keys, and `1/2`
+turns the function keys. The PC keyboard types as with the handheld. With `--png` both screens and
+the buttons are in the picture. `--mirror` does not go with it: the board shows the handheld's
+screen.
 
 The characters are the same over the board's serial console (`firmware/handheld`), and a USB
 keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).

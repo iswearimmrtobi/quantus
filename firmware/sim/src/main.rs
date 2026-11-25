@@ -19,7 +19,10 @@
 //!   `.toml` files in its `themes` folder and the theme set `theme.txt`. WLAN is played: three
 //!   made-up networks, any password taken.
 //! - `--seed <n>`: fixes the random numbers apps get, so a game repeats.
+//! - `--duo`: the Duo (firmware/docs/duo.md): the 1280×720 main screen over the 480×320 input
+//!   screen with the hardware buttons, at one pixel per pixel; the mouse taps both screens.
 
+mod duo;
 mod keypad;
 mod mirror;
 
@@ -32,6 +35,7 @@ use embedded_graphics::prelude::*;
 use embedded_graphics_simulator::sdl2::{Keycode, Mod, MouseButton};
 use embedded_graphics_simulator::{OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window};
 use embedded_graphics::primitives::Rectangle;
+use duo::Duo;
 use keypad::Keypad;
 use mirror::{Mirror, Tee};
 use quantus_apps::{Apps, Seeded};
@@ -41,6 +45,7 @@ use quantus_ui::backend::{
     Backend, Catalogue, Create, File, Group, Network, Opened, Reply, Request, SessionCommand, SessionInfo, Storage, Stored, Stub, Units,
     VariableCommand, WlanStatus,
 };
+use quantus_ui::profile::{self, Profile};
 use quantus_ui::text::Lang;
 use quantus_ui::key::Key;
 use quantus_ui::render::{Frame, Renderer, HEIGHT, WIDTH};
@@ -55,12 +60,30 @@ fn main() {
         "--keypad=small" => Some(keypad::Unit::Small),
         _ => None,
     });
-    let unit = if args.iter().any(|arg| arg == "--no-keypad") { None } else if png_mode { unit } else { unit.or(Some(keypad::Unit::Big)) };
+    // The Duo: its main screen for the layout, its input screen and buttons for the keypad.
+    let mut duo = args.iter().any(|arg| arg == "--duo").then(Duo::new);
+    let unit = if args.iter().any(|arg| arg == "--no-keypad") || duo.is_some() {
+        None
+    } else if png_mode {
+        unit
+    } else {
+        unit.or(Some(keypad::Unit::Big))
+    };
+    if duo.is_some() {
+        profile::set(Profile::DUO);
+    }
     let screen_size = Size::new(WIDTH, HEIGHT);
     let mut keypad = unit.map(|unit| Keypad::new(unit, Point::new(WIDTH as i32, 0)));
-    let mut display = SimulatorDisplay::<Rgb565>::new(keypad.as_ref().map_or(screen_size, |keypad| keypad.window(screen_size)));
+    let window_size = match &duo {
+        Some(_) => Duo::window(),
+        None => keypad.as_ref().map_or(screen_size, |keypad| keypad.window(screen_size)),
+    };
+    let mut display = SimulatorDisplay::<Rgb565>::new(window_size);
     display.clear(Rgb565::new(3, 6, 4)).unwrap();
-    let screen_area = Rectangle::new(Point::zero(), screen_size);
+    if duo.is_some() {
+        Duo::clear(&mut display);
+    }
+    let screen_area = if duo.is_some() { Duo::main_area() } else { Rectangle::new(Point::zero(), screen_size) };
     let sd = args.iter().position(|arg| arg == "--sd").and_then(|i| args.get(i + 1)).map_or("sd", String::as_str);
     let sessions = (!args.iter().any(|arg| arg == "--png")).then(|| Path::new(sd).join("sessions"));
     let keep = sessions.is_some();
@@ -73,6 +96,10 @@ fn main() {
     // The small unit has five soft keys to a row, the big one six.
     if unit == Some(keypad::Unit::Small) {
         app.soft_columns = 5;
+    }
+    // The Duo's soft keys are on its input screen.
+    if duo.is_some() {
+        app.soft_strips = false;
     }
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);
@@ -104,6 +131,9 @@ fn main() {
         if let Some(keypad) = &keypad {
             keypad.draw(&mut display, &app.modifier);
         }
+        if let Some(duo) = &mut duo {
+            duo.draw(&mut display, &app);
+        }
         let settings = OutputSettingsBuilder::new().build();
         display.to_rgb_output_image(&settings).save_png(png).expect("write the png");
         return;
@@ -118,13 +148,18 @@ fn main() {
         }
         None => None,
     };
+    if mirror.is_some() && duo.is_some() {
+        eprintln!("--mirror shows the handheld's 480×320 screen, not the Duo's");
+        std::process::exit(1);
+    }
 
     print!("{KEYS}");
     let latex = terminal_lines();
     // The window is twice the screen's size, with the keypad too; `--scale 1` for a small monitor.
-    let scale = option("--scale").and_then(|scale| scale.parse().ok()).unwrap_or(2);
+    // The Duo's 1280 pixels are wide enough at one pixel per pixel.
+    let scale = option("--scale").and_then(|scale| scale.parse().ok()).unwrap_or(if duo.is_some() { 1 } else { 2 });
     let settings = OutputSettingsBuilder::new().scale(scale).build();
-    let mut window = Window::new("Quantus", &settings);
+    let mut window = Window::new(if duo.is_some() { "Quantus Duo" } else { "Quantus" }, &settings);
     let start = Instant::now();
     let mut tour: std::collections::VecDeque<_> =
         if args.iter().any(|arg| arg == "--tour") { quantus_ui::tour::tour().into() } else { Default::default() };
@@ -149,6 +184,9 @@ fn main() {
             if let Some(keypad) = &keypad {
                 keypad.draw(&mut display, &app.modifier);
             }
+            if let Some(duo) = &mut duo {
+                duo.draw(&mut display, &app);
+            }
         }
         window.update(&display);
         changed = false;
@@ -172,6 +210,16 @@ fn main() {
                         app.key(key);
                         changed = true;
                     }
+                }
+                // On the Duo the mouse is the finger on both screens and presses the buttons.
+                SimulatorEvent::MouseButtonDown { mouse_btn: MouseButton::Left, point } if duo.is_some() => {
+                    changed |= duo.as_mut().is_some_and(|duo| duo.press(&mut app, point));
+                }
+                SimulatorEvent::MouseMove { point } if duo.is_some() => {
+                    changed |= duo.as_mut().is_some_and(|duo| duo.drag(&mut app, point));
+                }
+                SimulatorEvent::MouseButtonUp { mouse_btn: MouseButton::Left, .. } if duo.is_some() => {
+                    changed |= duo.as_mut().is_some_and(|duo| duo.release(&mut app));
                 }
                 // The mouse is the finger on the screen, and presses the keys of the keypad.
                 SimulatorEvent::MouseButtonDown { mouse_btn: MouseButton::Left, point } => match &mut keypad {
