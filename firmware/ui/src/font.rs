@@ -28,7 +28,16 @@ pub enum Scale {
     Xl,
     /// 42, the same.
     Xxl,
+    /// 49 for digits (the size has no other characters), 42 for the rest; the same.
+    Xxxl,
 }
+
+static XXXL: [FontRenderer; 4] = [
+    FontRenderer::new::<fonts::u8g2_font_fur49_tn>(),
+    FontRenderer::new::<fonts::u8g2_font_fur42_tf>(),
+    FontRenderer::new::<fonts::u8g2_font_fur42_t_symbol>(),
+    FontRenderer::new::<fonts::u8g2_font_10x20_t_greek>(),
+];
 
 static XXL: [FontRenderer; 3] = [
     FontRenderer::new::<fonts::u8g2_font_fur42_tf>(),
@@ -92,7 +101,7 @@ pub struct Metrics {
 }
 
 impl Scale {
-    fn fonts(self) -> &'static [FontRenderer; 3] {
+    fn fonts(self) -> &'static [FontRenderer] {
         match self {
             Scale::Tiny => &TINY,
             Scale::Small => &SMALL,
@@ -102,19 +111,21 @@ impl Scale {
             Scale::Huge => &HUGE,
             Scale::Xl => &XL,
             Scale::Xxl => &XXL,
+            Scale::Xxxl => &XXXL,
         }
     }
 
     /// The size that draws this one on the Duo's main screen, 16/9 as many pixels per
-    /// millimetre (firmware/docs/duo.md §2). No font is larger than 42, so [`Scale::Huge`]
-    /// comes out as [`Scale::Large`] does.
+    /// millimetre (firmware/docs/duo.md §2). No full font is larger than 42, so [`Scale::Huge`]
+    /// has its digits in 49 and the rest in 42.
     pub fn larger(self) -> Scale {
         match self {
             Scale::Tiny => Scale::Normal,
             Scale::Small => Scale::Large,
             Scale::Middle => Scale::Huge,
             Scale::Normal => Scale::Xl,
-            Scale::Large | Scale::Huge | Scale::Xl | Scale::Xxl => Scale::Xxl,
+            Scale::Large | Scale::Xl | Scale::Xxl => Scale::Xxl,
+            Scale::Huge | Scale::Xxxl => Scale::Xxxl,
         }
     }
 
@@ -127,6 +138,7 @@ impl Scale {
             Scale::Huge => Scale::Normal,
             Scale::Xl => Scale::Large,
             Scale::Xxl => Scale::Huge,
+            Scale::Xxxl => Scale::Xl,
         }
     }
 
@@ -136,7 +148,7 @@ impl Scale {
             Scale::Tiny | Scale::Small | Scale::Middle => 1,
             Scale::Normal | Scale::Large => 2,
             Scale::Huge | Scale::Xl => 3,
-            Scale::Xxl => 4,
+            Scale::Xxl | Scale::Xxxl => 4,
         }
     }
 

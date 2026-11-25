@@ -48,6 +48,13 @@ impl Profile {
         if value == 0 { 0 } else { (value * self.num / self.den).max(1) }
     }
 
+    /// A point on the panel on the logical canvas: where a touch lands in the layout. The
+    /// board's touch calibration does this by itself; the simulator's mouse needs it.
+    pub fn logical(&self, point: Point) -> Point {
+        let unscale = |value: i32| (value * self.den as i32).div_euclid(self.num as i32);
+        Point::new(unscale(point.x), unscale(point.y))
+    }
+
     pub fn point(&self, point: Point) -> Point {
         Point::new(self.scale(point.x), self.scale(point.y))
     }
