@@ -75,6 +75,7 @@ pub const SIGNIFICANT_SHORT: Text = tx!("hui.significant_short");
 pub const CALIBRATE: Text = tx!("hui.calibrate");
 pub const CALIBRATE_HINT: Text = tx!("hui.calibrate_hint");
 pub const CALIBRATE_RETRY: Text = tx!("hui.calibrate_retry");
+pub const CALIBRATE_PAD: Text = tx!("hui.calibrate_pad");
 pub const EMPTY_NAME: Text = tx!("hui.empty_name");
 pub const NAME_HINT: Text = tx!("hui.name_hint");
 pub const NOT_SET: Text = tx!("hui.not_set");

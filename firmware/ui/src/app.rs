@@ -20,7 +20,7 @@ use crate::soft::{self, Slot};
 use crate::sheet::{self, Sheets};
 use crate::touch::{self, Calibrating, Calibration, Gesture, Target, Touch, Tracker};
 use crate::wallpaper::Wallpaper;
-use embedded_graphics::prelude::Point;
+use embedded_graphics::prelude::{Point, Size};
 pub use crate::settings::Settings;
 
 /// The modes of the MODE menu (design/handheld-menus.md §7.1), in its order: two pages of six
@@ -543,9 +543,9 @@ pub struct App<B> {
     last_wlan: Option<u64>,
     /// How many soft keys a row has: 6 on the big unit, 5 on the small one.
     pub soft_columns: usize,
-    /// Whether the soft keys' labels show at the bottom of the screen, over keys under it; the
-    /// Duo shows its soft keys on the input screen instead (firmware/docs/duo.md §3).
-    pub soft_strips: bool,
+    /// The Duo's input screen (firmware/docs/duo.md §3), `None` on the handheld. It shows the
+    /// soft keys, so the screen leaves out their labels at the bottom.
+    pub pad: Option<crate::pad::Pad>,
     /// The page of the soft keys shown; back to the first with any other key.
     pub soft_page: usize,
     /// The page of SYMB's symbols on the soft keys, while they are open.
@@ -703,7 +703,7 @@ impl<B: Backend> App<B> {
             wlan_connected: false,
             last_wlan: None,
             soft_columns: 6,
-            soft_strips: true,
+            pad: None,
             soft_page: 0,
             symbols: None,
             units: Units::default(),
@@ -949,6 +949,13 @@ impl<B: Backend> App<B> {
     }
 
     pub fn key(&mut self, key: Key) {
+        // AC or ← leaves the input screen's calibration with the calibration as it was.
+        if self.pad_calibrating() && matches!(key, Key::Ac | Key::Left) {
+            if let Some(pad) = &mut self.pad {
+                pad.calibrating = None;
+            }
+            return;
+        }
         // A key takes the notice away, as it does on a phone.
         self.notice = None;
         self.press(key);
@@ -1510,6 +1517,27 @@ impl<B: Backend> App<B> {
         Some(*running.back)
     }
 
+    /// The input screen's calibration screen, on the Duo; the main screen stays as it is.
+    pub fn calibrate_pad(&mut self) {
+        if let Some(pad) = &mut self.pad {
+            pad.calibrate();
+        }
+    }
+
+    /// Whether the input screen shows its calibration screen.
+    pub fn pad_calibrating(&self) -> bool {
+        self.pad.as_ref().is_some_and(|pad| pad.calibrating.is_some())
+    }
+
+    /// A touch on the Duo's input screen, as its panel reads it; returns whether either screen
+    /// may have changed.
+    pub fn pad_touch(&mut self, touch: Touch) -> bool {
+        let Some(mut pad) = self.pad.take() else { return false };
+        let changed = pad.touch(self, touch);
+        self.pad = Some(pad);
+        changed
+    }
+
     /// The touch calibration screen, back to this screen afterwards.
     pub fn calibrate(&mut self) {
         let back = std::mem::replace(&mut self.screen, Screen::Calc);
@@ -1623,38 +1651,19 @@ impl<B: Backend> App<B> {
         }
     }
 
-    /// The calibration screen: each press is averaged over while it lasts, and when the finger
-    /// lifts the next cross comes; after the last one the readings are fitted, and done again if
-    /// they are too far off.
+    /// The calibration screen; when it is done on the Duo, the input screen's comes next.
     fn calibration_touch(&mut self, touch: Touch) -> bool {
         let Screen::Calibrate(state, _) = &mut self.screen else { return false };
-        match touch {
-            Touch::Press(raw) | Touch::Drag(raw) => {
-                let first = state.sum.2 == 0;
-                state.sum = (state.sum.0 + raw.x, state.sum.1 + raw.y, state.sum.2 + 1);
-                first
-            }
-            Touch::Release => {
-                let (x, y, count) = std::mem::take(&mut state.sum);
-                if count == 0 {
-                    return false;
+        let targets = touch::targets(Size::new(crate::profile::width(), crate::profile::height()));
+        match state.feed(touch, &targets) {
+            touch::Fed::Going(changed) => changed,
+            touch::Fed::Done(calibration) => {
+                self.calibration = calibration;
+                self.calibrated = Some(calibration);
+                if let Screen::Calibrate(_, back) = std::mem::replace(&mut self.screen, Screen::Calc) {
+                    self.screen = *back;
                 }
-                state.readings.push(Point::new(x / count, y / count));
-                if state.readings.len() < touch::TARGETS.len() {
-                    return true;
-                }
-                let pairs: Vec<(Point, Point)> = state.readings.iter().copied().zip(touch::TARGETS).collect();
-                match Calibration::fit(&pairs) {
-                    Some((calibration, error)) if error <= touch::CALIBRATION_ERROR => {
-                        self.calibration = calibration;
-                        self.calibrated = Some(calibration);
-                        let Screen::Calibrate(_, back) = std::mem::replace(&mut self.screen, Screen::Calc) else {
-                            return true;
-                        };
-                        self.screen = *back;
-                    }
-                    _ => *state = Calibrating { retry: true, ..Calibrating::default() },
-                }
+                self.calibrate_pad();
                 true
             }
         }

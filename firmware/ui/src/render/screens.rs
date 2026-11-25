@@ -894,8 +894,16 @@ fn button(shapes: &mut Vec<Shape>, area: Rectangle, label: &str, lit: bool, glas
 /// The touch calibration: a cross at the target in turn, filled while it is pressed, and what
 /// to do in the middle of the screen.
 pub(super) fn calibration(shapes: &mut Vec<Shape>, state: &Calibrating, lang: text::Lang) {
-    let step = state.readings.len().min(touch::TARGETS.len() - 1);
-    let at = touch::TARGETS[step];
+    let size = Size::new(profile::width(), profile::height());
+    calibration_on(shapes, state, size, None, lang);
+}
+
+/// The calibration screen on a screen of `size`, under a heading if there is one: the Duo's
+/// input screen says which screen it is.
+pub(super) fn calibration_on(shapes: &mut Vec<Shape>, state: &Calibrating, size: Size, heading: Option<&str>, lang: text::Lang) {
+    let targets = touch::targets(size);
+    let step = state.readings.len().min(targets.len() - 1);
+    let at = targets[step];
     let pressed = state.sum.2 > 0;
     for (from, to) in [(Point::new(-16, 0), Point::new(16, 0)), (Point::new(0, -16), Point::new(0, 16))] {
         shapes.push(Shape::Path(vec![at + from, at + to], colors::text(), 2));
@@ -903,13 +911,18 @@ pub(super) fn calibration(shapes: &mut Vec<Shape>, state: &Calibrating, lang: te
     let ring = if pressed { colors::primary() } else { colors::accent() };
     shapes.push(Shape::Circle(Circle::with_center(at, 10), ring));
     let centred = |shapes: &mut Vec<Shape>, y: i32, text: &str, scale: Scale, color: Rgb565| {
-        let x = (profile::width() as i32 - scale.width(text)) / 2;
+        let x = (size.width as i32 - scale.width(text)) / 2;
         shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), text.to_string(), scale, color));
     };
-    centred(shapes, 115, text::CALIBRATE_HINT.get(lang), Scale::Normal, colors::text());
-    let count = format!("{} / {}", step + 1, touch::TARGETS.len());
-    centred(shapes, 220, &count, Scale::Small, colors::muted());
+    // Where the texts stand on the handheld's 320 rows, in proportion on others.
+    let y = |at: i32| at * size.height as i32 / 320;
+    if let Some(heading) = heading {
+        centred(shapes, y(78), heading, Scale::Small, colors::muted());
+    }
+    centred(shapes, y(115), text::CALIBRATE_HINT.get(lang), Scale::Normal, colors::text());
+    let count = format!("{} / {}", step + 1, targets.len());
+    centred(shapes, y(220), &count, Scale::Small, colors::muted());
     if state.retry {
-        centred(shapes, 245, text::CALIBRATE_RETRY.get(lang), Scale::Small, colors::error());
+        centred(shapes, y(245), text::CALIBRATE_RETRY.get(lang), Scale::Small, colors::error());
     }
 }

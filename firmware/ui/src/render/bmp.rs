@@ -59,8 +59,13 @@ pub struct Writer<W> {
 
 impl<W: Write + Seek> Writer<W> {
     /// Writes the header to `out`, at its start.
-    pub fn new(mut out: W) -> io::Result<Self> {
-        let Size { width, height } = profile::get().physical();
+    pub fn new(out: W) -> io::Result<Self> {
+        Self::sized(out, profile::get().physical())
+    }
+
+    /// [`Writer::new`] for a panel of `size` rather than the profile's: the Duo's input screen.
+    pub fn sized(mut out: W, size: Size) -> io::Result<Self> {
+        let Size { width, height } = size;
         out.seek(SeekFrom::Start(0))?;
         out.write_all(&header(width, height))?;
         Ok(Writer { out, bytes: Vec::new(), width, height, row: (width * 3).div_ceil(4) * 4 })

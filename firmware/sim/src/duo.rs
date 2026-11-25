@@ -12,7 +12,7 @@ use embedded_graphics::text::{Alignment, Text};
 use quantus_ui::app::App;
 use quantus_ui::backend::Backend;
 use quantus_ui::key::Key;
-use quantus_ui::pad::{self, Pad};
+use quantus_ui::pad;
 use quantus_ui::profile::Profile;
 use quantus_ui::render::{self, Renderer};
 use quantus_ui::touch::Touch;
@@ -33,7 +33,6 @@ enum Held {
 }
 
 pub struct Duo {
-    pub pad: Pad,
     renderer: Renderer,
     buttons: Vec<(Rectangle, &'static str, Option<Key>)>,
     held: Option<Held>,
@@ -59,7 +58,7 @@ impl Duo {
             (at(right, y + 24 + pitch), "EXE", Some(Key::Exe)),
             (at(right, y + pad::HEIGHT as i32 - BUTTON as i32 - 8), "ON", None),
         ];
-        Duo { pad: Pad::new(), renderer: Renderer::new(), buttons, held: None }
+        Duo { renderer: Renderer::new(), buttons, held: None }
     }
 
     /// The window: both screens one under the other, the buttons beside the lower one.
@@ -80,7 +79,7 @@ impl Duo {
 
     /// The input screen and the buttons; the main screen is the caller's.
     pub fn draw<D: DrawTarget<Color = Rgb565>, B>(&mut self, display: &mut D, app: &App<B>) {
-        let frame = render::pad::frame(&self.pad, app);
+        let frame = render::pad::frame(app);
         let mut pad = display.cropped(&Self::pad_area());
         let _ = self.renderer.render_on(&frame, &mut pad, Profile::HANDHELD);
         let label = MonoTextStyle::new(&FONT_6X10, Rgb565::WHITE);
@@ -111,7 +110,7 @@ impl Duo {
         }
         if Self::pad_area().contains(point) {
             self.held = Some(Held::Pad);
-            return self.pad.touch(app, Touch::Press(point - Self::pad_area().top_left));
+            return app.pad_touch(Touch::Press(point - Self::pad_area().top_left));
         }
         let Some(index) = self.buttons.iter().position(|(rect, ..)| Circle::new(rect.top_left, BUTTON).contains(point)) else {
             return false;
@@ -126,7 +125,7 @@ impl Duo {
     pub fn drag<B: Backend>(&mut self, app: &mut App<B>, point: Point) -> bool {
         match self.held {
             Some(Held::Main) => app.touch(Touch::Drag(Profile::DUO.logical(point))),
-            Some(Held::Pad) => self.pad.touch(app, Touch::Drag(point - Self::pad_area().top_left)),
+            Some(Held::Pad) => app.pad_touch(Touch::Drag(point - Self::pad_area().top_left)),
             _ => false,
         }
     }
@@ -134,7 +133,7 @@ impl Duo {
     pub fn release<B: Backend>(&mut self, app: &mut App<B>) -> bool {
         match self.held.take() {
             Some(Held::Main) => app.touch(Touch::Release),
-            Some(Held::Pad) => self.pad.touch(app, Touch::Release),
+            Some(Held::Pad) => app.pad_touch(Touch::Release),
             Some(Held::Button(_)) => true,
             None => false,
         }

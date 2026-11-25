@@ -130,7 +130,7 @@ pub fn shows<B>(app: &App<B>) -> bool {
 
 /// The soft keys as the strips at the bottom of the screen show them, `None` where they do not.
 pub fn strips<B>(app: &App<B>) -> Option<Bar> {
-    if app.soft_strips { bar(app) } else { None }
+    if app.pad.is_none() { bar(app) } else { None }
 }
 
 /// The soft keys as the screen is now, or `None` where they are hidden.

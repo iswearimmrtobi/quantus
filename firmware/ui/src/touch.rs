@@ -3,7 +3,7 @@
 //! alone; a list follows the finger while it is dragged; numbers are stepped with − and +, there
 //! is no keyboard on the screen (design/handheld-menus.md §7.7).
 
-use embedded_graphics::prelude::Point;
+use embedded_graphics::prelude::{Point, Size};
 
 /// What the board or the simulator reports: the finger comes down, moves, lifts. The points are
 /// the panel's readings; [`Calibration`] turns them into screen points.
@@ -204,6 +204,53 @@ pub struct Calibrating {
     pub retry: bool,
 }
 
-/// The targets, in turn: the four corners, inset, and the middle.
+/// The targets on the handheld's 480×320 screen, in turn: the four corners, inset, and the middle.
 pub const TARGETS: [Point; 5] =
     [Point::new(40, 50), Point::new(440, 50), Point::new(440, 280), Point::new(40, 280), Point::new(240, 165)];
+
+/// The targets on a screen of `size`: [`TARGETS`] spread over it in proportion.
+pub fn targets(size: Size) -> [Point; 5] {
+    TARGETS.map(|at| Point::new(at.x * size.width as i32 / 480, at.y * size.height as i32 / 320))
+}
+
+/// What a touch did to a calibration under way.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Fed {
+    /// Still going; whether the screen changed.
+    Going(bool),
+    /// Done: the calibration that fits.
+    Done(Calibration),
+}
+
+impl Calibrating {
+    /// Takes a touch on the screen with `targets`: each press is averaged over while it lasts,
+    /// and when the finger lifts the next cross comes; after the last one the readings are
+    /// fitted, and done again if they are too far off.
+    pub fn feed(&mut self, touch: Touch, targets: &[Point]) -> Fed {
+        match touch {
+            Touch::Press(raw) | Touch::Drag(raw) => {
+                let first = self.sum.2 == 0;
+                self.sum = (self.sum.0 + raw.x, self.sum.1 + raw.y, self.sum.2 + 1);
+                Fed::Going(first)
+            }
+            Touch::Release => {
+                let (x, y, count) = std::mem::take(&mut self.sum);
+                if count == 0 {
+                    return Fed::Going(false);
+                }
+                self.readings.push(Point::new(x / count, y / count));
+                if self.readings.len() < targets.len() {
+                    return Fed::Going(true);
+                }
+                let pairs: Vec<(Point, Point)> = self.readings.iter().copied().zip(targets.iter().copied()).collect();
+                match Calibration::fit(&pairs) {
+                    Some((calibration, error)) if error <= CALIBRATION_ERROR => Fed::Done(calibration),
+                    _ => {
+                        *self = Calibrating { retry: true, ..Calibrating::default() };
+                        Fed::Going(true)
+                    }
+                }
+            }
+        }
+    }
+}

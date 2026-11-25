@@ -56,6 +56,10 @@ What it shows:
 
 A tap sends the same `Key` a physical key would, so the UI's logic is the handheld's.
 
+It has a touch calibration of its own, the same five crosses as the main screen's: SETUP → Touch
+kalibrieren calibrates the main screen and then the input screen. The main screen's mode menu
+shows 4 × 3 tiles to a page.
+
 ## 4. Shared with the handheld
 
 The ESP32-P4 module with the C6 for Wi-Fi, the SD card, the engine, the UI and its menus,

@@ -2073,6 +2073,7 @@
     "hui.calibrate": "Calibrate touch",
     "hui.calibrate_hint": "Touch the cross and hold briefly",
     "hui.calibrate_retry": "Too far off, once more please",
+    "hui.calibrate_pad": "Input screen",
     "hui.clock_hint": "Type HH:MM, OK sets the clock",
     "hui.connecting": "Connecting to",
     "hui.date_first": "Set the date first",

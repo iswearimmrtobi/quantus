@@ -97,9 +97,9 @@ fn main() {
     if unit == Some(keypad::Unit::Small) {
         app.soft_columns = 5;
     }
-    // The Duo's soft keys are on its input screen.
+    // The Duo's input screen, which shows its soft keys.
     if duo.is_some() {
-        app.soft_strips = false;
+        app.pad = Some(quantus_ui::pad::Pad::new());
     }
     // The PC has no battery to read; show a full one.
     app.battery = Some(100);

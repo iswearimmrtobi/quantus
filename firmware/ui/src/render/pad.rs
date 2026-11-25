@@ -12,12 +12,20 @@ use crate::font::Scale;
 use crate::layer::Layer;
 use crate::layout;
 use crate::legend::legend;
-use crate::pad::{Action, Pad, PadKey, Style, CONTROL, LABEL_ROOM};
+use crate::pad::{Action, PadKey, Style, CONTROL, LABEL_ROOM};
 
-/// The pad as it is now, to draw with a [`super::Renderer`] on the pad's own 480×320 panel
-/// ([`super::Renderer::render_on`] with [`crate::profile::Profile::HANDHELD`]).
-pub fn frame<B>(pad: &Pad, app: &App<B>) -> Frame {
+/// The app's pad as it is now, to draw with a [`super::Renderer`] on the pad's own 480×320
+/// panel ([`super::Renderer::render_on`] with [`crate::profile::Profile::HANDHELD`]): its keys,
+/// or its calibration screen. Nothing without a pad.
+pub fn frame<B>(app: &App<B>) -> Frame {
     let mut shapes = Vec::new();
+    let Some(pad) = &app.pad else { return Frame(shapes, None) };
+    if let Some(state) = &pad.calibrating {
+        let lang = app.settings.language;
+        let size = Size::new(crate::pad::WIDTH, crate::pad::HEIGHT);
+        super::screens::calibration_on(&mut shapes, state, size, Some(crate::text::CALIBRATE_PAD.get(lang)), lang);
+        return Frame(shapes, None);
+    }
     let layer = app.modifier.layer();
     for (index, key) in pad.keys(app).iter().enumerate() {
         button(&mut shapes, key, pad.pressed == Some(index), app, layer);

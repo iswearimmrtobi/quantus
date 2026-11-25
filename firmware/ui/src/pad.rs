@@ -1,7 +1,8 @@
 //! The Duo's input screen (firmware/docs/duo.md §3): a 480×320 touch screen in place of the
 //! keypad. It shows the mode's soft keys as buttons, a row of SHIFT, ALPHA, UNIT, OPTN and MODE,
 //! the function keys in two pages and the number block. A tap sends the [`Key`] that a physical
-//! key would, so the calculator works as on the handheld.
+//! key would, so the calculator works as on the handheld. The app holds it ([`App::pad`]) and
+//! takes its touches ([`App::pad_touch`]); it has a touch calibration of its own.
 
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
@@ -10,7 +11,7 @@ use crate::app::App;
 use crate::key::Key;
 use crate::legend::key_of;
 use crate::soft;
-use crate::touch::{Calibration, Touch};
+use crate::touch::{self, Calibrating, Calibration, Fed, Touch};
 
 pub const WIDTH: u32 = 480;
 pub const HEIGHT: u32 = 320;
@@ -84,6 +85,10 @@ pub struct Pad {
     pub page: usize,
     pub pressed: Option<usize>,
     pub calibration: Calibration,
+    /// The calibration screen, while it shows on the pad instead of the keys.
+    pub calibrating: Option<Calibrating>,
+    /// A calibration just made, for the board to store.
+    calibrated: Option<Calibration>,
 }
 
 impl Pad {
@@ -133,9 +138,36 @@ impl Pad {
         self.keys(app).iter().position(|key| key.rect.offset(GAP / 2).contains(point))
     }
 
+    /// The targets of its calibration.
+    pub fn targets() -> [Point; 5] {
+        touch::targets(Size::new(WIDTH, HEIGHT))
+    }
+
+    /// Shows the calibration screen instead of the keys.
+    pub fn calibrate(&mut self) {
+        self.pressed = None;
+        self.calibrating = Some(Calibrating::default());
+    }
+
+    /// A calibration made since the last call, to be stored.
+    pub fn take_calibration(&mut self) -> Option<Calibration> {
+        self.calibrated.take()
+    }
+
     /// A touch on the pad, in the panel's raw coordinates: a key acts when the finger leaves it.
     /// Returns whether the pad or the app changed.
-    pub fn touch<B: crate::backend::Backend>(&mut self, app: &mut App<B>, touch: Touch) -> bool {
+    pub(crate) fn touch<B: crate::backend::Backend>(&mut self, app: &mut App<B>, touch: Touch) -> bool {
+        if let Some(state) = &mut self.calibrating {
+            return match state.feed(touch, &Self::targets()) {
+                Fed::Going(changed) => changed,
+                Fed::Done(calibration) => {
+                    self.calibration = calibration;
+                    self.calibrated = Some(calibration);
+                    self.calibrating = None;
+                    true
+                }
+            };
+        }
         match touch {
             Touch::Press(raw) => {
                 self.pressed = self.hit(app, self.calibration.map(raw));
@@ -160,7 +192,7 @@ impl Pad {
     }
 
     /// Carries out a key's action.
-    pub fn act<B: crate::backend::Backend>(&mut self, app: &mut App<B>, action: Action) {
+    pub(crate) fn act<B: crate::backend::Backend>(&mut self, app: &mut App<B>, action: Action) {
         match action {
             Action::Key(key) => app.key(key),
             Action::Soft(index) => app.key(Key::Soft(index)),
