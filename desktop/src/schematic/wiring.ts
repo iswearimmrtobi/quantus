@@ -105,7 +105,8 @@ export function followed<E extends Placeable>(elements: E[], attached: Attachmen
     const entry = ends.get(element.id);
     if (!entry) return element;
     const [a, b] = wireEnds(entry.wire);
-    return { ...element, ...rerouted(entry.wire, entry.a ?? a, entry.b ?? b) };
+    // Its whole way anew: a wire laid straight again must not keep the corners it had a step before.
+    return withPath(element, wirePoints(rerouted(entry.wire, entry.a ?? a, entry.b ?? b)));
   });
 }
 

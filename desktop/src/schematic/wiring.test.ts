@@ -81,6 +81,17 @@ describe('wires follow their parts', () => {
     expect(wirePoints(moved[2])).toEqual([p(40, 0), p(100, 0), p(100, 80), p(160, 80)]);
   });
 
+  it('lays the wire straight again when the part comes back in line during the drag', () => {
+    const elements = [r1, r2, w1];
+    const attached = attachments(elements, new Set(['R2']), ends);
+    const origins = new Map([['R2', r2]]);
+    // Each step of a drag starts from the drawing of the step before, the wire bent by then.
+    const down = followed(movedBy(elements, origins, 0, 80), attached, ends);
+    const level = followed(movedBy(down, origins, 40, 0), attached, ends);
+    expect(wirePoints(level[2])).toEqual([p(40, 0), p(200, 0)]);
+    expect(level[2]).not.toHaveProperty('bends');
+  });
+
   it('moves a wire whose two ends both move alike as a whole', () => {
     const w = wire('W2', p(40, 0), p(40, 40), p(-40, 40), p(-40, 0));
     const elements = [r1, w];
