@@ -8,7 +8,7 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 ### Added
 
 - Desktop, circuit editors: wires with corners. A wire drawn between two terminals or pins turns
-  halfway, with equal stubs at both ends; one drawn into the open is one wire with a corner instead
+  halfway, with equal stubs at both ends, or between a sideways and an upright one once, as an L; one drawn into the open is one wire with a corner instead
   of two. The wires on a part's terminals follow it when it is moved, nudged or turned, and two
   wires that meet end to end with nothing else there become one (in Electronics only ideal
   wires). Circuit files keep the corners as `bends`. A part is connected by drawing wires, not by

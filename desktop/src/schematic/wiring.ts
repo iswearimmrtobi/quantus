@@ -1,4 +1,4 @@
-import { onPath, pointKey, route, simplify, wireEnds, wirePoints, withPath, type Path, type Placeable, type Point } from './geometry';
+import { onPath, pinAcrossAt, pointKey, route, simplify, wireEnds, wirePoints, withPath, type Path, type Placeable, type Point } from './geometry';
 
 /**
  * Wires that keep up with the parts: an end on a pin goes where the pin goes, the wire laid anew
@@ -67,12 +67,19 @@ export function touchesNewWire<E extends Placeable>(before: E[], after: E[], mov
 /** Whether a path leaves its start sideways: a straight path that goes nowhere counts as sideways. */
 const leavesAcross = (path: Path) => path[0].y === path[1].y;
 
+/** Which way a wire leaves its ends `a` and `b`, by the pins there: sideways (true), upright, or unknown (null). */
+export interface EndsAcross {
+  a?: boolean | null;
+  b?: boolean | null;
+}
+
 /**
  * `wire` with its ends moved to `a` and `b`. Moved alike, it moves as a whole. A wire of up to two
- * corners is laid anew with `route`, leaving the end that stays the way it left it before; a longer
- * one keeps its corners and only its last leg at each moved end slides along.
+ * corners is laid anew with `route`, leaving each end the way its pin points (`across`), or else
+ * the way it left it before; a longer one keeps its corners and only its last leg at each moved end
+ * slides along.
  */
-export function rerouted<E extends Placeable>(wire: E, a: Point, b: Point): E {
+export function rerouted<E extends Placeable>(wire: E, a: Point, b: Point, across: EndsAcross = {}): E {
   const path = wirePoints(wire);
   const [oldA, oldB] = [path[0], path[path.length - 1]];
   const [da, db] = [{ x: a.x - oldA.x, y: a.y - oldA.y }, { x: b.x - oldB.x, y: b.y - oldB.y }];
@@ -81,8 +88,14 @@ export function rerouted<E extends Placeable>(wire: E, a: Point, b: Point): E {
     // Led from the end that stays, so that it keeps its way out of its pin.
     const aStays = da.x === 0 && da.y === 0;
     const bStays = db.x === 0 && db.y === 0;
-    if (bStays && !aStays) return withPath(wire, route(b, a, leavesAcross([...path].reverse())).reverse());
-    return withPath(wire, route(a, b, leavesAcross(path)));
+    const atA = across.a ?? null;
+    const atB = across.b ?? null;
+    if (bStays && !aStays) {
+      const leaves = atB ?? leavesAcross([...path].reverse());
+      return withPath(wire, route(b, a, leaves, atA ?? leaves).reverse());
+    }
+    const leaves = atA ?? leavesAcross(path);
+    return withPath(wire, route(a, b, leaves, atB ?? leaves));
   }
   return withPath(wire, slid(slid(path, b).reverse(), a).reverse());
 }
@@ -130,9 +143,12 @@ export function followed<E extends Placeable>(elements: E[], attached: Attachmen
   return elements.map((element) => {
     const entry = ends.get(element.id);
     if (!entry) return element;
-    const [a, b] = wireEnds(entry.wire);
+    const [oldA, oldB] = wireEnds(entry.wire);
+    const [a, b] = [entry.a ?? oldA, entry.b ?? oldB];
+    // Each end leaves the way the pin it sits on points: an upright pin and a sideways one make an L.
+    const across = { a: pinAcrossAt(elements, a, pins), b: pinAcrossAt(elements, b, pins) };
     // Its whole way anew: a wire laid straight again must not keep the corners it had a step before.
-    return withPath(element, wirePoints(rerouted(entry.wire, entry.a ?? a, entry.b ?? b)));
+    return withPath(element, wirePoints(rerouted(entry.wire, a, b, across)));
   });
 }
 

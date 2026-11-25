@@ -21,6 +21,13 @@ describe('route', () => {
     const path = route(p(0, 0), p(60, 40), true);
     expect(path).toEqual([p(0, 0), p(40, 0), p(40, 40), p(60, 40)]);
   });
+  it('makes one corner between a sideways and an upright end', () => {
+    expect(route(p(40, 0), p(200, 60), true, false)).toEqual([p(40, 0), p(200, 0), p(200, 60)]);
+    expect(route(p(0, 40), p(80, 200), false, true)).toEqual([p(0, 40), p(0, 200), p(80, 200)]);
+  });
+  it('draws between a sideways and an upright pin as an L', () => {
+    expect(drawnPath(p(40, 0), p(200, 60), true, true, { from: true, to: false })).toEqual([p(40, 0), p(200, 0), p(200, 60)]);
+  });
   it('runs straight between points in line', () => {
     expect(route(p(0, 0), p(80, 0), false)).toEqual([p(0, 0), p(80, 0)]);
   });
@@ -90,6 +97,16 @@ describe('wires follow their parts', () => {
     const level = followed(movedBy(down, origins, 40, 0), attached, ends);
     expect(wirePoints(level[2])).toEqual([p(40, 0), p(200, 0)]);
     expect(level[2]).not.toHaveProperty('bends');
+  });
+
+  it('makes one corner to an upright part', () => {
+    // R3 stands upright, its pins at (200, 20) and (200, 100).
+    const r3 = resistor('R3', 200, 60, 1);
+    const w = wire('W1', p(40, 0), p(200, 20));
+    const elements = [r1, r3, w];
+    const attached = attachments(elements, new Set(['R3']), ends);
+    const moved = followed(movedBy(elements, new Map([['R3', r3]]), 0, 40), attached, ends);
+    expect(wirePoints(moved[2])).toEqual([p(40, 0), p(200, 0), p(200, 60)]);
   });
 
   it('moves a wire whose two ends both move alike as a whole', () => {

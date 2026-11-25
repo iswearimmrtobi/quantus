@@ -34,7 +34,7 @@ symbols are the IEC 60617 rectangles (`&`, `≥1`, `=1`, `1`) or the ANSI shapes
 Drag a part onto the canvas or click it in the list. Dragging from a pin, or from a point on a
 wire, draws a wire; dragging on empty canvas selects several parts. As in
 [Electronics](../electronics.md#drawing-the-circuit), a wire between two pins turns halfway with
-equal stubs, two wires that meet end to end become one, and the wires on a moved part's pins go
+equal stubs (once between a sideways and an upright pin), two wires that meet end to end become one, and the wires on a moved part's pins go
 with it. <kbd>Space</kbd> or
 <kbd>R</kbd> rotates the selection by 90°, <kbd>Del</kbd> deletes it, <kbd>Esc</kbd> clears it.
 <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a change and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> makes it again

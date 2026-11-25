@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
-import { drawnPath, inRectangle, movedBy, pointKey, rotatedQuarter, wireEnds, withPath, type Path, type Placeable, type Point } from './geometry';
+import { drawnPath, inRectangle, pinAcrossAt, movedBy, pointKey, rotatedQuarter, wireEnds, withPath, type Path, type Placeable, type Point } from './geometry';
 import { attachments, followed, pulledEnd, touchesNewWire, wireContacts, type Attachment, type Merged } from './wiring';
 import type { useCanvasView, View } from './view';
 
@@ -172,7 +172,8 @@ export function useSchematicEditing<E extends Placeable>({ elements, onChange, c
       // Between two pins of parts the wire turns halfway; into the open, or to a wire, it is an L.
       const partPins = new Set(elements.filter((e) => e.kind !== 'wire').flatMap(pins).map(pointKey));
       const betweenPins = partPins.has(pointKey(drag.from)) && partPins.has(pointKey(at));
-      setDrag({ ...drag, to: at, across, path: drawnPath(drag.from, at, across, betweenPins) });
+      const pinsAcross = { from: pinAcrossAt(elements, drag.from, pins), to: pinAcrossAt(elements, at, pins) };
+      setDrag({ ...drag, to: at, across, path: drawnPath(drag.from, at, across, betweenPins, pinsAcross) });
     } else if (drag.type === 'end') {
       const wire = elements.find((e) => e.id === drag.id);
       if (!wire) return;

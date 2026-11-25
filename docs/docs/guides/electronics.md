@@ -31,7 +31,8 @@ always need their unit.
 
 Drag a part onto the canvas or click it in the list. Dragging from a terminal, or from a grid
 point on a wire, draws a wire. Wires run only across and down: one drawn on a slant gets a corner, and one drawn
-between two terminals turns halfway, with equal stubs at both ends. Two ideal wires that meet end
+between two terminals turns halfway, with equal stubs at both ends (between a part lying and one
+standing, it turns once). Two ideal wires that meet end
 to end with nothing else there become one, and the wires on a part's terminals go with it when
 you move or turn it. A part is connected by drawing wires, not by moving it onto one: dragged
 over a wire, it waits at its last free spot until its terminals are clear of it again. <kbd>Space</kbd> or <kbd>R</kbd> rotates the selection, <kbd>Shift</kbd>+<kbd>R</kbd> turns a

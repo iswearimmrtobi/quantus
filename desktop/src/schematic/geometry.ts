@@ -162,11 +162,14 @@ export function simplify(path: Path): Path {
 }
 
 /**
- * A wire from `from` to `to` that turns halfway (on the grid), so that its stubs at both ends are
- * equal: sideways first when `across`, else downwards first. Points in line get a straight wire.
+ * A wire from `from` to `to` that leaves `from` sideways when `across`, else downwards, and comes
+ * into `to` sideways when `acrossTo` (as `across` when left out). Both alike, it turns halfway (on
+ * the grid), so that its stubs at both ends are equal; one sideways and one upright, it is an L
+ * with its one corner. Points in line get a straight wire.
  */
-export function route(from: Point, to: Point, across: boolean): Path {
+export function route(from: Point, to: Point, across: boolean, acrossTo: boolean = across): Path {
   if (from.x === to.x || from.y === to.y) return [from, to];
+  if (across !== acrossTo) return [from, across ? { x: to.x, y: from.y } : { x: from.x, y: to.y }, to];
   if (across) {
     const x = snap((from.x + to.x) / 2);
     return simplify([from, { x, y: from.y }, { x, y: to.y }, to]);
@@ -176,12 +179,42 @@ export function route(from: Point, to: Point, across: boolean): Path {
 }
 
 /**
- * The wire a drag from `from` to `to` draws: between two pins one that turns halfway (`route`),
- * into the open an L whose corner is at the far end. `across` as for `corner`.
+ * The wire a drag from `from` to `to` draws: between two pins one laid by `route`, leaving each pin
+ * the way the pin points (`pinsAcross`, where known); into the open an L whose corner is at the
+ * far end. `across` as for `corner`.
  */
-export function drawnPath(from: Point, to: Point, across: boolean | null, betweenPins: boolean): Path {
+export function drawnPath(
+  from: Point,
+  to: Point,
+  across: boolean | null,
+  betweenPins: boolean,
+  pinsAcross: { from: boolean | null; to: boolean | null } = { from: null, to: null },
+): Path {
   const sideways = across ?? Math.abs(to.x - from.x) >= Math.abs(to.y - from.y);
-  return betweenPins ? route(from, to, sideways) : simplify([from, corner(from, to, sideways), to]);
+  if (!betweenPins) return simplify([from, corner(from, to, sideways), to]);
+  const leaves = pinsAcross.from ?? sideways;
+  return route(from, to, leaves, pinsAcross.to ?? leaves);
+}
+
+/**
+ * Whether a wire leaves the pin at `point` of `part` sideways: a pin left or right of the part's
+ * middle points across, one above or below it upright. Null for a pin on the middle (a ground).
+ */
+export function pinAcross(part: Placeable, point: Point): boolean | null {
+  const [dx, dy] = [point.x - part.x, point.y - part.y];
+  if (dx === 0 && dy === 0) return null;
+  return Math.abs(dx) >= Math.abs(dy);
+}
+
+/** `pinAcross` of the pin of a part (not a wire) at `point`, if one is there. */
+export function pinAcrossAt<E extends Placeable>(elements: E[], point: Point, pins: (e: E) => Point[]): boolean | null {
+  const key = pointKey(point);
+  for (const part of elements) {
+    if (part.kind === 'wire' || !pins(part).some((pin) => pointKey(pin) === key)) continue;
+    const across = pinAcross(part, point);
+    if (across !== null) return across;
+  }
+  return null;
 }
 
 /**
