@@ -80,6 +80,7 @@ steps. See [Settings](../../reference/settings.md#logic).
 ## See also
 
 - [Input](input.md): function lines, minterm lists and the truth table
+- [Operators](operators.md): each operator's meaning, rules, spellings and precedence
 - [Results](results.md): the forms, the KV diagram and its blocks, the Gates card, Copy
 - [Circuit editor](editor.md): drawing gates, simulating, drawing a circuit from a form, delay
 - [Syntax](../../reference/syntax.md#logic): every operator spelling

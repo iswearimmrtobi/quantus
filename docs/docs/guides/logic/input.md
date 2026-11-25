@@ -39,6 +39,7 @@ line you typed in last.
 | NOR | `A \downarrow B`, `A nor B` |
 | Constants | `0`, `1`, `\top`, `\bot` |
 
+- Each operator's meaning, rules and every spelling: [Operators](operators.md).
 - **Precedence**, highest first: NOT; AND (also `AB`); NAND; XOR and XNOR; OR; NOR. So
   `A \lor B \land C` is $A \lor (B \land C)$.
 - NAND and NOR are not associative: `A \uparrow B \uparrow C` is an error asking for brackets.
@@ -103,6 +104,7 @@ canonical forms leave it out and list it as $d(\ldots)$.
 
 ## See also
 
+- [Operators](operators.md)
 - [Results](results.md)
 - [Circuit editor](editor.md)
 - [Syntax](../../reference/syntax.md#logic)

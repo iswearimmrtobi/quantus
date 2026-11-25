@@ -231,7 +231,7 @@ The mode `logic` reads one function per line, of up to 8 variables, with a parse
 NOT binds first, then AND (also juxtaposition), then NAND, then XOR and XNOR, then OR, then NOR.
 NAND and NOR are not associative, so `A \uparrow B \uparrow C` asks for brackets. The words
 `and`, `or`, … also work inside `\mathrm{}` and `\operatorname{}`. The first variable is the
-most significant bit of the row number.
+most significant bit of the row number. Each operator's meaning and rules: [Operators](../guides/logic/operators.md).
 
 ## Ignored layout
 

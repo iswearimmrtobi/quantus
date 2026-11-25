@@ -7,6 +7,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Docs: the Logic mode's operators, one by one: their meaning and rules, truth tables, gates,
+  every spelling, the precedence and what is refused.
 - Desktop, circuit editors: wires with corners. A wire drawn between two terminals or pins turns
   halfway, with equal stubs at both ends, or between a sideways and an upright one once, as an L; one drawn into the open is one wire with a corner instead
   of two. The wires on a part's terminals follow it when it is moved, nudged or turned, and two
