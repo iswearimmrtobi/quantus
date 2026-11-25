@@ -234,6 +234,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Logic: `\mathopen{(}A + B\mathclose{)}` is read as brackets; it was refused as an empty
+  group. `\mathopen{}` and `\mathclose{}` change nothing.
 - Geometry: a negative coordinate after a bar is set as a sign, `(4|0|-1)`, instead of as a
   subtraction with spaces, `(4|0| − 1)`. The LaTeX writes it `{-1}`, which reads back the same.
 - Desktop, Geometry: the names in the 3D view no longer cover each other or another point; a name

@@ -198,8 +198,8 @@ letters only in lower case: `A AND B` is the product of the variables $A$, $N$, 
 Inside `\mathrm{}`, `\operatorname{}`, `\text{}`, `\textrm{}`, `\mathit{}`, `\mathbf{}`,
 `\mathsf{}` or `\textit{}` any case works: `A \mathrm{AND} B`, `\text{Not} A`.
 
-Brackets are `( )`, `[ ]`, `{ }` and `\{ \}`, also with `\left`, `\right`, `\big`, `\Bigl` and the
-like. Spaces, `\,`, `\;`, `\ `, `~`, `\quad`, `\qquad` and `\displaystyle` change nothing.
+Brackets are `( )`, `[ ]`, `{ }` and `\{ \}`, also with `\left`, `\right`, `\big`, `\Bigl`, `\mathopen{(}` and
+the like. Spaces, `\,`, `\;`, `\ `, `~`, `\quad`, `\qquad` and `\displaystyle` change nothing.
 
 ## Precedence and grouping
 
