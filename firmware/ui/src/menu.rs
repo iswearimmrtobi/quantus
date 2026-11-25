@@ -13,8 +13,11 @@ use crate::key::Key;
 use crate::settings::{Setting, Settings};
 use crate::text::{self, Lang, Text};
 
-/// Entries per page on the screen: few enough that a line is easy to hit with a finger.
-pub const ROWS: usize = 5;
+/// Entries per page on the screen: as many lines as fit under the top bar, each tall enough to
+/// hit with a finger; five on the handheld.
+pub fn rows() -> usize {
+    crate::render::list_rows()
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Page {
@@ -484,8 +487,8 @@ impl Menu {
         let count = level.page.entries.len().max(1);
         let selected = match key {
             Key::Digit(digit @ 1..=9) => {
-                let index = level.selected / ROWS * ROWS + usize::from(digit) - 1;
-                if usize::from(digit) > ROWS || index >= count {
+                let index = level.selected / rows() * rows() + usize::from(digit) - 1;
+                if usize::from(digit) > rows() || index >= count {
                     return Outcome::Stay;
                 }
                 self.select(index);
@@ -513,8 +516,8 @@ impl Menu {
         }
         let pictures = matches!(self.edit, Some(Edit::Pictures { .. } | Edit::Themes { .. }));
         let Some((selected, count)) = self.list_mut() else { return Outcome::Stay };
-        let index = *selected / ROWS * ROWS + offset;
-        if offset >= ROWS || index >= count {
+        let index = *selected / rows() * rows() + offset;
+        if offset >= rows() || index >= count {
             return Outcome::Stay;
         }
         let again = *selected == index;
@@ -529,10 +532,10 @@ impl Menu {
     pub fn page(&mut self, forward: bool) -> Outcome {
         let pictures = matches!(self.edit, Some(Edit::Pictures { .. } | Edit::Themes { .. }));
         let Some((selected, count)) = self.list_mut() else { return Outcome::Stay };
-        let first = *selected / ROWS * ROWS;
+        let first = *selected / rows() * rows();
         let first = match forward {
-            true => first + ROWS,
-            false => match first.checked_sub(ROWS) {
+            true => first + rows(),
+            false => match first.checked_sub(rows()) {
                 Some(first) => first,
                 None => return Outcome::Stay,
             },
@@ -664,8 +667,8 @@ impl Menu {
                 let Kind::Choice(setting, opts) = &entry.kind else { return Outcome::Stay };
                 let chosen = match key {
                     // The numbered line of the page on the screen, as in the other lists.
-                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
-                        let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= rows() => {
+                        let index = selected / rows() * rows() + usize::from(digit) - 1;
                         if index >= opts.len() {
                             self.edit = Some(Edit::Choice { entry, selected });
                             return Outcome::Stay;
@@ -800,8 +803,8 @@ impl Menu {
                     _ => None,
                 };
                 let chosen = match key {
-                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
-                        let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= rows() => {
+                        let index = selected / rows() * rows() + usize::from(digit) - 1;
                         app_at(index).map(|app| (index, app))
                     }
                     Key::Ok | Key::Exe | Key::Right => app_at(selected).map(|app| (selected, app)),
@@ -837,8 +840,8 @@ impl Menu {
             Edit::Sessions { label, sessions, selected } => {
                 let count = sessions.len();
                 let chosen = match key {
-                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
-                        let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+                    Key::Digit(digit @ 1..=9) if usize::from(digit) <= rows() => {
+                        let index = selected / rows() * rows() + usize::from(digit) - 1;
                         if index >= count {
                             self.edit = Some(Edit::Sessions { label, sessions, selected });
                             return Outcome::Stay;
@@ -866,8 +869,8 @@ impl Menu {
             Edit::Sections { label, titles, selected } => {
                 let count = titles.len();
                 let chosen = match key {
-                    Key::Digit(digit @ 1..=9) if selected / ROWS * ROWS + usize::from(digit) - 1 < count => {
-                        selected / ROWS * ROWS + usize::from(digit) - 1
+                    Key::Digit(digit @ 1..=9) if selected / rows() * rows() + usize::from(digit) - 1 < count => {
+                        selected / rows() * rows() + usize::from(digit) - 1
                     }
                     Key::Ok | Key::Exe | Key::Right if selected < count => selected,
                     Key::Up | Key::Down if count > 0 => {
@@ -1091,8 +1094,8 @@ enum Pick {
 /// line of the page, OK the one under the cursor, ↑/↓ move, ← and DEL go back.
 fn pick(key: Key, selected: usize, count: usize) -> Pick {
     match key {
-        Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
-            let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+        Key::Digit(digit @ 1..=9) if usize::from(digit) <= rows() => {
+            let index = selected / rows() * rows() + usize::from(digit) - 1;
             if index < count { Pick::Chosen(index) } else { Pick::Move(selected) }
         }
         Key::Ok | Key::Exe | Key::Right if selected < count => Pick::Chosen(selected),
@@ -1149,8 +1152,8 @@ pub fn value(entry: &Entry, settings: &Settings, lang: Lang) -> Option<String> {
 /// what was set before.
 fn previewing(key: Key, back: bool, selected: usize, count: usize) -> Option<(usize, Outcome)> {
     Some(match key {
-        Key::Digit(digit @ 1..=9) if usize::from(digit) <= ROWS => {
-            let index = selected / ROWS * ROWS + usize::from(digit) - 1;
+        Key::Digit(digit @ 1..=9) if usize::from(digit) <= rows() => {
+            let index = selected / rows() * rows() + usize::from(digit) - 1;
             if index >= count {
                 (selected, Outcome::Stay)
             } else {

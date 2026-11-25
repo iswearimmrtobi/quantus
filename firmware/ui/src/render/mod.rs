@@ -29,7 +29,7 @@ use crate::profile::{self, Profile};
 use crate::app::{App, Screen, MENU_COLUMNS, TILES_PER_PAGE};
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
-use crate::menu::{AppsView, Edit, Kind, Menu, ROWS};
+use crate::menu::{AppsView, Edit, Kind, Menu};
 use crate::settings::WallpaperOn;
 use crate::touch::Target;
 use crate::wallpaper::Pixels;
@@ -611,6 +611,11 @@ pub fn dot_rect(index: usize, pages: usize) -> Rectangle {
 const LINE: i32 = 50;
 const LINE_GAP: i32 = 6;
 
+/// How many lines of a list fit on the screen under the top bar.
+pub fn list_rows() -> usize {
+    ((profile::height() as i32 - BAR - 8 + LINE_GAP) / (LINE + LINE_GAP)) as usize
+}
+
 /// The line `offset` of a page of a list, ending at `right`.
 pub fn line_rect(offset: usize, right: i32) -> Rectangle {
     let y = BAR + 8 + offset as i32 * (LINE + LINE_GAP);
@@ -723,10 +728,10 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
                     _ => None,
                 });
                 if let Some(count) = list {
-                    let first = app.running.as_ref().map_or(0, |running| running.template.list / ROWS * ROWS);
+                    let first = app.running.as_ref().map_or(0, |running| running.template.list / crate::menu::rows() * crate::menu::rows());
                     let around = |line: Rectangle| Rectangle::new(line.top_left - Point::new(MARGIN, LINE_GAP / 2), line.size + Size::new(2 * MARGIN as u32, LINE_GAP as u32));
                     let edge = profile::width() as i32 - MARGIN;
-                    return (0..ROWS)
+                    return (0..crate::menu::rows())
                         .filter(|offset| first + offset < count)
                         .find(|&offset| around(line_rect(offset, edge)).contains(point))
                         .map(Target::Line);
@@ -769,7 +774,7 @@ fn menu_target(menu: &Menu, point: Point) -> Option<Target> {
         Rectangle::new(line.top_left - Point::new(MARGIN, LINE_GAP / 2), line.size + Size::new(2 * MARGIN as u32, LINE_GAP as u32))
     };
     let edge = list_edge(menu);
-    (0..ROWS).find(|&offset| around(line_rect(offset, edge)).contains(point)).map(Target::Line)
+    (0..crate::menu::rows()).find(|&offset| around(line_rect(offset, edge)).contains(point)).map(Target::Line)
 }
 
 /// How far in from the left and the right a tap turns the page of a curve sketch.

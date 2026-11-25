@@ -15,7 +15,7 @@ use crate::backend::{Storage, WlanStatus};
 use crate::editor::Row;
 use crate::font::Scale;
 use crate::layout;
-use crate::menu::{self, Edit, Kind, Menu, TextFor, ROWS};
+use crate::menu::{self, Edit, Kind, Menu, TextFor};
 use crate::text;
 use crate::touch::{self, Calibrating, Target};
 
@@ -770,7 +770,7 @@ pub(super) fn app_list(shapes: &mut Vec<Shape>, items: &[String], selected: usiz
     lines_page(shapes, lines.collect(), selected, &List { scroll: 0, pressed, glass: false });
 }
 
-/// A list of lines, [`menu::ROWS`] to a page, numbered on each page, with a scroll bar when
+/// A list of lines, [`menu::rows`] to a page, numbered on each page, with a scroll bar when
 /// there are more.
 fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &List) {
     lines_in(shapes, lines, selected, list, profile::width() as i32 - MARGIN);
@@ -780,16 +780,21 @@ fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: 
 /// lines lie one under the other, the page of `selected` at the top, so a drag shows the pages
 /// before and after it moving in.
 fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &List, edge: i32) {
-    let first = selected / ROWS * ROWS;
+    let first = selected / menu::rows() * menu::rows();
     let normal = Scale::Normal.metrics();
     let small = Scale::Small.metrics();
-    let scrolls = lines.len() > ROWS;
+    let scrolls = lines.len() > menu::rows();
     let right = edge - if scrolls { 8 } else { 0 };
     for (index, line) in lines.iter().enumerate() {
         let place = index as i32 - first as i32;
         let area = line_rect(0, right).translate(Point::new(0, place * (LINE + LINE_GAP) + list.scroll));
         let y = area.top_left.y;
         if y + LINE <= BAR || y >= profile::height() as i32 {
+            continue;
+        }
+        // Other pages only while a drag moves them in.
+        let on_page = (0..menu::rows() as i32).contains(&place);
+        if list.scroll == 0 && !on_page {
             continue;
         }
         if line.mark == Mark::Caption {
@@ -802,7 +807,7 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &L
         let fill = if chosen { colors::primary_dim() } else { colors::surface() };
         shapes.push(panel(RoundedRectangle::with_equal_corners(area, Size::new(6, 6)), fill, None, list.glass));
         let baseline = y + (LINE + normal.digit) / 2;
-        let number = (index % ROWS + 1).to_string();
+        let number = (index % menu::rows() + 1).to_string();
         shapes.push(Shape::Text(Point::new(MARGIN + 12, baseline), number, Scale::Small, colors::muted()));
         let middle = y + LINE / 2;
         let mut end = right - 14;
@@ -864,12 +869,12 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &L
     }
     if scrolls {
         let top = BAR + 8;
-        let height = ROWS as i32 * (LINE + LINE_GAP) - LINE_GAP;
+        let height = menu::rows() as i32 * (LINE + LINE_GAP) - LINE_GAP;
         let x = edge - 3;
         shapes.push(Shape::Fill(Rectangle::new(Point::new(x, top), Size::new(3, height as u32)), colors::hairline()));
-        let pages = lines.len().div_ceil(ROWS) as i32;
+        let pages = lines.len().div_ceil(menu::rows()) as i32;
         let thumb = height / pages;
-        let page = (first / ROWS) as i32;
+        let page = (first / menu::rows()) as i32;
         let at = Point::new(x, top + page * thumb);
         shapes.push(Shape::Fill(Rectangle::new(at, Size::new(3, thumb as u32)), colors::primary()));
     }

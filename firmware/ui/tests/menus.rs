@@ -160,7 +160,7 @@ fn every_entry_fits_its_line() {
                 // scroll strip, an arrow for a page, and a gap of 12 between them.
                 let arrow = if matches!(entry.kind, Kind::Page(_)) { 16 } else { 0 };
                 // The scroll strip only on a page with more lines than fit.
-                let strip = if page.entries.len() > menu::ROWS { 24 } else { 0 };
+                let strip = if page.entries.len() > menu::rows() { 24 } else { 0 };
                 let room = WIDTH as i32 - 2 * 10 - strip - 34 - 14 - arrow - 12;
                 let width = Scale::Normal.width(label) + value;
                 if width > room {

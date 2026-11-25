@@ -1310,8 +1310,8 @@ impl<B: Backend> App<B> {
                         return true;
                     }
                     AppKey::Ok | AppKey::Exe => selected,
-                    AppKey::Digit(digit @ 1..=9) if usize::from(digit) <= menu::ROWS => {
-                        let index = selected / menu::ROWS * menu::ROWS + usize::from(digit) - 1;
+                    AppKey::Digit(digit @ 1..=9) if usize::from(digit) <= menu::rows() => {
+                        let index = selected / menu::rows() * menu::rows() + usize::from(digit) - 1;
                         if index >= count {
                             return true;
                         }
@@ -1671,7 +1671,7 @@ impl<B: Backend> App<B> {
             Target::Page(page) => self.show_page(page),
             // A line of an app's list: picked as its digit picks it.
             Target::Line(offset) if self.running.as_ref().is_some_and(|running| running.menu.is_none()) => {
-                let first = self.running.as_ref().map_or(0, |running| running.template.list / menu::ROWS * menu::ROWS);
+                let first = self.running.as_ref().map_or(0, |running| running.template.list / menu::rows() * menu::rows());
                 if let Some(running) = &mut self.running {
                     running.template.list = first + offset;
                 }
