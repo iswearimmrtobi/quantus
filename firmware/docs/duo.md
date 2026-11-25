@@ -49,13 +49,16 @@ addresses do not collide.
 
 What it shows:
 
-- The mode's soft keys as a row of buttons (they leave the bottom of the main screen).
-- A grid of keys in pages: first the handheld's big keypad
-  ([keypad-sizes.html](../../design/keypad-sizes.html)), later layouts of each mode's own.
+- A top row of SHIFT, ALPHA, UNIT, OPTN, DEL and AC.
+- 12 keys of the mode, its soft keys among them, in the order of their rank, with one page key
+  when there are more; a 4 × 4 number block beside them (0–F in Base-N).
+- Over an Analysis answer its view keys, in menus large digits, for a line of text a letter
+  keyboard.
 - The SHIFT, ALPHA and UNIT layers: the keys show the layer in force.
 
-A tap sends the same `Key` a physical key would, so the UI's logic is the handheld's.
-Which keys each mode shows, and in what order: [duo-keys.md](duo-keys.md).
+Which keys each mode shows, and in what order: [duo-keys.md](duo-keys.md). A tap sends the same
+`Key` a physical key would, or does what the soft key does on the handheld, so the UI's logic is
+the handheld's.
 
 It has a touch calibration of its own, the same five crosses as the main screen's: SETUP → Touch
 kalibrieren calibrates the main screen and then the input screen. The main screen's mode menu
@@ -67,7 +70,25 @@ The ESP32-P4 module with the C6 for Wi-Fi, the SD card, the engine, the UI and i
 sessions, apps and settings. Power follows [hardware.md](hardware.md) §7, with a 5 V rail
 added for the main screen.
 
-## 5. Open questions
+## 5. On the bench
+
+Until the 5" panel is there, the Duo runs on the dev kit with Waveshare's 10.1-DSI-TOUCH-A
+(800×1280, JD9365, GT9271 touch) on the DSI connector and the handheld's 3.5" display on the
+header as the input screen: `cargo run --release --features duo` in `firmware/handheld`.
+
+- The UI draws for `Profile::DUO_BENCH`: the Duo's layout on a logical 720×450, 1280×800 on the
+  panel (`--duo-bench` in the simulator).
+- `src/dsi.rs` starts the panel as the SmartPanel firmware does on the same board: the JD9365's
+  init sequence (`src/jd9365.rs`, Waveshare's), two frame buffers in PSRAM, and the UI drawn
+  landscape into a buffer of its own that the PPA turns onto the portrait panel.
+  `QUANTUS_DSI_TURN=270` turns the picture the other way.
+- The panel's power and backlight (0x45) and its touch (`src/goodix.rs`, 0x5D or 0x14) share the
+  I²C bus of the 3.5" display's touch, at 100 kHz in this build: the backlight chip does not
+  answer faster.
+- The 3.5" display keeps the handheld's touch calibration; the main screen's is stored apart.
+- The arrows, OK, EXE and MENU come from the USB keyboard or the serial line.
+
+## 6. Open questions
 
 - **DSI timings**: the wiki gives no lane rate, pixel clock or porches for this panel; take
   them from Waveshare's `esp_lcd_hx8394` component or BSP.

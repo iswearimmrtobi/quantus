@@ -12,7 +12,8 @@ function keys in two pages and the number block. On the bench (2026-11-25) that 
 - there were two page keys: the soft bar's ▸1/2 and the function block's 1/2.
 
 This document goes through every mode and screen and ranks the keys it needs. It is the
-specification for the input screen's layouts; nothing in it is built yet.
+specification for the input screen's layouts, which are built as it says
+(`firmware/ui/src/pad.rs`, tests in `firmware/ui/tests/pad.rs`); §4 records the decisions.
 
 The arrows, OK, EXE and MENU are hardware buttons on the Duo ([duo.md](duo.md) §1) and are not
 drawn. On the bench, which has no buttons yet, they come from the USB keyboard or the serial
@@ -79,25 +80,24 @@ the forms and ▶unit conversions. On the Duo those are the first mode keys.
 
 | Key | Rank | Note |
 |---|---|---|
-| the best units for the input (up to 6) | A | `app.units.best`, changes with the input |
-| ( ) (−) a/b xʸ x² √ | A | the shared core |
-| CONST | B | Physics only |
-| ×10ˣ | B | has no `Key` today (§4) |
-| more units (`app.units.more`) | B | the next page |
-| sin cos tan ln log π | C | |
+| the best three units for the input | A | `app.units.best`, changes with the input |
+| ( ) (−) a/b xʸ √ | A | the shared core |
+| ×10ˣ, CONST | A | numbers in physics: `3×10⁸`, the constants |
+| x², S⇔D, ENG | B | |
+| more units (`app.units.best` after three, `app.units.more`) | B | the next page |
+| sin cos tan ln log π e | C | |
 | **after a result:** S⇔D, ENG, ←ENG, ▶unit conversions | A | today's result bar, in its place |
 
 ```
 ┌───────┬───────┬───────┐
-│   m   │   s   │  kg   │   the units for the input
-│   N   │   J   │   W   │
-│ ( )   │ (−)   │  a/b  │   drawn with ( and ) sharing a cell,
-│  xʸ   │  √    │ ▸ 1/3 │   x² on page 2 (see below)
+│   m   │   s   │  kg   │   the best units for the input
+│   (   │   )   │  (−)  │
+│  a/b  │  xʸ   │   √   │
+│ ×10ˣ  │ CONST │ ▸ 1/3 │
 └───────┴───────┴───────┘
 ```
 
-Open: whether ( and ) get one cell each (then x² moves to page 2) or share one cell split in two
-halves of 36 px (too narrow by the frame's rule). The tables count them as two keys.
+( and ) have a cell each: one split in two would leave halves of 36 px.
 
 ### Algebra
 
@@ -141,18 +141,19 @@ The answer pages and a graph take the whole pad (no number block):
 ┌───────┬───────┬───────┬───────┬───────┬───────┐
 │ SHIFT │ ALPHA │ UNIT  │ OPTN  │  DEL  │  AC   │
 ├───────┴───────┼───────┴───────┼───────┴───────┤
-│  ◄ Seite      │   Zoom +      │   Seite ►     │
+│      ◄        │       ▲       │       ►       │
 ├───────────────┼───────────────┼───────────────┤
-│  Verschieben  │   Zoom −      │   Mitte (0)   │
-├───────────────┼───────────────┼───────────────┤
-│  Tangente     │   Fläche      │   Punkte      │
-├───────────────┴───────────────┴───────────────┤
+│  Verschieben  │       ▼       │     Mitte     │
+├───────────────┴───────┬───────┴───────────────┤
+│        Zoom +         │        Zoom −         │
+├───────────────────────┴───────────────────────┤
 │                  Schließen                    │
 └───────────────────────────────────────────────┘
 ```
 
-The keys send what `sketch_key` and `graph_key` take today (←/→ turn pages, +/− zoom, 0 home,
-OK pans, AC closes); the task keys open the forms that OPTN opens.
+The keys send what `sketch_key` and `graph_key` take (◄/► turn pages, ▲/▼ scroll, Verschieben
+is OK, Zoom ± are + and −, Mitte is 0, Schließen is AC). The tasks (tangent, area, points) stay
+in OPTN, which works over the answer.
 
 ### Linear (LGS), Table (Wertetabelle), Statistics, Distributions
 
@@ -165,9 +166,11 @@ first.
 | x | A | Table's f(x) and g(x) only |
 | i | A | Linear with i switched on (OPTN) only |
 | ; | A | Distributions' k with several values only |
-| ( ) xʸ x² | B | |
-| Zeile +, Zeile − | B | Statistics; today in OPTN |
+| ( ) xʸ x² ×10ˣ | B | |
 | sin cos tan ln log π e | C | Table's f(x) |
+
+Inserting and deleting rows stays in OPTN. The Matrix grid (Definieren) is a sheet too and has
+the names A–F and M.
 
 Linear with typed equations (OPTN → Eingabe) is like Algebra: x, y, =, ; first.
 
@@ -182,7 +185,8 @@ Linear with typed equations (OPTN → Eingabe) is like Algebra: x, y, =, ; first
 | ( ) (−) a/b xʸ | B | |
 | √ x² sin cos tan … | C | |
 
-That is 12 A keys: page 1 holds exactly them, everything else is page 2.
+Page 1 holds the seven names, Definieren, Bearbeiten, det and Aᵀ, and the page key; A⁻¹
+leads page 2.
 
 ### Base-N
 
@@ -192,10 +196,10 @@ The number block shows the hex digits; + − × ÷ move to the mode keys.
 ┌───────┬───────┬───────┬───────┬───────┬───────┬───────┐
 │  DEC  │  HEX  │  BIN  │   C   │   D   │   E   │   F   │
 │  OCT  │  and  │  or   │   8   │   9   │   A   │   B   │
-│  xor  │ xnor  │  Not  │   4   │   5   │   6   │   7   │
-│  Neg  │ ( )   │ ▸ 1/2 │   0   │   1   │   2   │   3   │
+│  xor  │  Not  │   +   │   4   │   5   │   6   │   7   │
+│   −   │   ×   │ ▸ 1/2 │   0   │   1   │   2   │   3   │
 └───────┴───────┴───────┴───────┴───────┴───────┴───────┘
-page 2: + − × ÷ ( ) Ans , and the shifts (OPTN today)
+page 2: ÷ xnor Neg ( ) Ans; the shifts stay in OPTN
 ```
 
 - The base set is lit (as `soft::is_set` lights it on the bar today).
@@ -207,12 +211,13 @@ page 2: + − × ÷ ( ) Ans , and the shifts (OPTN today)
 |---|---|
 | 0–9, A–F | A (in the block) |
 | DEC HEX BIN OCT | A |
-| and or xor xnor Not Neg | A |
-| + − × ÷ | B |
-| ( ) Ans | B |
+| and or xor Not | A |
+| + − × | A |
+| ÷ xnor Neg ( ) Ans | B (page 2) |
 | shifts and rotations | C (OPTN) |
 
-Open: whether + − × ÷ belong on page 1 instead of xnor and Neg, which are rarer.
++ − × go before xnor and Neg, which are rarer; ÷ (whole-number division) is the rarest of the
+four operators.
 
 ### Verify (Prüfen)
 
@@ -226,11 +231,11 @@ Open: whether + − × ÷ belong on page 1 instead of xnor and Neg, which are ra
 
 | Screen | Input screen | Note |
 |---|---|---|
-| Mode menu | number block only (1–9, then 10–12 by touch on the main screen) | tiles are tapped on the main screen |
-| Menu lists (OPTN, SETUP, sessions), catalogues, VARS | number block only | the numbered lines; picked mostly by touch |
-| Choice, number entry | number block, (−) where allowed | |
-| Text entry: names, Wi-Fi password, STO, catalogue search | a letter keyboard over the whole pad (below) | today only A–F and M can be typed without a USB keyboard |
-| Messages, notes, info | AC only | any key returns today |
+| Mode menu | large digits only (1–9, then 10–12 by touch on the main screen) | tiles are tapped on the main screen |
+| Menu lists (OPTN, SETUP, sessions), catalogues, VARS | large digits only: 7 8 9 / 4 5 6 / 1 2 3 / (−) 0 , | the numbered lines; picked mostly by touch |
+| Choice, number entry | the same | |
+| Text entry: names, Wi-Fi password, CATALOG's search, an app's text or question | a letter keyboard over the whole pad (below) | `App::text_entry` |
+| Messages, notes, info | the large digits | any key returns |
 | Calibration | its crosses (already built) | |
 | SYMB pages | the 12 mode keys are the symbols; page key turns the page | as today's SYMB soft pages |
 | Running app | the app's soft keys first, then the number block | 2048 and Snake: 8/4/6/2 as arrows; Sudoku: 1–9 |
@@ -241,25 +246,27 @@ The letter keyboard:
 ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐
 │ q  │ w  │ e  │ r  │ t  │ z  │ u  │ i  │ o  │ p  │   48 × 64 px: narrower than the
 │ a  │ s  │ d  │ f  │ g  │ h  │ j  │ k  │ l  │ DEL│   frame's rule; a keyboard is read
-│ ⇧  │ y  │ x  │ c  │ v  │ b  │ n  │ m  │ .  │ -  │   as a whole, and phones use
-│ 123│ ä  │ ö  │ ü  │    Leertaste     │ AC │ OK │   smaller keys
-└────┴────┴────┴────┴──────────────────┴────┴────┘
+│ Aa │ y  │ x  │ c  │ v  │ b  │ n  │ m  │ .  │ -  │   as a whole, and phones use
+│ 123│ ä  │ ö  │ ü  │  Leerzeichen     │ AC │   OK    │   smaller keys
+└────┴────┴────┴────┴──────────────────┴────┴─────────┘
 ```
 
-German layout (QWERTZ) when the language is German, QWERTY otherwise. 123 switches to digits
-and signs. The keys send `Key::Char`, which text fields already take.
+German layout (QWERTZ) when the language is German, QWERTY otherwise (with `, . ?` in place of
+ä ö ü). Aa types one capital; 123 switches to digits and signs, abc back. The keys send what
+the serial line sends for the character (`Key::from_char`), which text fields take.
 
-## 4. Open questions
+## 4. Decisions
 
-- **Keys without a `Key`**: ×10ˣ (printed on both keypads, does nothing), ▶unit (big keypad) and
-  ON. ×10ˣ needs one before it can rank B in Physics.
-- **UNIT outside Physics**: `layer::resolve` types units in every mode. The input screen could
-  leave UNIT out (or draw it faint) where a mode has no use for units: Base-N, Matrix, Verify,
-  the sheets.
-- **ALPHA**: with A–F and M as keys of their own in Matrix and Base-N, and the letter keyboard
-  for text, ALPHA has little left to do: `%` and RanInt#. Its top-row cell could go to another
-  key.
-- **( and )**: one cell each, or one cell split; see Physics.
-- **Base-N's page 1**: + − × ÷ against xnor and Neg.
+- **×10ˣ** has a key now (`Key::TimesTen`): it types `×10` and puts the cursor in the
+  exponent, as xʸ does. It works on the handheld's keypad too. ▶unit and ON still have none.
+- **UNIT outside Physics** is faint on the input screen and does nothing there: no other mode
+  has a use for units. The handheld's keypad is unchanged.
+- **ALPHA** stays in the top row: the variables A–F and M are used in every calculating mode
+  (STO, VARS, formulas), and ALPHA gives % and RanInt#. Matrix and Base-N have the letters as
+  keys of their own besides.
+- **( and )** have a cell each.
+- **Base-N's page 1** has + − ×; xnor, Neg and ÷ are on page 2.
+- **The letter keyboard's** keys are 48 px wide, under the frame's 62: a keyboard is read as a
+  whole, as on a phone.
 - **Hardware buttons**: if EXE, the arrows and MENU end up not being buttons after all, the
   frame needs room for them.

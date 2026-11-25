@@ -49,6 +49,7 @@ The same UI runs in a window on the PC: [firmware/sim](../sim/README.md).
 cd firmware/handheld
 cargo run --release          # flash and open the serial monitor
 cargo run --release --no-default-features   # the same with the stub instead of the engine
+cargo run --release --features duo          # the Duo on the bench (firmware/docs/duo.md §5)
 ```
 
 The hardware, setup and wiring are in [firmware/docs](../docs/README.md):
