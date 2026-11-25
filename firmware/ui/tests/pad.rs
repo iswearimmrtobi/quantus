@@ -7,7 +7,8 @@ use quantus_ui::app::App;
 use quantus_ui::backend::Stub;
 use quantus_ui::key::Key;
 use quantus_ui::layer::Layer;
-use quantus_ui::pad::{Action, Pad, PadKey, HEIGHT, WIDTH};
+use quantus_ui::app::{Mode, Screen};
+use quantus_ui::pad::{Action, Look, Pad, PadKey, HEIGHT, WIDTH};
 use quantus_ui::profile::{self, Profile};
 use quantus_ui::render::{pad, Frame, Renderer, Shape};
 use quantus_ui::soft;
@@ -33,9 +34,11 @@ fn duo() -> App<Stub> {
 #[test]
 fn taps_type_a_calculation() {
     let mut app = duo();
-    for label in ["1", "2", "+", "3", "EXE"] {
+    for label in ["1", "2", "+", "3"] {
         tap(&mut app, label);
     }
+    // EXE is a hardware button.
+    app.key(Key::Exe);
     assert_eq!(app.history.len(), 1);
     assert_eq!(app.history[0].input.to_latex(), "12+3");
 }
@@ -53,15 +56,20 @@ fn a_key_slid_off_does_nothing() {
 }
 
 #[test]
-fn the_soft_keys_are_on_the_pad_not_the_screen() {
+fn the_soft_keys_are_mode_keys_not_strips() {
     let mut app = duo();
     for key in [Key::Digit(1), Key::Divide, Key::Digit(3), Key::Exe] {
         app.key(key);
     }
     assert!(!soft::shows(&app));
-    let keys = keys(&app);
-    let first = keys.iter().find(|key| key.action == Action::Soft(0)).expect("a soft key");
-    assert!(!first.label.is_empty());
+    // Over the result its forms lead the mode keys, and act as the strip would.
+    let swap = keys(&app).into_iter().find(|key| matches!(&key.action, Action::Slot(_)) && key.label.contains("Leftrightarrow")).expect("S⇔D");
+    assert_eq!(swap.rect.top_left.y, keys(&app).iter().map(|key| key.rect.top_left.y).filter(|&y| y > 2).min().unwrap(), "S⇔D leads");
+    // A soft key acts as its strip would: Basis-N's HEX sets the base.
+    let mut base_n = duo();
+    base_n.mode = Mode::BaseN;
+    tap(&mut base_n, "HEX");
+    assert_eq!(base_n.settings.number_base, quantus_ui::settings::NumberBase::Hex);
     // On the handheld the same bar shows in the strips.
     app.pad = None;
     assert!(soft::shows(&app));
@@ -72,36 +80,142 @@ fn shift_shows_the_legends_until_a_key() {
     let mut app = duo();
     tap(&mut app, "SHIFT");
     assert_eq!(app.modifier.layer(), Layer::Shift);
-    // sin shows sin⁻¹ in the SHIFT colour.
+    // √ shows ⁿ√ in the SHIFT colour.
     let frame = pad::frame(&app);
     let shift = quantus_ui::render::colors::shift();
     assert!(frame.0.iter().any(|shape| matches!(shape, Shape::Math(_, _, color) if *color == shift)));
-    tap(&mut app, "sin");
+    tap(&mut app, "√");
     assert_eq!(app.modifier.layer(), Layer::Base);
-    assert!(app.editor.to_latex().contains("sin^{-1}") || app.editor.to_latex().contains("arcsin"), "{}", app.editor.to_latex());
+    assert!(app.editor.to_latex().contains(r"\sqrt["), "{}", app.editor.to_latex());
+}
+
+/// Every key of the pad as `app` shows it, page by page, until the first page comes back.
+fn all_pages(app: &mut App<Stub>) -> Vec<Vec<PadKey>> {
+    let mut pages = vec![keys(app)];
+    while let Some(page) = pages.last().unwrap().iter().find(|key| key.action == Action::Page).cloned() {
+        app.pad_touch(Touch::Press(page.rect.center()));
+        app.pad_touch(Touch::Release);
+        let next = keys(app);
+        if next == pages[0] {
+            break;
+        }
+        assert!(pages.len() < 10, "the pages do not come round");
+        pages.push(next);
+    }
+    pages
 }
 
 #[test]
-fn the_page_key_turns_the_function_keys() {
+fn one_page_key_turns_the_mode_keys() {
     let mut app = duo();
-    assert!(keys(&app).iter().any(|key| key.label == "sin"));
-    tap(&mut app, "1/2");
-    assert_eq!(app.pad.as_ref().unwrap().page, 1);
-    assert!(keys(&app).iter().any(|key| key.label == "CONST"));
-    assert!(!keys(&app).iter().any(|key| key.label == "sin"));
+    let pages = all_pages(&mut app);
+    assert!(pages.len() >= 2);
+    for page in &pages {
+        assert_eq!(page.iter().filter(|key| key.action == Action::Page).count(), 1);
+    }
+    // The core on page 1, the functions later.
+    for label in ["(", ")", "(−)", "a/b", "xʸ", "√"] {
+        assert!(pages[0].iter().any(|key| key.label == label), "{label} not on page 1");
+    }
+    assert!(!pages[0].iter().any(|key| key.label == "sin"));
+    assert!(pages[1..].iter().flatten().any(|key| key.label == "sin"));
+}
+
+/// The modes and screens whose keys are checked for size and room.
+fn contexts() -> Vec<App<Stub>> {
+    let mut list = Vec::new();
+    for mode in [Mode::Physics, Mode::Algebra, Mode::Imaginary, Mode::Analysis, Mode::Matrix, Mode::BaseN, Mode::Verify, Mode::Table, Mode::Statistics] {
+        let mut app = duo();
+        app.mode = mode;
+        list.push(app);
+    }
+    let mut menu = duo();
+    menu.key(Key::Optn);
+    list.push(menu);
+    list
 }
 
 #[test]
-fn every_key_lies_on_the_pad_apart_from_the_others() {
-    let app = duo();
-    let keys = keys(&app);
+fn every_key_is_large_enough_and_apart_from_the_others() {
     let area = embedded_graphics::primitives::Rectangle::new(Point::zero(), Size::new(WIDTH, HEIGHT));
-    for (index, key) in keys.iter().enumerate() {
-        assert_eq!(area.intersection(&key.rect), key.rect, "{} off the pad", key.label);
-        for other in &keys[index + 1..] {
-            assert!(key.rect.intersection(&other.rect).is_zero_sized(), "{} on {}", key.label, other.label);
+    for mut app in contexts() {
+        for keys in all_pages(&mut app) {
+            for (index, key) in keys.iter().enumerate() {
+                assert_eq!(area.intersection(&key.rect), key.rect, "{} off the pad", key.label);
+                assert!(key.rect.size.width >= 62 && key.rect.size.height >= 40, "{} is {:?}", key.label, key.rect.size);
+                for other in &keys[index + 1..] {
+                    assert!(key.rect.intersection(&other.rect).is_zero_sized(), "{} on {}", key.label, other.label);
+                }
+            }
         }
     }
+}
+
+#[test]
+fn the_number_block_is_larger_than_the_old_function_keys() {
+    let app = duo();
+    let seven = keys(&app).into_iter().find(|key| key.label == "7").unwrap();
+    assert!(seven.rect.size.width >= 62 && seven.rect.size.height >= 60, "{:?}", seven.rect.size);
+    // The modifiers on top, taller than the old 34 px row.
+    let shift = keys(&app).into_iter().find(|key| key.label == "SHIFT").unwrap();
+    assert_eq!(shift.rect.top_left.y, 2);
+    assert!(shift.rect.size.height >= 40);
+}
+
+#[test]
+fn base_n_types_hex_digits_and_fades_the_others() {
+    let mut app = duo();
+    app.mode = Mode::BaseN;
+    app.settings.number_base = quantus_ui::settings::NumberBase::Hex;
+    tap(&mut app, "F");
+    assert!(app.editor.to_latex().contains('F'), "{}", app.editor.to_latex());
+    app.settings.number_base = quantus_ui::settings::NumberBase::Bin;
+    let keys = keys(&app);
+    let look = |label: &str| keys.iter().find(|key| key.label == label).unwrap().look;
+    assert_eq!(look("1"), Look::Plain);
+    assert_eq!(look("2"), Look::Faint);
+    assert_eq!(look("A"), Look::Faint);
+}
+
+#[test]
+fn unit_is_faint_outside_physics() {
+    let mut app = duo();
+    let unit = |app: &App<Stub>| keys(app).into_iter().find(|key| key.label == "UNIT").unwrap();
+    assert_eq!(unit(&app).look, Look::Plain);
+    app.mode = Mode::Algebra;
+    assert_eq!(unit(&app).look, Look::Faint);
+    assert_eq!(unit(&app).action, Action::None);
+}
+
+#[test]
+fn times_ten_types_a_power_of_ten() {
+    let mut app = duo();
+    tap(&mut app, "3");
+    tap(&mut app, "×10ˣ");
+    tap(&mut app, "8");
+    // The editor writes × as \cdot.
+    assert_eq!(app.editor.to_latex(), r"3\cdot10^{8}");
+}
+
+#[test]
+fn a_line_of_text_gets_the_letter_keyboard() {
+    let mut app = duo();
+    app.key(Key::Catalog);
+    assert!(app.text_entry());
+    assert!(keys(&app).iter().any(|key| key.label == "q"));
+    for label in ["s", "i", "n"] {
+        tap(&mut app, label);
+    }
+    let Screen::Menu(menu) = &app.screen else { panic!("the catalogue") };
+    assert!(matches!(&menu.edit, Some(quantus_ui::menu::Edit::Catalogue { query, .. }) if query == "sin"), "{:?}", menu.edit);
+}
+
+#[test]
+fn an_analysis_graph_gets_its_view_keys() {
+    let mut app = duo();
+    app.mode = Mode::Analysis;
+    // The view keys show while an answer is on the screen.
+    assert!(!keys(&app).iter().any(|key| key.label == quantus_ui::text::PAD_CLOSE.get(app.settings.language)));
 }
 
 /// Counts what is drawn off a 480×320 panel.

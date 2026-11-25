@@ -12,7 +12,7 @@ use crate::font::Scale;
 use crate::layer::Layer;
 use crate::layout;
 use crate::legend::legend;
-use crate::pad::{Action, PadKey, Style, CONTROL, LABEL_ROOM};
+use crate::pad::{Look, PadKey, Style, CONTROL, LABEL_ROOM};
 
 /// The app's pad as it is now, to draw with a [`super::Renderer`] on the pad's own 480×320
 /// panel ([`super::Renderer::render_on`] with [`crate::profile::Profile::HANDHELD`]): its keys,
@@ -45,7 +45,12 @@ fn button<B>(shapes: &mut Vec<Shape>, key: &PadKey, pressed: bool, app: &App<B>,
         Style::Exe => (colors::primary_dim(), colors::text()),
         Style::Delete => (colors::error_dim(), colors::text()),
     };
-    let fill = if pressed { colors::primary() } else { fill };
+    let fill = match (pressed, key.look) {
+        (true, _) => colors::primary(),
+        (false, Look::Lit) => colors::primary_dim(),
+        (false, _) => fill,
+    };
+    let faint = key.look == Look::Faint;
     // SHIFT, ALPHA and UNIT outlined in their colour while they are pending or locked.
     let own = match key.style {
         Style::Shift => Some(Layer::Shift),
@@ -60,8 +65,8 @@ fn button<B>(shapes: &mut Vec<Shape>, key: &PadKey, pressed: bool, app: &App<B>,
         return;
     }
     if key.style == Style::Soft {
-        let color = if key.action == Action::None { colors::faint() } else { colors::text() };
-        return centred_math(shapes, key.rect, &key.label, Scale::Small, color);
+        let color = if faint { colors::faint() } else { colors::text() };
+        return centred_math(shapes, key.rect, &key.label, Scale::Normal, color);
     }
     // On a layer, the key's legend there; a key with none is faint.
     let (label, color) = match legend(&key.label, layer) {
@@ -71,10 +76,10 @@ fn button<B>(shapes: &mut Vec<Shape>, key: &PadKey, pressed: bool, app: &App<B>,
                 Layer::Alpha => colors::alpha(),
                 _ => colors::unit(),
             };
-            (legend.to_string(), if works { color } else { colors::faint() })
+            (legend.to_string(), if works && !faint { color } else { colors::faint() })
         }
         None if layer != Layer::Base && own.is_none() => (key.label.clone(), colors::faint()),
-        None if key.action == Action::None => (key.label.clone(), colors::faint()),
+        None if faint => (key.label.clone(), colors::faint()),
         None => (key.label.clone(), text),
     };
     let scale = match key.style {

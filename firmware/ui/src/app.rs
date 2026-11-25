@@ -580,6 +580,22 @@ pub struct App<B> {
 const RECENT_UNITS: usize = 12;
 
 impl<B> App<B> {
+    /// Whether a line of plain text is typed now (a name, a password, the catalogue's search,
+    /// an app's text): the Duo's input screen shows letters then.
+    pub fn text_entry(&self) -> bool {
+        match &self.screen {
+            Screen::Menu(menu) => {
+                matches!(menu.edit, Some(Edit::Text { .. } | Edit::Catalogue { catalogue: Catalogue::Functions, .. }))
+            }
+            Screen::App => self.running.as_ref().is_some_and(|running| {
+                running.menu.is_none()
+                    && (matches!(running.template.question, Some(Question::Ask { .. }))
+                        || (running.template.question.is_none() && matches!(running.applet.input(), Input::Text { .. })))
+            }),
+            _ => false,
+        }
+    }
+
     /// The sheet the screen shows instead of the input line, if any: the mode's own
     /// ([`Mode::sheet`]), or in Kurvendiskussion the form of a task.
     pub fn sheet_kind(&self) -> Option<sheet::Kind> {
@@ -2276,6 +2292,12 @@ impl<B: Backend> App<B> {
     fn soft_key(&mut self, index: usize) {
         let Some(bar) = soft::bar(self) else { return };
         let Some(slot) = bar.slot(index).cloned() else { return };
+        self.run_slot(slot, bar.page);
+    }
+
+    /// What a soft key does; `page` is the page of the bar it is on.
+    fn run_slot(&mut self, slot: Slot, page: usize) {
+        let bar = soft::Bar { slots: Vec::new(), columns: 0, page, pages: 0 };
         match slot {
             Slot::Empty | Slot::App(..) => {}
             Slot::Page => match &mut self.symbols {
@@ -2303,6 +2325,46 @@ impl<B: Backend> App<B> {
                 }
             }
         }
+    }
+
+    /// A soft key of the Duo's input screen, which lays out the whole list of
+    /// [`soft::slots`] by itself, as the soft key under it would act.
+    pub(crate) fn pad_slot(&mut self, slot: Slot) {
+        self.notice = None;
+        let layer = self.modifier.layer();
+        self.modifier.settle(Key::Soft(0), layer);
+        if matches!(self.screen, Screen::App) {
+            match slot {
+                Slot::Symbol(_, latex) => {
+                    self.symbols = None;
+                    self.line_insert(latex);
+                }
+                Slot::App(index, _) => {
+                    if let Some((applet, mut host)) = self.applet() {
+                        applet.key(AppKey::Soft(index), &mut host);
+                    }
+                }
+                _ => {}
+            }
+        } else if matches!(self.screen, Screen::Calc) {
+            self.run_slot(slot, 0);
+        }
+        self.app_exit();
+        self.refresh_units();
+    }
+
+    /// LaTeX typed by a key of the Duo's input screen that has no key of the keypad.
+    pub(crate) fn pad_insert(&mut self, latex: &'static str) {
+        self.notice = None;
+        let layer = self.modifier.layer();
+        self.modifier.settle(Key::Soft(0), layer);
+        self.symbols = None;
+        match self.screen {
+            Screen::Calc => self.insert(latex),
+            Screen::App if self.app_typing() => self.line_insert(latex),
+            _ => {}
+        }
+        self.refresh_units();
     }
 
     /// The shown result converted to the unit `item` and worked out: `Ans ▶ unit`.

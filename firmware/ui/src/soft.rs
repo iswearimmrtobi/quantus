@@ -136,6 +136,18 @@ pub fn strips<B>(app: &App<B>) -> Option<Bar> {
 /// The soft keys as the screen is now, or `None` where they are hidden.
 pub fn bar<B>(app: &App<B>) -> Option<Bar> {
     let columns = app.soft_columns.clamp(2, 6);
+    content(app, columns).map(|(slots, page)| paginate(slots, columns, page))
+}
+
+/// All the soft keys as the screen is now, on no pages and without the gaps that keep the
+/// strips' rows together: the Duo's input screen lays them out by itself.
+pub fn slots<B>(app: &App<B>) -> Option<Vec<Slot>> {
+    let (slots, _) = content(app, 6)?;
+    Some(slots.into_iter().filter(|slot| !matches!(slot, Slot::Empty | Slot::Page)).collect())
+}
+
+/// The soft keys and the page shown, for strips of `columns` keys a row.
+fn content<B>(app: &App<B>, columns: usize) -> Option<(Vec<Slot>, usize)> {
     if let (Screen::App, Some(running)) = (&app.screen, &app.running) {
         if running.menu.is_some() {
             return None;
@@ -143,7 +155,7 @@ pub fn bar<B>(app: &App<B>) -> Option<Bar> {
         // SYMB on an input line: its symbols instead of the app's keys.
         if let (Some(page), crate::applet::Input::Line { .. }) = (app.symbols, running.applet.input()) {
             let slots = MATH_FIRST.iter().chain(SYMBOLS.iter().filter(|symbol| !MATH_FIRST.contains(symbol)));
-            return Some(paginate(slots.map(|&(label, latex)| Slot::Symbol(label, latex)).collect(), columns, page));
+            return Some((slots.map(|&(label, latex)| Slot::Symbol(label, latex)).collect(), page));
         }
         let labels = running.applet.soft_keys();
         let slots = labels
@@ -154,7 +166,7 @@ pub fn bar<B>(app: &App<B>) -> Option<Bar> {
         if slots.iter().all(|slot| *slot == Slot::Empty) {
             return None;
         }
-        return Some(paginate(slots, columns, app.soft_page));
+        return Some((slots, app.soft_page));
     }
     if !matches!(app.screen, Screen::Calc) || app.answer.is_some() {
         return None;
@@ -163,7 +175,7 @@ pub fn bar<B>(app: &App<B>) -> Option<Bar> {
         let lead = if app.mode == Mode::Physics { PHYSICS_FIRST } else { MATH_FIRST };
         let rest = SYMBOLS.iter().filter(|symbol| !lead.contains(symbol));
         let slots = lead.iter().chain(rest).map(|&(label, latex)| Slot::Symbol(label, latex)).collect();
-        return Some(paginate(slots, columns, page));
+        return Some((slots, page));
     }
     if app.sheet_kind().is_some() {
         return None;
@@ -200,7 +212,7 @@ pub fn bar<B>(app: &App<B>) -> Option<Bar> {
     if slots.iter().all(|slot| *slot == Slot::Empty) {
         return None;
     }
-    Some(paginate(slots, columns, app.soft_page))
+    Some((slots, app.soft_page))
 }
 
 fn forms() -> Vec<Slot> {
