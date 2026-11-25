@@ -290,3 +290,56 @@ fn juxtaposition_is_and_at_its_level() {
     assert_eq!(parse_expr(r"(A \lor B)(C \lor D)").unwrap(), parse_expr(r"(A \lor B) \land (C \lor D)").unwrap());
     assert_eq!(parse_expr(r"A \overline{B}").unwrap(), parse_expr(r"A \land \lnot B").unwrap());
 }
+
+fn error(latex: &str) -> String {
+    parse_expr(latex).map(|e| format!("read as {e:?}")).unwrap_or_else(|e| e.to_string())
+}
+
+#[test]
+fn a_chain_of_nand_or_nor_asks_for_brackets() {
+    for typed in [r"A \uparrow B \uparrow C", "A nand B nand C", r"A ↑ B \barwedge C", r"A \uparrow B \uparrow C \uparrow D"] {
+        assert_eq!(error(typed), "NAND is not associative: write brackets, (A NAND B) NAND C or A NAND (B NAND C).", "{typed}");
+    }
+    for typed in [r"A \downarrow B \downarrow C", "A nor B nor C", r"A ↓ B \downarrow C"] {
+        assert_eq!(error(typed), "NOR is not associative: write brackets, (A NOR B) NOR C or A NOR (B NOR C).", "{typed}");
+    }
+    // With brackets both readings are read, and they are different functions.
+    let (left, right) = (ones_of(r"(A \uparrow B) \uparrow C", "A B C"), ones_of(r"A \uparrow (B \uparrow C)", "A B C"));
+    assert_eq!(left, ones_by(3, |v| !(!(v[0] && v[1]) && v[2])));
+    assert_eq!(right, ones_by(3, |v| !(v[0] && !(v[1] && v[2]))));
+    assert_ne!(left, right);
+    let (left, right) = (ones_of(r"(A \downarrow B) \downarrow C", "A B C"), ones_of(r"A \downarrow (B \downarrow C)", "A B C"));
+    assert_ne!(left, right);
+    // NAND then NOR are different levels, so no brackets are needed.
+    assert_eq!(parse_expr(r"A \uparrow B \downarrow C").unwrap(), parse_expr(r"(A \uparrow B) \downarrow C").unwrap());
+}
+
+#[test]
+fn implication_and_other_commands_are_not_logic_operators() {
+    for command in ["to", "rightarrow", "Rightarrow", "implies", "leftarrow", "gets", "iff", "sin", "neq"] {
+        assert_eq!(error(&format!(r"A \{command} B")), format!(r"\{command} is not a logic operator."));
+    }
+    for sign in ['⇒', '→', '≠', '?'] {
+        assert_eq!(error(&format!("A {sign} B")), format!("'{sign}' is not part of a logic expression."));
+    }
+    assert_eq!(error("A + 2"), "2 is not a logic value: only 0 and 1 are.");
+}
+
+#[test]
+fn operator_words_in_capitals_are_variables_unless_in_mathrm() {
+    // Plain words count only in lower case: `AND` is the variables A, N and D.
+    assert_eq!(parse_expr("A AND B").unwrap().variables(), ["A", "N", "D", "B"]);
+    assert_eq!(parse_expr("A Or B").unwrap().variables(), ["A", "O", "r", "B"]);
+    assert_eq!(parse_expr(r"A \mathrm{AND} B").unwrap().variables(), ["A", "B"]);
+}
+
+#[test]
+fn an_operator_without_its_operands_is_an_error() {
+    assert_eq!(error(r"\lnot"), "The expression ends too early.");
+    for (op, sign) in [(r"\land", '∧'), (r"\lor", '∨'), (r"\oplus", '⊕'), (r"\odot", '⊙'), (r"\uparrow", '↑'), (r"\downarrow", '↓')] {
+        assert_eq!(error(&format!("A {op}")), "The expression ends too early.", "{op}");
+        assert_eq!(error(&format!("{op} A")), format!("An operand is missing before '{sign}'."), "{op}");
+    }
+    assert_eq!(error("A'"), "read as Not(Var(\"A\"))");
+    assert_eq!(error("'A"), "An operand is missing before '''.");
+}
