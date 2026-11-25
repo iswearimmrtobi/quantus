@@ -104,8 +104,8 @@ pins in `open_display!` in `firmware/handheld/src/display.rs`:
 | 9 | LCD_DC | 18 | 4 |
 | 10 | LCD_RST | 22 | 1 |
 | 11 | LCD_BL | 16 | 5 (high: on) |
-| 12 | TP_SDA | 3 | 7 (shared I²C) |
-| 13 | TP_SCL | 5 | 8 (shared I²C) |
+| 12 | TP_SDA | 12 | 22 (I²C1, its own bus) |
+| 13 | TP_SCL | 13 | 20 (I²C1, its own bus) |
 | 14 | TP_INT | not connected | polled instead |
 | 15 | TP_RST | 11 | 21 |
 
@@ -114,9 +114,11 @@ dev kit, and the display went dark a few seconds after boot; on 3.3 V both work.
 pin (pin 2) was not tested on its own: it is wired to 3V3 in the table, and the touch worked
 with it connected.
 
-The touch controller (address 0x38) sits on the board's I²C bus with the audio codec, which has
-a different address. The bus needs pull-ups on SDA and SCL (the board should have them for the codec; not checked,
-and the display module may have its own); the firmware runs it at 400 kHz. If the picture stays white or black, check LCD_BL and LCD_RST first; if touch does not
+The touch controller (address 0x38) has an I²C bus of its own (the P4's I2C1 on GPIO22 and
+GPIO20) at 400 kHz, with the chip's internal pull-ups on; the display module may have its own.
+Until 2026-11-25 it was on the board's bus (GPIO7/8, header pins 3 and 5) with the audio codec;
+on the Duo's bench the DSI panel on that bus (its touch controller and backlight chip) made it
+fail after a few seconds, so it moved. If the picture stays white or black, check LCD_BL and LCD_RST first; if touch does not
 answer, `QUANTUS_TOUCH_DEBUG=1` prints the controller's registers.
 
 None of these collide with an onboard part. LCD_CS on GPIO36 is a strapping pin; the display
@@ -131,12 +133,12 @@ Header pins the display wiring uses (others stay free):
 | Use | GPIO | Pin | Pin | GPIO | Use |
 |---|---|---:|---:|---|---|
 | 3V3 (VCC) | 3V3 | 1 | 2 | 5V | |
-| TP_SDA | 7 | 3 | 4 | 5V | |
-| TP_SCL | 8 | 5 | 6 | GND | GND |
+| | 7 | 3 | 4 | 5V | |
+| | 8 | 5 | 6 | GND | GND |
 | | 23 | 7 | 8 | 37 | |
 | | GND | 9 | 10 | 38 | |
-| TP_RST | 21 | 11 | 12 | 22 | |
-| | 20 | 13 | 14 | GND | |
+| TP_RST | 21 | 11 | 12 | 22 | TP_SDA |
+| TP_SCL | 20 | 13 | 14 | GND | |
 | | 6 | 15 | 16 | 5 | LCD_BL |
 | 3V3 (3V3, SD_CS) | 3V3 | 17 | 18 | 4 | LCD_DC |
 | MOSI | 3 | 19 | 20 | GND | |

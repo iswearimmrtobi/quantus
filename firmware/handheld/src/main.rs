@@ -85,16 +85,22 @@ fn main() {
 
     let peripherals = Peripherals::take().expect("peripherals");
     let (mut display, mut touch) = open_display!(peripherals);
-    // The Duo's main screen, switched on over the I²C bus of the 3.5" screen's touch, which
-    // also carries its own touch controller.
+    // The Duo's main screen, switched on over the onboard I²C bus (GPIO7/8, the DSI
+    // connector's), which also carries its touch controller; at 100 kHz, as its power and
+    // backlight chip answers no faster.
     #[cfg(feature = "duo")]
-    let (mut main_screen, mut main_touch) = {
+    let (mut main_screen, mut main_bus, mut main_touch) = {
+        use esp_idf_svc::hal::units::FromValueType;
         quantus_ui::profile::set(quantus_ui::profile::Profile::DUO_BENCH);
-        if let Err(error) = quantus_handheld::dsi::power_on(touch.bus()) {
+        let config = esp_idf_svc::hal::i2c::config::Config::new().baudrate(100.kHz().into());
+        let mut bus = esp_idf_svc::hal::i2c::I2cDriver::new(peripherals.i2c0, peripherals.pins.gpio7, peripherals.pins.gpio8, &config)
+            .expect("DSI connector's I²C bus");
+        if let Err(error) = quantus_handheld::dsi::power_on(&mut bus) {
             println!("main screen: no power/backlight chip at 0x45: {error}");
         }
         let screen = quantus_handheld::dsi::MainScreen::open().expect("main screen");
-        (screen, quantus_handheld::goodix::Goodix::probe(touch.bus()))
+        let touch = quantus_handheld::goodix::Goodix::probe(&mut bus);
+        (screen, bus, touch)
     };
     println!("display ready after {} ms", start.elapsed().as_millis());
 
@@ -244,7 +250,7 @@ fn main() {
             }
             // The main screen's touch: the panel's portrait point turned to the picture, then
             // to the layout's canvas.
-            if let Some(report) = main_touch.as_mut().filter(|_| !NO_MAIN_TOUCH).and_then(|main| main.poll(touch.bus())) {
+            if let Some(report) = main_touch.as_mut().filter(|_| !NO_MAIN_TOUCH).and_then(|main| main.poll(&mut main_bus)) {
                 let profile = quantus_ui::profile::get();
                 let at = |raw| profile.logical(main_screen.landscape(raw));
                 let report = match report {
@@ -282,7 +288,7 @@ fn main() {
                 println!("brightness not set: {error}");
             }
             #[cfg(feature = "duo")]
-            if let Err(error) = quantus_handheld::dsi::set_brightness(touch.bus(), app.settings.brightness) {
+            if let Err(error) = quantus_handheld::dsi::set_brightness(&mut main_bus, app.settings.brightness) {
                 println!("main screen brightness not set: {error}");
             }
         }

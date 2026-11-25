@@ -286,6 +286,8 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Handheld: the display's touch controller has an I²C bus of its own: TP_SDA on GPIO22 (header
+  pin 12) and TP_SCL on GPIO20 (pin 13) instead of GPIO7/8 (pins 3 and 5).
 - Handheld: a menu list at rest no longer shows the top of the next page under its last line.
 - Analysis: the chain rule names the outer function g(z) with g′(z) and the inner function h(x)
   with h′(x), and goes on to every level: in `\sin(e^{2x})` h′ is found by the chain rule again

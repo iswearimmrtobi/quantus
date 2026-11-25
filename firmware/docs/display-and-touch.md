@@ -27,7 +27,7 @@ fastest whole divisor of 80 MHz not above it. If the picture shows noise or shif
 
 ## Touch
 
-The FT6336U is polled over I²C (400 kHz, address 0x38): one read says whether a finger is down
+The FT6336U is polled over its own I²C bus (GPIO22/20, 400 kHz, address 0x38): one read says whether a finger is down
 and where. TP_INT is not needed. At start the log prints `touch: FT6336U ready`; another chip ID
 is a warning; no answer at all is one too, with the addresses that do answer on the bus (check
 SDA, SCL, TP_RST and the supply), and touch then stays silent. The

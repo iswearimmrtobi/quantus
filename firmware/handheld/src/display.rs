@@ -25,7 +25,7 @@ pub const SPI_MHZ: u32 = quantus_mirror::number(option_env!("QUANTUS_SPI_MHZ"), 
 /// The display on the SPI bus.
 pub type Bus<'d> = SpiDeviceDriver<'d, Rc<SpiDriver<'d>>>;
 
-/// The display on SPI3 and the touch controller on I²C0, wired to the ESP32-P4 dev kit's header
+/// The display on SPI3 and the touch controller on I²C1 (GPIO22/20), wired to the ESP32-P4 dev kit's header
 /// as in `firmware/docs/dev-kit.md`, from the fields of a `Peripherals`, which stays usable for
 /// the other pins: `(display, touch)`.
 /// Keep the touch panel even when it is not read: dropping it gives up TP_RST and the I²C bus.
@@ -64,14 +64,14 @@ macro_rules! open_display {
         .expect("LEDC timer");
         let backlight = esp_idf_svc::hal::ledc::LedcDriver::new($peripherals.ledc.channel0, timer, $peripherals.pins.gpio5)
             .expect("LCD_BL");
-        // The onboard I²C bus (GPIO7/8) also carries the audio codec, which this firmware leaves
-        // alone, and the DSI and CSI connectors.
+        // A bus of its own on two free header pins, with the chip's pull-ups: the onboard bus
+        // (GPIO7/8) carries the audio codec and the DSI connector, whose panel disturbed the
+        // touch on the Duo's bench (firmware/docs/dev-kit.md).
         let i2c = I2cDriver::new(
-            $peripherals.i2c0,
-            $peripherals.pins.gpio7, // TP_SDA
-            $peripherals.pins.gpio8, // TP_SCL
-            // The Duo's panel power/backlight chip on the same bus answers only at 100 kHz.
-            &I2cConfig::new().baudrate(if cfg!(feature = "duo") { 100.kHz().into() } else { 400.kHz().into() }),
+            $peripherals.i2c1,
+            $peripherals.pins.gpio22, // TP_SDA
+            $peripherals.pins.gpio20, // TP_SCL
+            &I2cConfig::new().baudrate(400.kHz().into()).sda_enable_pullup(true).scl_enable_pullup(true),
         )
         .expect("i2c");
         let touch_reset = PinDriver::output($peripherals.pins.gpio21).expect("TP_RST");

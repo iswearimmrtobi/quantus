@@ -35,9 +35,9 @@ const SILENT: u8 = 10;
 const STUCK: u8 = 20;
 
 /// The bus's pins and port, as `open_display!` sets them up.
-const SDA: i32 = 7;
-const SCL: i32 = 8;
-const PORT: sys::i2c_port_t = 0;
+const SDA: i32 = 22;
+const SCL: i32 = 20;
+const PORT: sys::i2c_port_t = 1;
 
 /// What one poll says.
 enum Reading {
@@ -73,7 +73,8 @@ impl<'d> TouchPanel<'d> {
             Ok(()) => log::warn!("touch: chip ID 0x{:02X}, expected 0x{FT6336U:02X} (FT6336U)", id[0]),
             Err(error) => {
                 // A broken bus makes every probe take about a second, so only the likely ones:
-                // the codec, the FT6336U, and the addresses of other common touch chips.
+                // the FT6336U, and the addresses of other common touch chips and of the codec, in case the
+                // display is still wired to the board's bus.
                 let found: Vec<String> = [0x14u8, 0x15, 0x18, 0x38, 0x5D]
                     .into_iter()
                     .filter(|&address| panel.i2c.write(address, &[], BLOCK).is_ok())
@@ -83,11 +84,6 @@ impl<'d> TouchPanel<'d> {
             }
         }
         Ok(panel)
-    }
-
-    /// The I²C bus the controller is on, for the other devices on it.
-    pub fn bus(&mut self) -> &mut I2cDriver<'d> {
-        &mut self.i2c
     }
 
     /// What the finger did since the last poll, if anything, as the panel's coordinates.

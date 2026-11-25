@@ -61,8 +61,8 @@ A second handheld with two screens and no keypad, the Duo, has its own document:
 - **Dev board**: until our PCB exists, a Waveshare ESP32-P4-Module-DEV-KIT; its pinout and the
   display's pins on it are in [dev-kit.md](dev-kit.md).
 - **Display pins, prototype**: see [dev-kit.md](dev-kit.md#the-35-capacitive-touch-display-on-the-header)
-  (SCLK, MOSI, LCD_CS, LCD_DC, LCD_RST, LCD_BL on SPI3 and GPIOs, TP_SDA and TP_SCL on the
-  board's I²C, TP_RST).
+  (SCLK, MOSI, LCD_CS, LCD_DC, LCD_RST, LCD_BL on SPI3 and GPIOs, TP_SDA and TP_SCL on an
+  I²C bus of their own, TP_RST).
 
 - **Keypad**: low-profile SMD tactile switches under printed keycaps, on two PCBs: the top board
   (soft keys, control row, arrows, function block) and the bottom board (number block). Each board

@@ -44,8 +44,8 @@ pixels, and text is sharper for it.
 
 The handheld's display: a 3.5" 480×320 ST7796S over SPI with the FT6336U touch controller on
 I²C at 0x38 ([display-and-touch.md](display-and-touch.md)). Its driver is the handheld's and does
-not change. Its touch shares the I²C bus with the main screen's GT911 and backlight; the three
-addresses do not collide.
+not change. Its touch has an I²C bus of its own, apart from the main screen's GT911 and backlight: on one
+bus with the DSI panel it failed on the bench (§5).
 
 What it shows:
 
@@ -82,9 +82,10 @@ header as the input screen: `cargo run --release --features duo` in `firmware/ha
   init sequence (`src/jd9365.rs`, Waveshare's), two frame buffers in PSRAM, and the UI drawn
   landscape into a buffer of its own that the PPA turns onto the portrait panel.
   `QUANTUS_DSI_TURN=270` turns the picture the other way.
-- The panel's power and backlight (0x45) and its touch (`src/goodix.rs`, 0x5D or 0x14) share the
-  I²C bus of the 3.5" display's touch, at 100 kHz in this build: the backlight chip does not
-  answer faster.
+- The panel's power and backlight (0x45) and its touch (`src/goodix.rs`, 0x5D or 0x14) are on
+  the board's I²C bus (GPIO7/8, the DSI connector's), at 100 kHz: the backlight chip does not
+  answer faster. The 3.5" display's touch has a bus of its own (GPIO22/20,
+  [dev-kit.md](dev-kit.md)): on the shared bus it failed after a few seconds of taps.
 - The 3.5" display keeps the handheld's touch calibration; the main screen's is stored apart.
 - The arrows, OK, EXE and MENU come from the USB keyboard or the serial line.
 
