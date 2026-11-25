@@ -10,6 +10,9 @@ A handheld calculator that computes locally with `quantus-core`. Near-instant bo
 long battery life second. Later, and optional: hand calculations that take longer than about
 500 ms to a remote engine over Wi-Fi, the same LaTeX in, LaTeX out boundary as the desktop.
 
+A second handheld with two screens and no keypad, the Duo, has its own document:
+[duo.md](duo.md).
+
 ## 2. Requirements
 
 - **R1** One main board, to keep the profile low; only the keypad sits on boards of its own (two,

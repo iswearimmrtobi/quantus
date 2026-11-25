@@ -255,6 +255,18 @@ in the simulator; on the board it builds, the checks there wait for it
 - [ ] The handheld as a keypad for the desktop app
 - [ ] Phone companion (share results and sessions, set up WLAN)
 
+## Duo
+
+The two-screen handheld ([duo.md](duo.md)).
+
+- [ ] Main screen: the 5" 720×1280 MIPI-DSI panel (HX8394), turned to 1280×720, framebuffer in PSRAM
+- [ ] Main screen touch (GT911) and backlight over I²C
+- [ ] UI profile for 1280×720: layout and larger fonts
+- [ ] Input screen: the 3.5" display draws the keys, the soft keys and the layers
+- [ ] Key layouts of each mode's own on the input screen
+- [ ] Hardware buttons: EXE, MENU, arrows, power
+- [ ] Simulator with both screens (`--duo`)
+
 ## Development and testing
 
 - [x] Simulator: the UI in a window on the PC, with the real engine

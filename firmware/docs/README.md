@@ -4,6 +4,8 @@ Everything about the handheld's hardware: the product, the dev board it is broug
 how to flash and use it. The crates' READMEs cover the software and link here.
 
 - [hardware.md](hardware.md): the product: requirements, components, keypad layout, power, PCB.
+- [duo.md](duo.md): the Duo, a second handheld with a 5" main screen and a 3.5" touch screen in
+  place of the keypad.
 - [keypad-pcb.md](keypad-pcb.md): the keypad PCB, split into a top and a bottom board with an 8 × 8 matrix each: the matrices, the connectors, making the two EasyEDA projects, the routing and how to redo it.
 - [dev-kit.md](dev-kit.md): the Waveshare ESP32-P4-Module-DEV-KIT: board, 40-pin header,
   onboard GPIO use, the 3.5" display on the header.
