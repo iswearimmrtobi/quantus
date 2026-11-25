@@ -172,12 +172,14 @@ fn every_bracket_and_spacing_is_read() {
     ], &[1, 2, 3]);
 }
 
-/// Found by these tests: `\mathopen` and `\mathclose` are skipped, but their braced argument is
-/// then read as a group, so `\mathopen{(}` is `{(}`, an empty bracket.
+/// `\mathopen` and `\mathclose` are the bracket in their braces, not a group of their own.
 #[test]
-#[ignore = "finding: \\mathopen{(} and \\mathclose{)} are read as an empty group"]
 fn mathopen_and_mathclose_are_brackets() {
-    assert_spellings("brackets", &[r"\mathopen{(}A + B\mathclose{)}"], &[1, 2, 3]);
+    assert_spellings("brackets", &[
+        r"\mathopen{(}A + B\mathclose{)}", r"\mathopen{[}A + B\mathclose{]}", r"\mathopen{}(A + B\mathclose{})",
+        r"\mathopen{} \left(A + B\right) \mathclose{}", r"\mathopen(A + B\mathclose)",
+    ], &[1, 2, 3]);
+    assert_eq!(ones_of(r"\lnot \mathopen{(}A + B\mathclose{)}", "A B"), [0]);
 }
 
 /// `n` variables `A`, `B`, … joined by `operator`, and their names.

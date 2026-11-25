@@ -317,8 +317,8 @@ fn word(text: &str) -> Option<Token> {
 /// Commands whose braced argument is a word: a name or an operator.
 const WORD_COMMANDS: [&str; 8] = ["mathrm", "operatorname", "text", "textrm", "mathit", "mathbf", "mathsf", "textit"];
 /// Commands that are spacing or sizing only.
-const IGNORED_COMMANDS: [&str; 15] =
-    ["left", "right", "big", "Big", "bigl", "bigr", "Bigl", "Bigr", "displaystyle", "quad", "qquad", "limits", "nolimits", "mathopen", "mathclose"];
+const IGNORED_COMMANDS: [&str; 13] =
+    ["left", "right", "big", "Big", "bigl", "bigr", "Bigl", "Bigr", "displaystyle", "quad", "qquad", "limits", "nolimits"];
 
 pub(super) fn tokenize(latex: &str) -> Result<Vec<Token>> {
     let chars: Vec<char> = latex.chars().collect();
@@ -460,6 +460,14 @@ fn command(name: &str, chars: &[char], i: &mut usize, tokens: &mut Vec<Token>) -
                 tokens.extend(tokenize(&text)?);
                 return Ok(None);
             }
+        }
+        // `\mathopen{(}` is the bracket in its braces, `\mathopen{}` nothing.
+        "mathopen" | "mathclose" => {
+            skip_spaces(chars, i);
+            if chars.get(*i) == Some(&'{') {
+                tokens.extend(tokenize(&braced(chars, i)?)?);
+            }
+            return Ok(None);
         }
         name if IGNORED_COMMANDS.contains(&name) => return Ok(None),
         _ => return Err(QuantusError::other(msg!("core.logic.unknown_command"))),
