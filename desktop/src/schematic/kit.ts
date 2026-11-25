@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Translate } from '../i18n';
-import type { Placeable, Point, Rect, Segment } from './geometry';
+import type { Path, Placeable, Point, Rect } from './geometry';
 import type { KeyBinding } from './keys';
 import type { PictureColors } from './picture';
 
@@ -39,7 +39,12 @@ export interface PartKit<E extends Placeable, K extends string, S = undefined> {
   /** Whether a press on a part's pin moves the part (a ground) instead of drawing a wire. */
   pinMoves?(element: E): boolean;
   /** The wires that join whatever sits in their middle. */
-  joining(elements: E[]): Segment[];
+  joining(elements: E[]): Path[];
+  /**
+   * Whether a wire may be merged with another one it meets end to end, where nothing else is; no
+   * wires are merged without it.
+   */
+  mergeable?(wire: E): boolean;
   /** Whether a wire may start in the middle of `wire`, making a T-junction. */
   wireJoins(wire: E): boolean;
   /** The pins and wire ends that count for junction dots; every pin when left out. */

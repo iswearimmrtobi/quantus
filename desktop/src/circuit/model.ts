@@ -1,6 +1,7 @@
 import type { TextKey } from '../i18n';
 import type { CircuitElement, CircuitRequest, ElementKind, KirchhoffElement, KirchhoffRequest, } from '../api';
 import {
+  boundsOf,
   connectedPointsOf,
   freshIdOf,
   GRID,
@@ -8,6 +9,7 @@ import {
   isDiagonal,
   junctionDotsOf,
   NEW_WIRE,
+  onPath,
   placeLocal,
   pointKey,
   rotate,
@@ -15,9 +17,11 @@ import {
   snap,
   turnedBox,
   wireBetween,
+  wirePoints,
+  wireSegments,
+  type Path,
   type Point,
   type Rect,
-  type Segment,
 } from '../schematic/geometry';
 import { joinPoints } from '../schematic/nets';
 
@@ -38,7 +42,7 @@ export type EditorKind = ElementKind | 'ground' | 'terminal';
 
 /**
  * `a`, `b` and `wiper` are filled in by [`toRequest`]; what the editor stores is the position.
- * A wire runs from (x, y) to (x2, y2); every other part sits at (x, y), turned by
+ * A wire runs from (x, y) through its `bends` to (x2, y2); every other part sits at (x, y), turned by
  * `rotation` quarter turns. A resistor may also sit at 45°: then `rotation` ends in a half.
  */
 export interface EditorElement extends Omit<CircuitElement, 'kind' | 'a' | 'b'> {
@@ -48,6 +52,8 @@ export interface EditorElement extends Omit<CircuitElement, 'kind' | 'a' | 'b'> 
   rotation: number;
   x2?: number;
   y2?: number;
+  /** A wire's corners between its ends, in order from (x, y). */
+  bends?: Point[];
   /** Kirchhoff mode: the branch this part leads runs the other way. */
   reversed?: boolean;
 }
@@ -132,7 +138,7 @@ export function isIdealWire(element: EditorElement): boolean {
  * middle of an ideal wire. The editor draws the open dot only at the others.
  */
 export function connectedPoints(elements: EditorElement[]): Set<string> {
-  return connectedPointsOf(elements.flatMap(ends), idealSegments(elements));
+  return connectedPointsOf(elements.flatMap(ends), idealPaths(elements));
 }
 
 /**
@@ -142,17 +148,31 @@ export function connectedPoints(elements: EditorElement[]): Set<string> {
  */
 export function junctionDots(elements: EditorElement[]): Point[] {
   const lines = elements.filter((e) => e.kind !== 'terminal');
-  return junctionDotsOf(lines.flatMap(ends), idealSegments(lines));
+  return junctionDotsOf(lines.flatMap(ends), idealPaths(lines));
 }
 
 /** The terminals of a part, both ends of a wire. */
 export const ends = (element: EditorElement) => Object.values(terminals(element)) as Point[];
 
-/** The ideal wires as segments: they join what meets their middle. */
-export const idealSegments = (elements: EditorElement[]): Segment[] => elements.filter(isIdealWire).map((w) => {
-  const { a, b } = terminals(w);
-  return [a!, b!];
-});
+/** The ideal wires as paths, from their start through their corners: they join what meets their middle. */
+export const idealPaths = (elements: EditorElement[]): Path[] => elements.filter(isIdealWire).map(wirePoints);
+
+/**
+ * The drawing with every wire with corners cut into straight wires, for what knows only straight
+ * ones (the Kirchhoff mode's engine, the preview of its reduction). The first piece is the wire,
+ * with its id and its values; the others are ideal wires `W1#b1`, `W1#b2`, … that join it on.
+ */
+export function straightPieces(elements: EditorElement[]): EditorElement[] {
+  return elements.flatMap((element) => {
+    if (element.kind !== 'wire' || !element.bends?.length) return [element];
+    const { bends: _bends, ...wire } = element;
+    return wireSegments(element).map(([from, to], k): EditorElement =>
+      k === 0
+        ? { ...wire, x: from.x, y: from.y, x2: to.x, y2: to.y }
+        : { id: `${element.id}#b${k}`, kind: 'wire', x: from.x, y: from.y, x2: to.x, y2: to.y, rotation: 0 },
+    );
+  });
+}
 
 /**
  * Numbers the points where terminals sit. Ground is the point of a ground symbol; without one it
@@ -179,7 +199,7 @@ export function numberNodes(elements: EditorElement[]): Nodes {
   }
 
   // Junctions: each point inside an ideal wire joins the wire's start.
-  const canonical = joinPoints(points.values(), [], idealSegments(elements));
+  const canonical = joinPoints(points.values(), [], idealPaths(elements));
 
   const byPoint = new Map<string, number>();
   const pointOf = new Map<number, Point>();
@@ -202,7 +222,7 @@ export function numberNodes(elements: EditorElement[]): Nodes {
 }
 
 /** The editor-only fields never go to the solver. */
-const EDITOR_FIELDS = ['kind', 'x', 'y', 'rotation', 'x2', 'y2', 'reversed'] as const;
+const EDITOR_FIELDS = ['kind', 'x', 'y', 'rotation', 'x2', 'y2', 'bends', 'reversed'] as const;
 
 /** The ID and the parameters the user typed; blank ones are left out, as missing. */
 function parametersOf(element: EditorElement): Record<string, unknown> {
@@ -243,7 +263,8 @@ export function terminalParts(elements: EditorElement[]): EditorElement[] {
 export function toKirchhoffRequest(elements: EditorElement[]): KirchhoffRequest {
   const grid = (point: Point) => ({ x: point.x / GRID, y: point.y / GRID });
   const list: KirchhoffElement[] = [];
-  for (const element of elements) {
+  // The engine's wires are straight.
+  for (const element of straightPieces(elements)) {
     if (element.kind === 'ground' || element.kind === 'terminal') continue;
     const { a, b } = terminals(element);
     const entry = { ...parametersOf(element), kind: element.kind, pa: grid(a!), pb: grid(b!) } as KirchhoffElement;
@@ -263,7 +284,7 @@ export function toKirchhoffRequest(elements: EditorElement[]): KirchhoffRequest 
 export function junctionPoint(elements: EditorElement[], anchor: Point): Point {
   // Unlike the solver's nodes, the two ends of an ideal wire are one point here.
   const lines = elements.filter((e) => e.kind !== 'terminal').flatMap(ends);
-  const ideal = idealSegments(elements);
+  const ideal = idealPaths(elements);
   const root = joinPoints(lines, ideal, ideal);
   const known = new Set(lines.map(pointKey));
   const nodeOf = (point: Point) => (known.has(pointKey(point)) ? root(pointKey(point)) : undefined);
@@ -281,7 +302,7 @@ export function junctionPoint(elements: EditorElement[], anchor: Point): Point {
   }
   const points = [...unique.values()];
   // A point in the middle of an ideal wire has the wire on both sides.
-  for (const [a, b] of ideal) for (const point of points) if (inside(a, b, point)) count(point, 2);
+  for (const path of ideal) for (const point of points) if (onPath(path, point)) count(point, 2);
   let best = anchor;
   for (const point of points) {
     if (nodeOf(point) !== node) continue;
@@ -375,10 +396,7 @@ const BODY: Partial<Record<EditorElement['kind'], { along: number; across: numbe
 
 /** The drawn body of a part: the symbol without its leads, a wire's line, a ground's bars. */
 export function body(element: EditorElement): Rect {
-  if (element.kind === 'wire') {
-    const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
-    return segmentBox(a, b, 2);
-  }
+  if (element.kind === 'wire') return boundsOf(wireSegments(element).map(([a, b]) => segmentBox(a, b, 2)));
   if (element.kind === 'ground') return turnedBox(element, [{ x: -12, y: 0 }, { x: 12, y: 19 }]);
   if (element.kind === 'terminal') return turnedBox(element, [{ x: -7, y: -7 }, { x: 22, y: 7 }]);
   const { along, across } = BODY[element.kind]!;

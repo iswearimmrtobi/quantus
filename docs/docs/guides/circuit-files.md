@@ -44,6 +44,7 @@ A 12 V source with a 1 kΩ resistor, written by hand:
 | `kind` | `resistor`, `wire`, `voltageSource`, `currentSource`, `potentiometer`, `powerLoad`, `ground` or `terminal` (Terminal A/B) |
 | `x`, `y` | its middle on the canvas, in pixels; a wire's start |
 | `x2`, `y2` | a wire's end |
+| `bends` | a wire's corners between its start and its end, in order: `[{ "x": 80, "y": 40 }, …]`; left out for a straight wire |
 | `rotation` | quarter turns clockwise, `0` to `3`, `0` if left out; a resistor at 45° has a half, such as `0.5` |
 | `reversed` | Kirchhoff only: `true` if you reversed the current arrow of the part's branch |
 | `a`, `b`, `wiper` | written by Save: the nodes its terminals are on |
@@ -52,7 +53,7 @@ A 12 V source with a 1 kΩ resistor, written by hand:
 The grid has a step of 20 pixels. A part is 80 pixels long, with its terminals `a` and `b` two
 steps left and right of its middle at `rotation` 0; at `rotation` 1, `a` is at the top. A source's
 `a` is its `+` end. A potentiometer's `wiper` is two steps above its middle. A wire runs across or
-down, not on a slant.
+down, not on a slant; one with corners turns at each point of its `bends`.
 
 Two terminals on the same grid point are connected, and so is a terminal on a wire. Load works the
 nodes out from the positions again, so `nodes`, `a`, `b` and `wiper` can be left out of a file

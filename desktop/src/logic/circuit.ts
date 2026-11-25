@@ -1,6 +1,6 @@
 import type { DrawForm, GateType, LogicElement, LogicOutput, LogicScene, LogicTaskResult, Netlist } from '../api';
 import type { TextKey } from '../i18n';
-import { freshIdOf, GRID, NEW_WIRE, placeLocal, pointKey, wireBetween, wireEnds, type Placeable, type Point } from '../schematic/geometry';
+import { freshIdOf, GRID, NEW_WIRE, placeLocal, pointKey, wireBetween, wirePoints, type Placeable, type Point } from '../schematic/geometry';
 import { joinPoints } from '../schematic/nets';
 
 /**
@@ -231,7 +231,7 @@ export function numberNets(parts: LogicPart[]): Nets {
       count.set(key, (count.get(key) ?? 0) + 1);
     }
   }
-  const wires = parts.filter((p) => p.kind === 'wire').map(wireEnds);
+  const wires = parts.filter((p) => p.kind === 'wire').map(wirePoints);
   const root = joinPoints(points.values(), wires, wires);
   const number = new Map<string, number>();
   const byPoint = new Map<string, number>();

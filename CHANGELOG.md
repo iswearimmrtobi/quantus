@@ -7,6 +7,11 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Desktop, circuit editors: wires with corners. A wire drawn between two terminals or pins turns
+  halfway, with equal stubs at both ends; one drawn into the open is one wire with a corner instead
+  of two. The wires on a part's terminals follow it when it is moved, nudged or turned, and two
+  wires that meet end to end with nothing else there become one (in Electronics only ideal
+  wires). Circuit files keep the corners as `bends`.
 - Analysis: a given domain. Write it after the function (`f(x) = x^2, \ x \in [-1, 2]`,
   `0 \le x < 3`, `\text{für } x > 1`, `D = [0, 3]`) or into the new **D =** field below the
   input. Every section keeps to it: the domain is the function's own one cut down to the given

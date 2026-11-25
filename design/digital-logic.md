@@ -460,7 +460,12 @@ Narrow windows stack the table under the KV diagram.
 The Logic editor is the shared schematic editor of every circuit mode (`desktop/src/schematic/`:
 grid, snapping, rotation, wires and junctions, nets, label placement, the canvas, keys, undo,
 clipboard and picture, in `Editor.tsx`) driven by the Logic mode's part kit (`logic/kit.tsx`);
-Electronics and Kirchhoff have theirs in `circuit/kit.tsx`. New: gate symbols in both styles as SVG, pins on a gate that grow with its number of
+Electronics and Kirchhoff have theirs in `circuit/kit.tsx`. A wire runs from `(x, y)` through
+its `bends` to `(x2, y2)`, across and down; `schematic/wiring.ts` lets the wire ends on a moved or
+turned part's pins follow (laid anew by `route`, which turns halfway between two pins so the stubs
+are equal) and merges two wires that meet end to end with nothing else there (the kit's
+`mergeable`; in Electronics only ideal wires). The Kirchhoff engine knows only straight wires and
+gets a bent one as straight pieces (`straightPieces`). New: gate symbols in both styles as SVG, pins on a gate that grow with its number of
 inputs, an inversion bubble on NAND/NOR/NOT/XNOR (IEC: the small triangle or circle, as the
 standard draws it), nets coloured by value.
 

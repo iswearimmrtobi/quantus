@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { boundsOf, junctionDotsOf, pointKey, wireEnds, type Placeable, type Point, type Rect } from './geometry';
+import { boundsOf, junctionDotsOf, pointKey, wirePoints, type Placeable, type Point, type Rect } from './geometry';
 import type { PartKit } from './kit';
 import { leaderOf, placeLabels, type CanvasLabel, type Placement } from './labels';
 
@@ -104,9 +104,14 @@ export function schematicPicture<E extends Placeable, K extends string, S>(
     <>
       {elements.map((element) => {
         if (element.kind === 'wire') {
-          const [a, b] = wireEnds(element);
           const value = state?.wireClass(element);
-          return <line key={element.id} className={value ? `wire ${value}` : 'wire'} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+          const className = value ? `wire ${value}` : 'wire';
+          const path = wirePoints(element);
+          if (path.length === 2) {
+            const [a, b] = path;
+            return <line key={element.id} className={className} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+          }
+          return <polyline key={element.id} className={className} points={path.map((p) => `${p.x},${p.y}`).join(' ')} />;
         }
         return (
           <g key={element.id}>

@@ -162,7 +162,7 @@ Same conventions as `api.rs`: camelCase field names, absent values as `null`, er
 
 - Schematic editor as a hand-written SVG component under `desktop/src/components/` (no new dependency, in line with the small dependency list); the circuit is built purely by drag and drop:
   - Components are dragged from a palette onto the canvas, moved by dragging, rotated and deleted from the keyboard or a context menu.
-  - Cables are drawn by dragging from a component's terminal to another terminal (or to an existing cable, which creates a junction node). A drawn cable is a `Wire` element; dragging its ends reconnects it.
+  - Cables are drawn by dragging from a component's terminal to another terminal (or to an existing cable, which creates a junction node). A drawn cable is a `Wire` element, straight or with corners (`bends`); dragging its ends reconnects it, and its ends follow the terminals they sit on when a component moves.
   - Terminals snap to each other, so connections are made by dropping onto a terminal, never by typing node numbers. Nodes and their IDs are created by the editor.
   - Selecting an element opens its parameters for entry. The existing `MathField`/`LatexInput` can be reused for value entry.
 - The mode switch in the top bar gets a fourth entry "Elektronik". The UI language is English by default or German (the `language` setting); labels come from `desktop/src/i18n/`, notes and error texts from the backend in the chosen language.

@@ -1,8 +1,8 @@
 /**
  * What the schematic editors share, the electronics mode's and the Logic mode's: the grid, points
  * and boxes on it, turning and moving parts, and the connectivity of wires and pins. Everything is
- * in drawing coordinates; a wire runs from (x, y) to (x2, y2), every other part sits at (x, y),
- * turned by `rotation` quarter turns.
+ * in drawing coordinates; a wire runs from (x, y) through its `bends` to (x2, y2), across and down;
+ * every other part sits at (x, y), turned by `rotation` quarter turns.
  */
 
 export const GRID = 20;
@@ -31,6 +31,8 @@ export interface Placeable {
   rotation: number;
   x2?: number;
   y2?: number;
+  /** A wire's corners between its ends, in order from (x, y). */
+  bends?: Point[];
 }
 
 export function snap(value: number): number {
@@ -103,20 +105,96 @@ export const wireEnds = (wire: Placeable): [Point, Point] => [
   { x: wire.x2 ?? wire.x, y: wire.y2 ?? wire.y },
 ];
 
-/** A wire, as a segment that joins whatever sits on its ends or in its middle. */
+/** A straight piece of a wire. */
 export type Segment = [Point, Point];
+
+/** A wire's way from its start through its corners to its end: two points at least. */
+export type Path = Point[];
+
+/** A wire's points: its start, its corners, its end. */
+export const wirePoints = (wire: Placeable): Path => {
+  const [a, b] = wireEnds(wire);
+  return [a, ...(wire.bends ?? []), b];
+};
+
+/** `wire` running along `path`; a straight one has no `bends`. */
+export function withPath<E extends Placeable>(wire: E, path: Path): E {
+  const { bends: _bends, ...rest } = wire;
+  const [a, b] = [path[0], path[path.length - 1]];
+  const placed = { ...rest, x: a.x, y: a.y, x2: b.x, y2: b.y } as E;
+  return path.length > 2 ? { ...placed, bends: path.slice(1, -1) } : placed;
+}
+
+/** A wire's straight pieces, from its start. */
+export const wireSegments = (wire: Placeable): Segment[] => {
+  const path = wirePoints(wire);
+  return path.slice(1).map((to, k): Segment => [path[k], to]);
+};
+
+/** A wire's longest straight piece, the first of equal ones: where its label and arrows go. */
+export function longestPiece(wire: Placeable): Segment {
+  const length = ([p, q]: Segment) => Math.abs(q.x - p.x) + Math.abs(q.y - p.y);
+  return wireSegments(wire).reduce((best, piece) => (length(piece) > length(best) ? piece : best));
+}
+
+/** Whether `p` lies on `path` but on neither of its ends: in the middle of a piece or on a corner. */
+export function onPath(path: Path, p: Point): boolean {
+  const key = pointKey(p);
+  if (key === pointKey(path[0]) || key === pointKey(path[path.length - 1])) return false;
+  return path.some((q, k) => (k > 0 && k < path.length - 1 && pointKey(q) === key) || (k > 0 && inside(path[k - 1], q, p)));
+}
+
+/**
+ * `path` without repeated points and without points in the middle of a straight run; a path that
+ * goes nowhere keeps both its ends.
+ */
+export function simplify(path: Path): Path {
+  const unique = path.filter((p, k) => k === 0 || pointKey(p) !== pointKey(path[k - 1]));
+  if (unique.length < 2) return [unique[0], unique[0]];
+  const kept = [unique[0]];
+  for (let k = 1; k < unique.length - 1; k += 1) {
+    const [prev, here, next] = [kept[kept.length - 1], unique[k], unique[k + 1]];
+    const straight = (here.x - prev.x) * (next.y - here.y) === (here.y - prev.y) * (next.x - here.x);
+    if (!straight) kept.push(here);
+  }
+  kept.push(unique[unique.length - 1]);
+  return kept;
+}
+
+/**
+ * A wire from `from` to `to` that turns halfway (on the grid), so that its stubs at both ends are
+ * equal: sideways first when `across`, else downwards first. Points in line get a straight wire.
+ */
+export function route(from: Point, to: Point, across: boolean): Path {
+  if (from.x === to.x || from.y === to.y) return [from, to];
+  if (across) {
+    const x = snap((from.x + to.x) / 2);
+    return simplify([from, { x, y: from.y }, { x, y: to.y }, to]);
+  }
+  const y = snap((from.y + to.y) / 2);
+  return simplify([from, { x: from.x, y }, { x: to.x, y }, to]);
+}
+
+/**
+ * The wire a drag from `from` to `to` draws: between two pins one that turns halfway (`route`),
+ * into the open an L whose corner is at the far end. `across` as for `corner`.
+ */
+export function drawnPath(from: Point, to: Point, across: boolean | null, betweenPins: boolean): Path {
+  const sideways = across ?? Math.abs(to.x - from.x) >= Math.abs(to.y - from.y);
+  return betweenPins ? route(from, to, sideways) : simplify([from, corner(from, to, sideways), to]);
+}
 
 /**
  * The points where a pin or wire end is connected: where it meets another one, or sits in the
  * middle of one of `joining`. `ends` holds every pin and wire end, each once per part. The editors
  * draw the open dot only at the others.
  */
-export function connectedPointsOf(ends: Point[], joining: Segment[]): Set<string> {
+export function connectedPointsOf(ends: Point[], joining: Path[]): Set<string> {
   const count = new Map<string, number>();
   for (const point of ends) count.set(pointKey(point), (count.get(pointKey(point)) ?? 0) + 1);
   const connected = new Set([...count].filter(([, n]) => n > 1).map(([key]) => key));
-  for (const [a, b] of joining) {
-    for (const point of ends) if (inside(a, b, point)) connected.add(pointKey(point));
+  for (const path of joining) {
+    for (const point of ends) if (onPath(path, point)) connected.add(pointKey(point));
   }
   return connected;
 }
@@ -126,7 +204,7 @@ export function connectedPointsOf(ends: Point[], joining: Segment[]): Set<string
  * `joining` counting twice. That is where a schematic puts a filled junction dot; a corner of two
  * lines gets none.
  */
-export function junctionDotsOf(ends: Point[], joining: Segment[]): Point[] {
+export function junctionDotsOf(ends: Point[], joining: Path[]): Point[] {
   const count = new Map<string, number>();
   const points = new Map<string, Point>();
   const add = (point: Point, by: number) => {
@@ -136,8 +214,8 @@ export function junctionDotsOf(ends: Point[], joining: Segment[]): Point[] {
   };
   for (const point of ends) add(point, 1);
   const unique = [...points.values()];
-  for (const [a, b] of joining) {
-    for (const point of unique) if (inside(a, b, point)) add(point, 2);
+  for (const path of joining) {
+    for (const point of unique) if (onPath(path, point)) add(point, 2);
   }
   return [...points].filter(([key]) => count.get(key)! >= 3).map(([, point]) => point);
 }
@@ -169,9 +247,7 @@ export function movedBy<E extends Placeable>(elements: E[], origins: Map<string,
   return elements.map((e) => {
     const o = origins.get(e.id);
     if (!o) return e;
-    return o.kind === 'wire'
-      ? { ...e, x: o.x + dx, y: o.y + dy, x2: (o.x2 ?? o.x) + dx, y2: (o.y2 ?? o.y) + dy }
-      : { ...e, x: o.x + dx, y: o.y + dy };
+    return o.kind === 'wire' ? withPath(e, wirePoints(o).map((p) => ({ x: p.x + dx, y: p.y + dy }))) : { ...e, x: o.x + dx, y: o.y + dy };
   });
 }
 
@@ -203,11 +279,8 @@ export function rotatedQuarter<E extends Placeable>(
   };
   return elements.map((e) => {
     if (!selection.includes(e.id)) return e;
+    if (e.kind === 'wire') return withPath(e, wirePoints(e).map((p) => turn(p.x, p.y)));
     const start = turn(e.x, e.y);
-    if (e.kind === 'wire') {
-      const end = turn(e.x2 ?? e.x, e.y2 ?? e.y);
-      return { ...e, x: start.x, y: start.y, x2: end.x, y2: end.y };
-    }
     return { ...e, x: start.x, y: start.y, rotation: turned(e.rotation) };
   });
 }

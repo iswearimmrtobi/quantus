@@ -1848,6 +1848,10 @@ select option {
   stroke-width: 14;
   cursor: move;
 }
+/* A wire is grabbed along its line, not inside the corner it makes. */
+.part polyline.part-hit {
+  fill: none;
+}
 .part .terminal,
 .part .end {
   fill: var(--background);

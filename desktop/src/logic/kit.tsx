@@ -2,7 +2,7 @@ import type { GateType, LogicSymbols } from '../api';
 import { Katex } from '../components/Katex';
 import { useT, type Translate } from '../i18n';
 import { nameLatex, readName } from '../logic';
-import { GRID, pointKey, segmentBox, sidesAround, turnedBox, wireBetween, wireEnds, type Point, type Rect, type Side } from '../schematic/geometry';
+import { boundsOf, GRID, pointKey, segmentBox, sidesAround, turnedBox, wireBetween, wireEnds, wirePoints, wireSegments, type Point, type Rect, type Side } from '../schematic/geometry';
 import { CheckedTextField, InspectorHead, SelectField } from '../schematic/inspector';
 import type { PartKit } from '../schematic/kit';
 import type { CanvasLabel, LabelRequest } from '../schematic/labels';
@@ -52,10 +52,12 @@ export function logicKit(symbols: LogicSymbols): PartKit<LogicPart, PaletteKind,
     newWire: (elements, from, to) => wireBetween(newPart(elements, 'wire', from).id, from, to),
     pasted: pastedPart,
     pins: allPins,
-    joining: (parts) => parts.filter((p) => p.kind === 'wire').map(wireEnds),
+    joining: (parts) => parts.filter((p) => p.kind === 'wire').map(wirePoints),
+    // Two wires that meet end to end with nothing else there are one.
+    mergeable: (part) => part.kind === 'wire',
     // The Logic mode's wires have no resistance: any of them can be joined in its middle.
     wireJoins: () => true,
-    body: (part) => (part.kind === 'wire' ? segmentBox(...wireEnds(part), 2) : bodyBox(part)),
+    body: (part) => (part.kind === 'wire' ? boundsOf(wireSegments(part).map(([a, b]) => segmentBox(a, b, 2))) : bodyBox(part)),
     hit: (part) => {
       // The body with a little room.
       const [x0, y0, x1, y1] = localBody(part);
@@ -175,10 +177,7 @@ const bodyBox = (part: LogicPart): Rect => boxOfLocal(part, ...localBody(part));
 
 /** What the labels keep clear of: a part's body, leads and pins; a wire's line. */
 function obstacles(part: LogicPart): Rect[] {
-  if (part.kind === 'wire') {
-    const [a, b] = wireEnds(part);
-    return [segmentBox(a, b, 2)];
-  }
+  if (part.kind === 'wire') return wireSegments(part).map(([a, b]) => segmentBox(a, b, 2));
   const [left, , right] = localBody(part);
   // The leads run across from the pins to the body, in the part's own coordinates.
   const offsets = part.kind === 'gate' ? pinOffsets(inputCount(part)).map((o) => o * GRID) : [];

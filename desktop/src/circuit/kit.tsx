@@ -1,7 +1,7 @@
 import type { CircuitResponse, CircuitValue } from '../api';
 import { Katex } from '../components/Katex';
 import { useT } from '../i18n';
-import { opposite, sidesAround, wireBetween, type Rect, type Side } from '../schematic/geometry';
+import { longestPiece, opposite, sidesAround, wireBetween, type Rect, type Side } from '../schematic/geometry';
 import { InspectorHead, SelectField, TextField } from '../schematic/inspector';
 import type { PartKit } from '../schematic/kit';
 import type { PictureColors } from '../schematic/picture';
@@ -12,7 +12,7 @@ import {
   ends,
   freshId,
   HALF,
-  idealSegments,
+  idealPaths,
   isDiagonal,
   isIdealWire,
   KIND_LABELS,
@@ -90,7 +90,9 @@ export function circuitKit(palette: EditorKind[]): PartKit<EditorElement, Editor
     pins: ends,
     // A ground and a terminal are moved by their one point; no wire starts there.
     pinMoves: (element) => element.kind === 'ground' || element.kind === 'terminal',
-    joining: idealSegments,
+    joining: idealPaths,
+    // Two ideal wires end to end are one; a wire with a resistance stays as it is.
+    mergeable: isIdealWire,
     wireJoins: isIdealWire,
     // The terminals A and B are marks, not lines, and make no junction.
     dotEnds: (elements) => elements.filter((e) => e.kind !== 'terminal').flatMap(ends),
@@ -190,7 +192,8 @@ export function partPlace(element: EditorElement): Place | null {
   if (element.kind === 'ground' || element.kind === 'terminal') return null;
   if (element.kind === 'wire') {
     if (!element.material && !element.rOverride?.trim()) return null;
-    const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
+    // In the middle of its longest piece, so that it is beside the wire also when it has corners.
+    const [a, b] = longestPiece(element);
     const anchor = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     const across = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
     return { anchor, gap: 8, sides: across ? sidesAround('above', 'right') : sidesAround('right', 'above') };

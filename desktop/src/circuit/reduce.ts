@@ -1,5 +1,5 @@
 import type { MergeStep } from '../api';
-import { GRID, HALF, inside, isIdealWire, pointKey, snap, terminals, type EditorElement, type Point } from './model';
+import { GRID, HALF, inside, isIdealWire, pointKey, snap, straightPieces, terminals, type EditorElement, type Point } from './model';
 
 export type { MergeStep };
 
@@ -196,7 +196,9 @@ export function reducedDrawing(elements: EditorElement[], merges: MergeStep[], u
 }
 
 /** [`reducedDrawing`] for every step at once, in one pass: what the hover shows, step by step. */
-export function reducedDrawings(elements: EditorElement[], merges: MergeStep[]): { elements: EditorElement[]; merged: string[] }[] {
+export function reducedDrawings(drawing: EditorElement[], merges: MergeStep[]): { elements: EditorElement[]; merged: string[] }[] {
+  // The preview lays out straight wires only.
+  const elements = straightPieces(drawing);
   const shown: { elements: EditorElement[]; merged: string[] }[] = [];
   const drawn = new Map(elements.map((e) => [e.id, e]));
   /** The resistors drawn now, by the ID of the part whose place they take, with the parts they stand for. */

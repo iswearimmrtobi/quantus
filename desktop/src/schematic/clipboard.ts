@@ -1,4 +1,4 @@
-import { GRID, type Placeable } from './geometry';
+import { GRID, movedBy, type Placeable } from './geometry';
 
 /**
  * Copy and paste within the editors. The clipboard is the app's own, not the system's: it holds
@@ -34,10 +34,8 @@ export function pasteInto<E extends Placeable>(parts: E[], into: E[], offset: nu
   for (const part of parts) {
     const fresh = pasted(part, [...into, ...added]);
     if (!fresh) continue;
-    const moved = { ...fresh, x: fresh.x + offset, y: fresh.y + offset };
-    if (fresh.x2 !== undefined) moved.x2 = fresh.x2 + offset;
-    if (fresh.y2 !== undefined) moved.y2 = fresh.y2 + offset;
-    added.push(moved);
+    // A wire moves with its corners.
+    added.push(...movedBy([fresh], new Map([[fresh.id, fresh]]), offset, offset));
   }
   return added;
 }

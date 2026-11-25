@@ -4,7 +4,7 @@ import { useSchematicEditing } from './editing';
 import { copyParts, pasteParts } from './clipboard';
 import { useHistory } from './history';
 import { ExportButtons } from './ExportButtons';
-import { boundsOf, connectedPointsOf, freeSpot, GRID, junctionDotsOf, movedBy, wireEnds, type Placeable, type Rect } from './geometry';
+import { boundsOf, connectedPointsOf, freeSpot, GRID, junctionDotsOf, movedBy, wirePoints, type Placeable, type Rect } from './geometry';
 import { InspectorPopover } from './inspector';
 import { editorKeys, keyName, runKey } from './keys';
 import type { PartKit } from './kit';
@@ -13,6 +13,7 @@ import { DragGhost, JunctionDots, LeaderLines, PlacedPart, WirePart } from './pa
 import { schematicPicture } from './picture';
 import { setCanvasShortcuts } from './shortcuts';
 import { StatusBar } from './StatusBar';
+import { mergedWires } from './wiring';
 import { GridBackground, HOME, useCanvasView, useFitOnRequest, useFullscreen, viewTransform, ZoomControls, type Fullscreen } from './view';
 
 /** What the inspector of the chosen part can do. */
@@ -97,6 +98,7 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
     turned: kit.turned,
     onTap,
     tapOnly: kit.tapOnly,
+    tidy: (next) => (kit.mergeable ? mergedWires(next, kit.pins, kit.joining, kit.mergeable) : { elements: next, into: new Map() }),
   });
   const { selection, inspected, drag, remove } = editing;
   dragging.current = drag !== null;
@@ -143,13 +145,17 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
   const paste = () => {
     const added = pasteParts(kit.id, elements, kit.pasted);
     if (!added) return false;
-    history.change([...elements, ...added]);
-    editing.setSelection(added.map((e) => e.id));
+    history.change(
+      editing.tidied(
+        [...elements, ...added],
+        added.map((e) => e.id),
+      ),
+    );
     return true;
   };
 
   const bindings = [
-    ...(kit.keys?.({ elements, selection, onChange: (next) => history.change(next) }) ?? []),
+    ...(kit.keys?.({ elements, selection, onChange: (next) => history.change(editing.tidied(editing.following(next, selection))) }) ?? []),
     ...editorKeys({
       removeSelection: () => remove(selection),
       rotateSelection: editing.rotateSelected,
@@ -166,11 +172,11 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
       copy,
       paste,
       duplicate: () => copy() && paste(),
-      // A burst of arrow keys is one step of the history.
+      // A burst of arrow keys is one step of the history; the wires on the parts' pins follow.
       nudge: (dx, dy) => {
         const origins = new Map(elements.filter((e) => selection.includes(e.id)).map((e) => [e.id, e]));
         if (!origins.size) return false;
-        history.change(movedBy(elements, origins, dx * GRID, dy * GRID), 'arrows');
+        history.change(editing.tidied(editing.following(movedBy(elements, origins, dx * GRID, dy * GRID), origins.keys())), 'arrows');
       },
       view: canvasView,
     }),
@@ -272,12 +278,10 @@ export function SchematicEditor<E extends Placeable, K extends string, S>(props:
                 {drawn.map((element) => {
                   const className = ['part', !preview && selection.includes(element.id) && 'selected', partClass?.(element)].filter(Boolean).join(' ');
                   if (element.kind === 'wire') {
-                    const [a, b] = wireEnds(element);
                     return (
                       <WirePart
                         key={element.id}
-                        a={a}
-                        b={b}
+                        points={wirePoints(element)}
                         className={className}
                         lineClassName={wireClass?.(element)}
                         joins={kit.wireJoins(element)}

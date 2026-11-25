@@ -30,8 +30,10 @@ a voltage source $230\,\mathrm{V}$ (Ω, V, A, S, W). A wire's fields
 always need their unit.
 
 Drag a part onto the canvas or click it in the list. Dragging from a terminal, or from a grid
-point on a wire, draws a wire. Wires run only across and down: one drawn on a slant becomes two at
-a right angle. <kbd>Space</kbd> or <kbd>R</kbd> rotates the selection, <kbd>Shift</kbd>+<kbd>R</kbd> turns a
+point on a wire, draws a wire. Wires run only across and down: one drawn on a slant gets a corner, and one drawn
+between two terminals turns halfway, with equal stubs at both ends. Two ideal wires that meet end
+to end with nothing else there become one, and the wires on a part's terminals go with it when
+you move or turn it. <kbd>Space</kbd> or <kbd>R</kbd> rotates the selection, <kbd>Shift</kbd>+<kbd>R</kbd> turns a
 resistor by 45° (its terminals then sit on the grid two steps across and two down from its
 middle), and <kbd>Del</kbd> deletes it; dragging on empty canvas selects several parts.
 <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a change and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> makes it again

@@ -1,5 +1,6 @@
 import type { Kirchhoff } from '../api';
 import { GRID, terminals, type EditorElement, type Point } from '../circuit/model';
+import { longestPiece } from '../schematic/geometry';
 import { useT } from '../i18n';
 import type { Rect } from '../schematic/labels';
 import type { ExtraLabel } from '../circuit/CircuitEditor';
@@ -46,7 +47,9 @@ export interface JunctionMark {
  * a vertical one on the right; `outside` puts the arrow on the other side, away from the label.
  */
 function beside(element: EditorElement, forward: boolean, outside: boolean, offset: number, half: number) {
-  const { a, b } = terminals(element) as Record<'a' | 'b', Point>;
+  // A wire with corners has them beside its longest piece, which runs its way from `a` to `b`.
+  const ends = terminals(element) as Record<'a' | 'b', Point>;
+  const [a, b] = element.kind === 'wire' ? longestPiece(element) : [ends.a, ends.b];
   const [p, q] = forward ? [a, b] : [b, a];
   const length = Math.hypot(q.x - p.x, q.y - p.y) || 1;
   const u = { x: (q.x - p.x) / length, y: (q.y - p.y) / length };
