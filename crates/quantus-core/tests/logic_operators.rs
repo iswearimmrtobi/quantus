@@ -175,3 +175,56 @@ fn every_bracket_and_spacing_is_read() {
 fn mathopen_and_mathclose_are_brackets() {
     assert_spellings("brackets", &[r"\mathopen{(}A + B\mathclose{)}"], &[1, 2, 3]);
 }
+
+/// `n` variables `A`, `B`, … joined by `operator`, and their names.
+fn chain(n: usize, operator: &str) -> (String, String) {
+    let vars: Vec<String> = (0..n).map(|k| ((b'A' + k as u8) as char).to_string()).collect();
+    (vars.join(&format!(" {operator} ")), vars.join(" "))
+}
+
+fn odd(v: &[bool]) -> bool {
+    v.iter().filter(|b| **b).count() % 2 == 1
+}
+
+#[test]
+fn and_or_and_xor_join_any_number_of_operands() {
+    for n in 2..=8 {
+        let (and, vars) = chain(n, r"\land");
+        assert_eq!(ones_of(&and, &vars), ones_by(n, |v| v.iter().all(|b| *b)), "{and}");
+        let (or, vars) = chain(n, r"\lor");
+        assert_eq!(ones_of(&or, &vars), ones_by(n, |v| v.iter().any(|b| *b)), "{or}");
+        let (xor, vars) = chain(n, r"\oplus");
+        assert_eq!(ones_of(&xor, &vars), ones_by(n, odd), "{xor}: odd parity");
+    }
+    // A chain is one operator over all operands, not nested ones.
+    let abc = || vec![Expr::var("A"), Expr::var("B"), Expr::var("C")];
+    assert_eq!(parse_expr(r"A \land B \land C").unwrap(), Expr::And(abc()));
+    assert_eq!(parse_expr("ABC").unwrap(), Expr::And(abc()));
+    assert_eq!(parse_expr(r"A \lor B \lor C").unwrap(), Expr::Or(abc()));
+    assert_eq!(parse_expr(r"A \oplus B \oplus C").unwrap(), Expr::Xor(abc()));
+}
+
+#[test]
+fn a_chain_of_xnor_is_nested_from_the_left() {
+    // n operands, n − 1 XNORs: odd parity for an odd n, even parity for an even n.
+    for n in 2..=8 {
+        let (xnor, vars) = chain(n, r"\odot");
+        let expected = ones_by(n, |v| odd(v) == (n % 2 == 1));
+        assert_eq!(ones_of(&xnor, &vars), expected, "{xnor}");
+    }
+    let (a, b, c) = (Expr::var("A"), Expr::var("B"), Expr::var("C"));
+    assert_eq!(parse_expr(r"A \odot B \odot C").unwrap(), Expr::Xnor(vec![Expr::Xnor(vec![a.clone(), b.clone()]), c.clone()]));
+    // The n-ary XNOR (as a gate gives it) is even parity, which the chain of three is not.
+    let gate = Expr::Xnor(vec![a, b, c]);
+    let abc = names("A B C");
+    assert_eq!((0..8).filter(|r| gate.eval_row(&abc, *r)).collect::<Vec<_>>(), ones_by(3, |v| !odd(v)));
+    assert_ne!(ones_of(r"A \odot B \odot C", "A B C"), ones_by(3, |v| !odd(v)));
+}
+
+#[test]
+fn xor_and_xnor_mix_from_the_left() {
+    // Same level, read from the left: (A ⊕ B) ⊙ C.
+    let expr = parse_expr(r"A \oplus B \odot C").unwrap();
+    assert_eq!(expr, Expr::Xnor(vec![Expr::Xor(vec![Expr::var("A"), Expr::var("B")]), Expr::var("C")]));
+    assert_eq!(ones_of(r"A \oplus B \odot C", "A B C"), ones_by(3, |v| (v[0] != v[1]) == v[2]));
+}
