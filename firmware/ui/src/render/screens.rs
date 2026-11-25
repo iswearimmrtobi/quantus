@@ -7,8 +7,9 @@ use embedded_graphics::primitives::{Circle, Rectangle, RoundedRectangle, Triangl
 
 use super::{
     colors, dot_rect, fit, line_rect, list_edge, number_button, panel, rounded, tile_rect, Shape, BAR,
-    HEIGHT, LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, THUMBNAIL, WIDTH,
+    LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, THUMBNAIL,
 };
+use crate::profile;
 use crate::app::{App, Mode, View, TILES_PER_PAGE};
 use crate::backend::{Storage, WlanStatus};
 use crate::editor::Row;
@@ -20,7 +21,7 @@ use crate::touch::{self, Calibrating, Target};
 
 /// One calculation, as on a Casio: the input from the top left, its result at the bottom right.
 pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
-    let width = WIDTH as i32;
+    let width = profile::width() as i32;
     let scale = app.settings.font_size.scale();
 
     let input = layout::layout(&app.editor.row, scale);
@@ -58,7 +59,7 @@ pub(super) fn calculation<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
 
     // Above the soft keys' labels, while they show.
     let soft = if crate::soft::shows(app) { super::SOFT } else { 0 };
-    let bottom = HEIGHT as i32 - MARGIN - soft;
+    let bottom = profile::height() as i32 - MARGIN - soft;
     if let Some(entry) = app.shown_entry() {
         match &entry.result {
             Ok(result) if matches!(entry.view, View::Bits { .. } | View::Ieee { .. }) => match entry.view {
@@ -124,7 +125,7 @@ fn ieee_view(shapes: &mut Vec<Shape>, latex: &str, width: u32, digits: usize, la
 
     // From the bottom up: the value, a line with the three fields' values, the bits.
     let exact = format!("= {}", exact_decimal(value, digits));
-    let x = (WIDTH as i32 - MARGIN - scale.width(&exact)).max(MARGIN);
+    let x = (profile::width() as i32 - MARGIN - scale.width(&exact)).max(MARGIN);
     shapes.push(Shape::Text(Point::new(x, bottom - scale.metrics().descent), exact, scale, colors::result()));
     let small = Scale::Small;
     let metrics = small.metrics();
@@ -144,7 +145,7 @@ fn ieee_view(shapes: &mut Vec<Shape>, latex: &str, width: u32, digits: usize, la
         (format!("{} {mantissa:X}", text::IEEE_MANTISSA.get(lang)), colors::unit()),
     ];
     let legend_width: i32 = legend.iter().map(|(text, _)| small.width(text) + gap).sum::<i32>() - gap;
-    let mut x = (WIDTH as i32 - MARGIN - legend_width).max(MARGIN);
+    let mut x = (profile::width() as i32 - MARGIN - legend_width).max(MARGIN);
     for (text, color) in legend {
         let advance = small.width(&text) + gap;
         shapes.push(Shape::Text(Point::new(x, baseline), text, small, color));
@@ -154,7 +155,7 @@ fn ieee_view(shapes: &mut Vec<Shape>, latex: &str, width: u32, digits: usize, la
 
     // The bits, a digit's width between the fields, on as many lines as they need.
     let zero = small.width("0");
-    let room = WIDTH as i32 - 2 * MARGIN;
+    let room = profile::width() as i32 - 2 * MARGIN;
     let mut lines: Vec<Vec<(i32, char, Rgb565)>> = vec![Vec::new()];
     let mut x = 0;
     for (index, c) in pattern.chars().enumerate() {
@@ -178,7 +179,7 @@ fn ieee_view(shapes: &mut Vec<Shape>, latex: &str, width: u32, digits: usize, la
     }
     for (row, cells) in lines.iter().rev().enumerate() {
         let used = cells.last().map_or(0, |(x, ..)| x + zero);
-        let left = WIDTH as i32 - MARGIN - used;
+        let left = profile::width() as i32 - MARGIN - used;
         for &(x, c, color) in cells {
             shapes.push(Shape::Text(Point::new(left + x, baseline - row as i32 * line), c.to_string(), small, color));
         }
@@ -226,11 +227,11 @@ fn bit_view(shapes: &mut Vec<Shape>, latex: &str, width: u32, signed: bool, bott
     let zero = scale.width("0");
     let group = 4 * zero + zero;
     let label = scale.width("63") + zero;
-    let room = WIDTH as i32 - 2 * MARGIN;
+    let room = profile::width() as i32 - 2 * MARGIN;
     let per_row = if width >= 32 && label + 8 * group - zero <= room { 32 } else { 16.min(width) };
     let rows = width.div_ceil(per_row);
     let row_width = label + (per_row / 4) as i32 * group - zero;
-    let left = WIDTH as i32 - MARGIN - row_width;
+    let left = profile::width() as i32 - MARGIN - row_width;
     for row in 0..rows {
         let high = width - 1 - row * per_row;
         let baseline = bottom - metrics.descent - (rows - 1 - row) as i32 * line;
@@ -265,7 +266,7 @@ pub(super) fn modes<B>(shapes: &mut Vec<Shape>, app: &App<B>, selected: usize, g
     let dx = app.drag().map_or(0, |drag| drag.x);
     let pages = if dx == 0 { page..=page } else { page.saturating_sub(1)..=(page + 1).min(count - 1) };
     for shown in pages {
-        let shift = Point::new((shown as i32 - page as i32) * WIDTH as i32 + dx, 0);
+        let shift = Point::new((shown as i32 - page as i32) * profile::width() as i32 + dx, 0);
         tiles(shapes, &names, shown, selected, app.pressed(), shift, glass);
     }
 
@@ -393,7 +394,7 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
         Some(Edit::Number { setting, min, max, typed, error, .. }) => {
             let top = BAR + 30;
             let height = 60;
-            let size = Size::new(WIDTH - 2 * MARGIN as u32, height as u32);
+            let size = Size::new(profile::width() - 2 * MARGIN as u32, height as u32);
             shapes.push(panel(rounded(Point::new(MARGIN, top), size, 6), colors::surface(), Some(colors::primary()), glass));
             let metrics = Scale::Normal.metrics();
             let baseline = top + (height + metrics.digit) / 2;
@@ -427,10 +428,10 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
                 math: None,
                 mark: if index == set { Mark::Dot } else { Mark::None },
             });
-            let x = WIDTH as i32 - MARGIN - THUMBNAIL.width as i32;
+            let x = profile::width() as i32 - MARGIN - THUMBNAIL.width as i32;
             lines_in(shapes, lines.collect(), *selected, &list, list_edge(menu));
             // The picture under the cursor, or why there is none.
-            let at = Point::new(x, BAR + (HEIGHT as i32 - BAR - THUMBNAIL.height as i32) / 2);
+            let at = Point::new(x, BAR + (profile::height() as i32 - BAR - THUMBNAIL.height as i32) / 2);
             let frame = Rectangle::new(at - Point::new(2, 2), THUMBNAIL + Size::new(4, 4));
             shapes.push(Shape::Round(RoundedRectangle::with_equal_corners(frame, Size::new(4, 4)), colors::hairline(), None));
             match app.wallpaper() {
@@ -468,9 +469,9 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
             lines_page(shapes, lines.collect(), *option, &list);
         }
         Some(Edit::Apps { view: menu::AppsView::Note(note), .. }) => {
-            for (index, line) in super::sheet::wrap(note, WIDTH as i32 - 2 * MARGIN - 16, Scale::Small).into_iter().enumerate() {
-                let x = (WIDTH as i32 - Scale::Small.width(&line)) / 2;
-                let y = BAR + (HEIGHT as i32 - BAR) / 2 + index as i32 * (Scale::Small.metrics().ascent + 6);
+            for (index, line) in super::sheet::wrap(note, profile::width() as i32 - 2 * MARGIN - 16, Scale::Small).into_iter().enumerate() {
+                let x = (profile::width() as i32 - Scale::Small.width(&line)) / 2;
+                let y = BAR + (profile::height() as i32 - BAR) / 2 + index as i32 * (Scale::Small.metrics().ascent + 6);
                 shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), line, Scale::Small, colors::muted()));
             }
         }
@@ -525,7 +526,7 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
                 (TextFor::Variable(_) | TextFor::Matrix, true) => (text::BAD_VARIABLE.get(lang).to_string(), colors::error()),
             };
             let shown = if *plain { typed.clone() } else { "*".repeat(typed.chars().count()) };
-            typed_field(shapes, &shown, app.caret_on, &fit(&hint, WIDTH as i32 - 2 * MARGIN - 8, Scale::Small), color, glass);
+            typed_field(shapes, &shown, app.caret_on, &fit(&hint, profile::width() as i32 - 2 * MARGIN - 8, Scale::Small), color, glass);
         }
         Some(Edit::Time { field, typed, error, .. }) => {
             let color = if *error { colors::error() } else { colors::muted() };
@@ -536,11 +537,11 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
         Some(Edit::Message { message, .. }) => centred(shapes, message.get(lang)),
         Some(Edit::AppInfo { info, .. }) => app_info(shapes, info, lang),
         Some(Edit::Note { note, .. }) => {
-            let lines = super::sheet::wrap(note, WIDTH as i32 - 2 * MARGIN - 16, Scale::Small);
+            let lines = super::sheet::wrap(note, profile::width() as i32 - 2 * MARGIN - 16, Scale::Small);
             let height = Scale::Small.metrics().ascent + 6;
-            let top = BAR + (HEIGHT as i32 - BAR - lines.len() as i32 * height) / 2 + height;
+            let top = BAR + (profile::height() as i32 - BAR - lines.len() as i32 * height) / 2 + height;
             for (index, line) in lines.into_iter().enumerate() {
-                let x = (WIDTH as i32 - Scale::Small.width(&line)) / 2;
+                let x = (profile::width() as i32 - Scale::Small.width(&line)) / 2;
                 shapes.push(Shape::Text(Point::new(x.max(MARGIN), top + index as i32 * height), line, Scale::Small, colors::error()));
             }
         }
@@ -614,12 +615,12 @@ pub(super) fn menu_screen<B>(shapes: &mut Vec<Shape>, app: &App<B>, menu: &Menu,
 fn typed_field(shapes: &mut Vec<Shape>, typed: &str, caret: bool, hint: &str, color: Rgb565, glass: bool) {
     let top = BAR + 30;
     let height = 60;
-    let size = Size::new(WIDTH - 2 * MARGIN as u32, height as u32);
+    let size = Size::new(profile::width() - 2 * MARGIN as u32, height as u32);
     shapes.push(panel(rounded(Point::new(MARGIN, top), size, 6), colors::surface(), Some(colors::primary()), glass));
     let metrics = Scale::Normal.metrics();
     let baseline = top + (height + metrics.digit) / 2;
     let x = MARGIN + 16;
-    let room = WIDTH as i32 - 2 * MARGIN - 40;
+    let room = profile::width() as i32 - 2 * MARGIN - 40;
     let mut shown = typed;
     while Scale::Normal.width(shown) > room {
         let mut chars = shown.chars();
@@ -655,9 +656,9 @@ fn wlan_screen(shapes: &mut Vec<Shape>, status: &WlanStatus, lang: text::Lang, g
         WlanStatus::Failed(ssid) => return centred(shapes, &format!("{} {ssid}", text::FAILED.get(lang))),
     };
     let top = BAR + 14;
-    let size = Size::new(WIDTH - 2 * MARGIN as u32, HEIGHT - top as u32 - 14);
+    let size = Size::new(profile::width() - 2 * MARGIN as u32, profile::height() - top as u32 - 14);
     shapes.push(panel(rounded(Point::new(MARGIN, top), size, 8), colors::surface(), Some(colors::hairline()), glass));
-    let (left, right) = (MARGIN + 20, WIDTH as i32 - MARGIN - 20);
+    let (left, right) = (MARGIN + 20, profile::width() as i32 - MARGIN - 20);
     let rows = [
         (text::NETWORK, ssid.clone()),
         (text::ADDRESS, ip.clone()),
@@ -676,7 +677,7 @@ fn wlan_screen(shapes: &mut Vec<Shape>, status: &WlanStatus, lang: text::Lang, g
 /// An app's credits: its name, the authors, the version, the description, the licence, the API
 /// and where it comes from.
 fn app_info(shapes: &mut Vec<Shape>, info: &crate::applet::AppInfo, lang: text::Lang) {
-    let room = WIDTH as i32 - 2 * MARGIN;
+    let room = profile::width() as i32 - 2 * MARGIN;
     let mut y = BAR + 14 + Scale::Normal.metrics().ascent;
     shapes.push(Shape::Text(Point::new(MARGIN, y), fit(&info.name, room, Scale::Normal), Scale::Normal, colors::text()));
     y += 10;
@@ -711,8 +712,8 @@ fn app_info(shapes: &mut Vec<Shape>, info: &crate::applet::AppInfo, lang: text::
 }
 
 fn centred(shapes: &mut Vec<Shape>, text: &str) {
-    let x = (WIDTH as i32 - Scale::Normal.width(text)) / 2;
-    let y = BAR + (HEIGHT as i32 - BAR) / 2;
+    let x = (profile::width() as i32 - Scale::Normal.width(text)) / 2;
+    let y = BAR + (profile::height() as i32 - BAR) / 2;
     shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), text.to_string(), Scale::Normal, colors::muted()));
 }
 
@@ -720,9 +721,9 @@ fn centred(shapes: &mut Vec<Shape>, text: &str) {
 /// space used, and the space used, free and in all.
 fn storage_screen(shapes: &mut Vec<Shape>, storage: Storage, lang: text::Lang, glass: bool) {
     let top = BAR + 14;
-    let size = Size::new(WIDTH - 2 * MARGIN as u32, HEIGHT - top as u32 - 14);
+    let size = Size::new(profile::width() - 2 * MARGIN as u32, profile::height() - top as u32 - 14);
     shapes.push(panel(rounded(Point::new(MARGIN, top), size, 8), colors::surface(), Some(colors::hairline()), glass));
-    let (left, right) = (MARGIN + 20, WIDTH as i32 - MARGIN - 20);
+    let (left, right) = (MARGIN + 20, profile::width() as i32 - MARGIN - 20);
     let right_aligned = |text: &str, scale: Scale| right - scale.width(text);
 
     let heading = top + 38;
@@ -772,7 +773,7 @@ pub(super) fn app_list(shapes: &mut Vec<Shape>, items: &[String], selected: usiz
 /// A list of lines, [`menu::ROWS`] to a page, numbered on each page, with a scroll bar when
 /// there are more.
 fn lines_page(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &List) {
-    lines_in(shapes, lines, selected, list, WIDTH as i32 - MARGIN);
+    lines_in(shapes, lines, selected, list, profile::width() as i32 - MARGIN);
 }
 
 /// [`lines_page`] with the lines ending at `edge`; a label too long for them is cut short. The
@@ -788,7 +789,7 @@ fn lines_in(shapes: &mut Vec<Shape>, lines: Vec<Line>, selected: usize, list: &L
         let place = index as i32 - first as i32;
         let area = line_rect(0, right).translate(Point::new(0, place * (LINE + LINE_GAP) + list.scroll));
         let y = area.top_left.y;
-        if y + LINE <= BAR || y >= HEIGHT as i32 {
+        if y + LINE <= BAR || y >= profile::height() as i32 {
             continue;
         }
         if line.mark == Mark::Caption {
@@ -897,7 +898,7 @@ pub(super) fn calibration(shapes: &mut Vec<Shape>, state: &Calibrating, lang: te
     let ring = if pressed { colors::primary() } else { colors::accent() };
     shapes.push(Shape::Circle(Circle::with_center(at, 10), ring));
     let centred = |shapes: &mut Vec<Shape>, y: i32, text: &str, scale: Scale, color: Rgb565| {
-        let x = (WIDTH as i32 - scale.width(text)) / 2;
+        let x = (profile::width() as i32 - scale.width(text)) / 2;
         shapes.push(Shape::Text(Point::new(x.max(MARGIN), y), text.to_string(), scale, color));
     };
     centred(shapes, 115, text::CALIBRATE_HINT.get(lang), Scale::Normal, colors::text());

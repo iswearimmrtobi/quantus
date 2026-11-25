@@ -5,7 +5,8 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Arc, Circle, Rectangle};
 
-use super::{colors, full_width, goes_back, rounded, Shape, BAR, MARGIN, WIDTH};
+use super::{colors, full_width, goes_back, rounded, Shape, BAR, MARGIN};
+use crate::profile;
 use crate::app::{App, Mode, Screen};
 use crate::font::Scale;
 use crate::layer::Layer;
@@ -63,7 +64,7 @@ pub(super) fn bar<B>(shapes: &mut Vec<Shape>, app: &App<B>) {
     }
 
     // From the right edge inwards.
-    let mut right = WIDTH as i32 - MARGIN;
+    let mut right = profile::width() as i32 - MARGIN;
     right -= battery(shapes, app.battery, app.charging, Point::new(right, BAR / 2)) + 12;
     let settings = &app.settings;
     let lang = settings.language;

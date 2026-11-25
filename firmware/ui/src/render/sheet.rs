@@ -5,7 +5,8 @@
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Rectangle, Triangle};
 
-use super::{colors, fit, panel, rounded, Shape, BAR, HEIGHT, MARGIN, WIDTH};
+use super::{colors, fit, panel, rounded, Shape, BAR, MARGIN};
+use crate::profile;
 use crate::app::{Answer, App};
 use crate::backend::{Line, Matrix, Reply};
 use crate::editor::Row;
@@ -185,7 +186,7 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         // Along the right of the input, which letter SOLVE solves for.
         if app.sheets.asked.as_ref().is_some_and(|asked| asked.solve) {
             let hint = text::SOLVE_HINT.get(app.settings.language).to_string();
-            let x = WIDTH as i32 - MARGIN - Scale::Small.width(&hint);
+            let x = profile::width() as i32 - MARGIN - Scale::Small.width(&hint);
             shapes.push(Shape::Text(Point::new(x.max(MARGIN + width + 12), baseline), hint, Scale::Small, colors::faint()));
         }
     }
@@ -227,14 +228,14 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
     // How many rows a list has past the ones shown.
     let below = sheet.rows().saturating_sub(sheet.top + kind.rows_shown());
     if sheet.top > 0 {
-        arrow(shapes, Point::new(WIDTH as i32 - MARGIN - 6, top(kind) - 4), true);
+        arrow(shapes, Point::new(profile::width() as i32 - MARGIN - 6, top(kind) - 4), true);
     }
     if below > 0 {
-        arrow(shapes, Point::new(WIDTH as i32 - MARGIN - 6, EDIT_TOP - 4), false);
+        arrow(shapes, Point::new(profile::width() as i32 - MARGIN - 6, EDIT_TOP - 4), false);
     }
 
     // The cell at the cursor in full along the bottom, with the caret while it is edited.
-    shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, EDIT_TOP), Size::new(WIDTH - 2 * MARGIN as u32, 1)), colors::hairline()));
+    shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, EDIT_TOP), Size::new(profile::width() - 2 * MARGIN as u32, 1)), colors::hairline()));
     let name = cursor_name(app, kind, sheet);
     let normal = Scale::Normal.metrics();
     let at = Point::new(MARGIN, EDIT_TOP + 6 + normal.ascent);
@@ -248,12 +249,12 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         None => (sheet.cell(row, column), None),
     };
     let laid = layout::layout(content, Scale::Normal);
-    let bottom = HEIGHT as i32 - 8;
-    let mut origin = Point::new((WIDTH as i32 - MARGIN - laid.width).max(MARGIN + 70), bottom - laid.descent);
+    let bottom = profile::height() as i32 - 8;
+    let mut origin = Point::new((profile::width() as i32 - MARGIN - laid.width).max(MARGIN + 70), bottom - laid.descent);
     if let Some(editor) = editor {
         let caret = layout::caret(&laid, origin, editor.path(), editor.pos());
         // A long cell scrolls so the caret stays on the screen.
-        let overflow = caret.top_left.x - (WIDTH as i32 - MARGIN);
+        let overflow = caret.top_left.x - (profile::width() as i32 - MARGIN);
         if overflow > 0 {
             origin.x -= overflow;
         }
@@ -309,14 +310,14 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
         Ok(Reply::Task(task)) => return super::analysis::task(shapes, answer, task, drag, lang),
         _ => {}
     }
-    let bottom = HEIGHT as i32 - 6;
+    let bottom = profile::height() as i32 - 6;
     let x = MARGIN - answer.shift;
     let mut y = BAR + 8;
     let reply = match &answer.reply {
         Ok(reply) => reply,
         Err(message) => {
             let metrics = Scale::Normal.metrics();
-            for line in wrap(message, WIDTH as i32 - 2 * MARGIN, Scale::Normal) {
+            for line in wrap(message, profile::width() as i32 - 2 * MARGIN, Scale::Normal) {
                 y += metrics.ascent;
                 shapes.push(Shape::Text(Point::new(MARGIN, y), line, Scale::Normal, colors::error()));
                 y += metrics.descent + 4;
@@ -371,7 +372,7 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
         }
         Reply::Table { header, rows } => {
             let columns = header.len().max(1);
-            let width = ((WIDTH as i32 - 2 * MARGIN) / columns as i32).max(120);
+            let width = ((profile::width() as i32 - 2 * MARGIN) / columns as i32).max(120);
             let small = Scale::Small.metrics();
             let line = 30;
             let cell = |shapes: &mut Vec<Shape>, column: usize, latex: &str, y: i32, color| {
@@ -389,7 +390,7 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
                 cell(shapes, column, head, heads, colors::muted());
             }
             y += line;
-            shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, y - 6), Size::new(WIDTH - 2 * MARGIN as u32, 1)), colors::hairline()));
+            shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, y - 6), Size::new(profile::width() - 2 * MARGIN as u32, 1)), colors::hairline()));
             for row in rows.iter().skip(answer.scroll) {
                 if y + line > bottom {
                     more = true;
@@ -405,10 +406,10 @@ pub(super) fn answer_page(shapes: &mut Vec<Shape>, answer: &Answer, drag: Option
         Reply::Analysis(_) | Reply::Task(_) | Reply::Curve(_) | Reply::Variables(_) | Reply::Result(_) => {}
     }
     if answer.scroll > 0 {
-        arrow(shapes, Point::new(WIDTH as i32 - MARGIN - 6, BAR + 4), true);
+        arrow(shapes, Point::new(profile::width() as i32 - MARGIN - 6, BAR + 4), true);
     }
     if more {
-        arrow(shapes, Point::new(WIDTH as i32 - MARGIN - 6, HEIGHT as i32 - 4), false);
+        arrow(shapes, Point::new(profile::width() as i32 - MARGIN - 6, profile::height() as i32 - 4), false);
     }
 }
 

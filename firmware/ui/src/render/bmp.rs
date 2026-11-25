@@ -10,16 +10,13 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 
 use super::{Frame, Renderer, HEIGHT, WIDTH};
+use crate::profile;
 
 /// The bytes of the two headers.
 pub const HEADER: u32 = 54;
 
-/// The bytes of one row of the screen: three a pixel, and no padding at 480 pixels.
-const ROW: u32 = WIDTH * 3;
-const _: () = assert!(ROW.is_multiple_of(4),"BMP rows are padded to four bytes");
-
-/// The size of a screenshot file.
-pub const SIZE: u32 = HEADER + ROW * HEIGHT;
+/// The size of a screenshot file of the handheld's screen.
+pub const SIZE: u32 = HEADER + WIDTH * 3 * HEIGHT;
 
 /// The file and info headers of a 24-bit, bottom-up BMP of `width` × `height`.
 pub fn header(width: u32, height: u32) -> [u8; HEADER as usize] {
@@ -53,14 +50,20 @@ pub fn write<W: Write + Seek>(frame: &Frame, out: W) -> io::Result<()> {
 pub struct Writer<W> {
     out: W,
     bytes: Vec<u8>,
+    /// The panel's size, from the profile in force.
+    width: u32,
+    height: u32,
+    /// The bytes of one row: three a pixel, padded to four.
+    row: u32,
 }
 
 impl<W: Write + Seek> Writer<W> {
     /// Writes the header to `out`, at its start.
     pub fn new(mut out: W) -> io::Result<Self> {
+        let Size { width, height } = profile::get().physical();
         out.seek(SeekFrom::Start(0))?;
-        out.write_all(&header(WIDTH, HEIGHT))?;
-        Ok(Writer { out, bytes: Vec::new() })
+        out.write_all(&header(width, height))?;
+        Ok(Writer { out, bytes: Vec::new(), width, height, row: (width * 3).div_ceil(4) * 4 })
     }
 
     /// The file.
@@ -69,8 +72,8 @@ impl<W: Write + Seek> Writer<W> {
     }
 
     /// Where the pixel `(x, y)` of the screen lies in the file.
-    fn offset(x: u32, y: u32) -> u64 {
-        u64::from(HEADER + (HEIGHT - 1 - y) * ROW + x * 3)
+    fn offset(&self, x: u32, y: u32) -> u64 {
+        u64::from(HEADER + (self.height - 1 - y) * self.row + x * 3)
     }
 }
 
@@ -82,7 +85,7 @@ fn bgr(color: Rgb565) -> [u8; 3] {
 
 impl<W> OriginDimensions for Writer<W> {
     fn size(&self) -> Size {
-        Size::new(WIDTH, HEIGHT)
+        Size::new(self.width, self.height)
     }
 }
 
@@ -92,8 +95,9 @@ impl<W: Write + Seek> DrawTarget for Writer<W> {
 
     fn draw_iter<I: IntoIterator<Item = Pixel<Rgb565>>>(&mut self, pixels: I) -> io::Result<()> {
         for Pixel(point, color) in pixels {
-            if let (Ok(x @ 0..WIDTH), Ok(y @ 0..HEIGHT)) = (u32::try_from(point.x), u32::try_from(point.y)) {
-                self.out.seek(SeekFrom::Start(Self::offset(x, y)))?;
+            let (Ok(x), Ok(y)) = (u32::try_from(point.x), u32::try_from(point.y)) else { continue };
+            if x < self.width && y < self.height {
+                self.out.seek(SeekFrom::Start(self.offset(x, y)))?;
                 self.out.write_all(&bgr(color))?;
             }
         }
@@ -102,21 +106,22 @@ impl<W: Write + Seek> DrawTarget for Writer<W> {
 
     fn fill_contiguous<I: IntoIterator<Item = Rgb565>>(&mut self, area: &Rectangle, colors: I) -> io::Result<()> {
         let screen = self.bounding_box();
-        let whole = area.top_left.x == 0 && area.size.width == WIDTH && screen.intersection(area) == *area;
+        let whole = area.top_left.x == 0 && area.size.width == self.width && screen.intersection(area) == *area;
         if !whole {
             return self.draw_iter(area.points().zip(colors).map(|(point, color)| Pixel(point, color)));
         }
         // The rows of the band, bottom one first, as they lie in the file.
         let rows = area.size.height as usize;
         self.bytes.clear();
-        self.bytes.resize(rows * ROW as usize, 0);
-        for (i, color) in colors.into_iter().take(rows * WIDTH as usize).enumerate() {
-            let (row, x) = (i / WIDTH as usize, i % WIDTH as usize);
-            let at = (rows - 1 - row) * ROW as usize + 3 * x;
+        let (width, row_bytes) = (self.width as usize, self.row as usize);
+        self.bytes.resize(rows * row_bytes, 0);
+        for (i, color) in colors.into_iter().take(rows * width).enumerate() {
+            let (row, x) = (i / width, i % width);
+            let at = (rows - 1 - row) * row_bytes + 3 * x;
             self.bytes[at..at + 3].copy_from_slice(&bgr(color));
         }
         let bottom = area.top_left.y as u32 + area.size.height - 1;
-        self.out.seek(SeekFrom::Start(Self::offset(0, bottom)))?;
+        self.out.seek(SeekFrom::Start(self.offset(0, bottom)))?;
         self.out.write_all(&self.bytes)
     }
 }

@@ -4,17 +4,20 @@ use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyleBuilder, Rectangle, RoundedRectangle, StrokeAlignment};
 
-use super::{colors, Frame, Shape, BAND, BANDS, HEIGHT, WIDTH};
+use super::{colors, Frame, Shape, BAND};
+use crate::profile;
 use crate::wallpaper::blend;
 
 /// Draws frames band by band and sends the bands that changed since the last frame. A band
 /// whose shapes and backdrop are the same as last time is not even drawn.
 pub struct Renderer {
+    /// The panel's size the bands are for, from the profile in force.
+    size: Size,
     band: Vec<Rgb565>,
     /// A hash of each band as last sent.
-    sent: [Option<u64>; BANDS],
+    sent: Vec<Option<u64>>,
     /// A hash of what each band was last drawn from: the backdrop and its shapes.
-    drawn: [Option<u64>; BANDS],
+    drawn: Vec<Option<u64>>,
 }
 
 impl Default for Renderer {
@@ -25,13 +28,27 @@ impl Default for Renderer {
 
 impl Renderer {
     pub fn new() -> Self {
-        Renderer { band: vec![colors::background(); (WIDTH * BAND) as usize], sent: [None; BANDS], drawn: [None; BANDS] }
+        Renderer { size: Size::zero(), band: Vec::new(), sent: Vec::new(), drawn: Vec::new() }
     }
 
     /// Draws the whole screen again on the next frame.
     pub fn invalidate(&mut self) {
-        self.sent = [None; BANDS];
-        self.drawn = [None; BANDS];
+        self.sent.fill(None);
+        self.drawn.fill(None);
+    }
+
+    /// Sizes the bands for the panel of the profile in force, all to be drawn if it changed.
+    fn fit(&mut self) {
+        let size = profile::get().physical();
+        if size != self.size {
+            let bands = size.height.div_ceil(BAND) as usize;
+            *self = Renderer {
+                size,
+                band: vec![colors::background(); (size.width * BAND) as usize],
+                sent: vec![None; bands],
+                drawn: vec![None; bands],
+            };
+        }
     }
 
     /// Returns how many bands were sent.
@@ -40,6 +57,8 @@ impl Renderer {
         frame: &Frame,
         display: &mut D,
     ) -> Result<usize, D::Error> {
+        self.fit();
+        let Size { width, height } = self.size;
         let mut sent = 0;
         let backdrop = fingerprint(&frame.1);
         let shapes: Vec<(Rectangle, u64)> = frame.0.iter().map(|shape| (shape.bounds(), fingerprint(shape))).collect();
@@ -47,7 +66,7 @@ impl Renderer {
             let top = index as u32 * BAND;
             let area = Rectangle::new(
                 Point::new(0, top as i32),
-                Size::new(WIDTH, BAND.min(HEIGHT - top)),
+                Size::new(width, BAND.min(height - top)),
             );
             let inputs = shapes
                 .iter()
@@ -59,7 +78,7 @@ impl Renderer {
             self.drawn[index] = Some(inputs);
             let pixels = &mut self.band[..(area.size.width * area.size.height) as usize];
             match &frame.1 {
-                Some(backdrop) => backdrop.copy_to((top * WIDTH) as usize, pixels),
+                Some(backdrop) => backdrop.copy_to((top * width) as usize, pixels),
                 None => pixels.fill(colors::background()),
             }
             let mut band = Band { pixels, area };

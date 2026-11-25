@@ -25,6 +25,7 @@ use embedded_graphics::primitives::{
     Triangle,
 };
 
+use crate::profile;
 use crate::app::{App, Screen, MENU_COLUMNS, TILES_PER_PAGE};
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
@@ -35,11 +36,13 @@ use crate::wallpaper::Pixels;
 use bar::bar;
 use screens::{app_list, calculation, calibration, menu_screen, modes};
 
+/// The handheld's screen, the size of a wallpaper and of a screenshot used as one.
 pub const WIDTH: u32 = 480;
 pub const HEIGHT: u32 = 320;
-/// The height of a band; a band buffer takes WIDTH × BAND × 2 bytes.
+/// The logical canvas of the profile in force ([`crate::profile`]).
+pub use crate::profile::{height};
+/// The height of a band; a band buffer takes the panel's width × BAND × 2 bytes.
 pub const BAND: u32 = 32;
-const BANDS: usize = HEIGHT.div_ceil(BAND) as usize;
 
 /// The height of the top bar.
 const BAR: i32 = 26;
@@ -489,18 +492,22 @@ const APP_LINE: i32 = 44;
 
 /// The area of an app with the soft-key strips shown or not, and the line of `input` below it.
 pub fn app_area_with(soft: bool, input: &crate::applet::Input) -> Rectangle {
-    let bottom = if soft { HEIGHT as i32 - SOFT } else { HEIGHT as i32 } - input.line_height();
-    Rectangle::new(Point::new(0, BAR), Size::new(WIDTH, (bottom - BAR) as u32))
+    let bottom = if soft { profile::height() as i32 - SOFT } else { profile::height() as i32 } - input.line_height();
+    Rectangle::new(Point::new(0, BAR), Size::new(profile::width(), (bottom - BAR) as u32))
 }
 
 /// An app's input line of `height`, below `area`.
 fn app_line_rect(area: Rectangle, height: i32) -> Rectangle {
-    Rectangle::new(Point::new(0, area.top_left.y + area.size.height as i32), Size::new(WIDTH, height as u32))
+    Rectangle::new(Point::new(0, area.top_left.y + area.size.height as i32), Size::new(profile::width(), height as u32))
 }
 
 /// The wallpaper under the screen, as SETUP → Gerät → Hintergrundbild → Anzeigen says: at full
 /// strength behind the mode tiles, dimmed where text stands on it.
+/// Only on the handheld's screen, the size wallpapers are made for.
 fn backdrop<B>(app: &App<B>) -> Option<Pixels> {
+    if profile::get() != profile::Profile::HANDHELD {
+        return None;
+    }
     let wallpaper = app.wallpaper()?;
     let on = app.settings.wallpaper_on;
     match app.screen {
@@ -524,7 +531,7 @@ fn panel(shape: RoundedRectangle, fill: Rgb565, outline: Option<Rgb565>, glass: 
 }
 
 fn full_width(top: i32, height: u32) -> Rectangle {
-    Rectangle::new(Point::new(0, top), Size::new(WIDTH, height))
+    Rectangle::new(Point::new(0, top), Size::new(profile::width(), height))
 }
 
 fn rounded(top_left: Point, size: Size, radius: u32) -> RoundedRectangle {
@@ -541,7 +548,7 @@ pub fn pages(tiles: usize) -> usize {
 /// The tile `offset` of a page of the mode menu.
 pub fn tile_rect(offset: usize) -> Rectangle {
     let columns = MENU_COLUMNS as i32;
-    let width = (WIDTH as i32 - 2 * MARGIN - (columns - 1) * TILE_GAP) / columns;
+    let width = (profile::width() as i32 - 2 * MARGIN - (columns - 1) * TILE_GAP) / columns;
     let column = (offset % MENU_COLUMNS) as i32;
     let row = (offset / MENU_COLUMNS) as i32;
     let at = Point::new(MARGIN + column * (width + TILE_GAP), BAR + 10 + row * (TILE_HEIGHT + TILE_GAP));
@@ -553,7 +560,7 @@ pub fn dot_rect(index: usize, pages: usize) -> Rectangle {
     let dot = 8;
     let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
     let y = BAR + 10 + rows * (TILE_HEIGHT + TILE_GAP) + 10;
-    let start = (WIDTH as i32 - (pages as i32 * (dot + 8) - 8)) / 2;
+    let start = (profile::width() as i32 - (pages as i32 * (dot + 8) - 8)) / 2;
     Rectangle::new(Point::new(start + index as i32 * (dot + 8), y), Size::new(dot as u32, dot as u32))
 }
 
@@ -569,8 +576,8 @@ pub fn line_rect(offset: usize, right: i32) -> Rectangle {
 /// Where the lists of `menu` may reach: the edge, or the wallpaper's preview.
 fn list_edge(menu: &Menu) -> i32 {
     match menu.edit {
-        Some(Edit::Pictures { .. }) => WIDTH as i32 - MARGIN - THUMBNAIL.width as i32 - 10,
-        _ => WIDTH as i32 - MARGIN,
+        Some(Edit::Pictures { .. }) => profile::width() as i32 - MARGIN - THUMBNAIL.width as i32 - 10,
+        _ => profile::width() as i32 - MARGIN,
     }
 }
 
@@ -620,13 +627,13 @@ pub fn number_button(index: usize) -> Rectangle {
 
 /// The left of the top bar, where a tap goes back, reaching a little below it for the finger.
 pub fn back_area() -> Rectangle {
-    Rectangle::new(Point::zero(), Size::new(WIDTH / 2, BAR as u32 + 4))
+    Rectangle::new(Point::zero(), Size::new(profile::width() / 2, BAR as u32 + 4))
 }
 
 /// Button `index` of `count` side by side between the margins.
 fn button_rect(top: i32, height: u32, count: usize, index: usize) -> Rectangle {
     let (gap, count) = (8, count as i32);
-    let width = (WIDTH as i32 - 2 * MARGIN - (count - 1) * gap) / count;
+    let width = (profile::width() as i32 - 2 * MARGIN - (count - 1) * gap) / count;
     Rectangle::new(Point::new(MARGIN + index as i32 * (width + gap), top), Size::new(width as u32, height))
 }
 
@@ -644,7 +651,7 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
             if let Some(answer) = app.answer.as_ref().filter(|answer| answer.pages() > 1) {
                 return match point.x {
                     x if x < SIDE => (answer.page > 0).then_some(Target::Side(false)),
-                    x if x >= WIDTH as i32 - SIDE => (answer.page + 1 < answer.pages()).then_some(Target::Side(true)),
+                    x if x >= profile::width() as i32 - SIDE => (answer.page + 1 < answer.pages()).then_some(Target::Side(true)),
                     _ => None,
                 };
             }
@@ -674,7 +681,7 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
                 if let Some(count) = list {
                     let first = app.running.as_ref().map_or(0, |running| running.template.list / ROWS * ROWS);
                     let around = |line: Rectangle| Rectangle::new(line.top_left - Point::new(MARGIN, LINE_GAP / 2), line.size + Size::new(2 * MARGIN as u32, LINE_GAP as u32));
-                    let edge = WIDTH as i32 - MARGIN;
+                    let edge = profile::width() as i32 - MARGIN;
                     return (0..ROWS)
                         .filter(|offset| first + offset < count)
                         .find(|&offset| around(line_rect(offset, edge)).contains(point))

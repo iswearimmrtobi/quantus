@@ -6,7 +6,8 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Rectangle, Triangle};
 
 use super::sheet::wrap;
-use super::{colors, fit, Shape, BAR, HEIGHT, MARGIN, WIDTH};
+use super::{colors, fit, Shape, BAR, MARGIN};
+use crate::profile;
 use crate::app::Answer;
 use crate::backend::{Analysis, Graph, Line, Status, Task, Window};
 use crate::editor::{Node, Row};
@@ -17,9 +18,13 @@ use crate::text::{self, Lang};
 
 /// Where the page's lines begin, under its title.
 const TOP: i32 = BAR + 30;
-const BOTTOM: i32 = HEIGHT as i32 - 6;
+fn bottom() -> i32 {
+    profile::height() as i32 - 6
+}
 /// The room for a line of math.
-const ROOM: i32 = WIDTH as i32 - 2 * MARGIN;
+fn room() -> i32 {
+    profile::width() as i32 - 2 * MARGIN
+}
 
 /// The page of the sketch the answer is on.
 pub(super) fn sketch(shapes: &mut Vec<Shape>, answer: &Answer, analysis: &Analysis, drag: Option<Point>, lang: Lang) {
@@ -56,7 +61,7 @@ fn graph_page(shapes: &mut Vec<Shape>, function: &str, graph: &Graph, drag: Opti
         let small = Scale::Small.metrics();
         let count = Scale::Small.width(&format!("{}/{}", page + 1, pages));
         let word = text::MOVING.get(lang).to_string();
-        let x = WIDTH as i32 - MARGIN - count - 12 - Scale::Small.width(&word);
+        let x = profile::width() as i32 - MARGIN - count - 12 - Scale::Small.width(&word);
         shapes.push(Shape::Text(Point::new(x, BAR + 6 + small.ascent), word, Scale::Small, colors::shift()));
     }
     let function = layout::layout(&latex::parse(function), Scale::Small);
@@ -71,13 +76,13 @@ fn graph_page(shapes: &mut Vec<Shape>, function: &str, graph: &Graph, drag: Opti
 
 /// Triangles at the sides: there are pages before or after.
 fn sides(shapes: &mut Vec<Shape>, answer_page: usize, pages: usize) {
-    let middle = (BAR + HEIGHT as i32) / 2;
+    let middle = (BAR + profile::height() as i32) / 2;
     if answer_page > 0 {
         let tip = Point::new(1, middle);
         shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(5, -6), tip + Point::new(5, 6)), colors::faint()));
     }
     if answer_page + 1 < pages {
-        let tip = Point::new(WIDTH as i32 - 2, middle);
+        let tip = Point::new(profile::width() as i32 - 2, middle);
         shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -6), tip + Point::new(-5, 6)), colors::faint()));
     }
 }
@@ -92,7 +97,7 @@ pub fn dragged(window: Window, by: Point) -> Window {
 
 /// Where the graph is drawn: under the title, between the triangles that turn the page.
 pub fn graph_area() -> Rectangle {
-    Rectangle::new(Point::new(MARGIN, TOP - 2), Size::new(WIDTH - 2 * MARGIN as u32, (HEIGHT as i32 - TOP - 4) as u32))
+    Rectangle::new(Point::new(MARGIN, TOP - 2), Size::new(profile::width() - 2 * MARGIN as u32, (profile::height() as i32 - TOP - 4) as u32))
 }
 
 /// The line on top: the section's title, a word for a section the engine did not finish, and
@@ -102,21 +107,21 @@ fn title(shapes: &mut Vec<Shape>, title: &str, status: Status, page: usize, page
     let baseline = BAR + 6 + small.ascent;
     let count = format!("{}/{}", page + 1, pages);
     let count_width = Scale::Small.width(&count);
-    shapes.push(Shape::Text(Point::new(WIDTH as i32 - MARGIN - count_width, baseline), count, Scale::Small, colors::faint()));
+    shapes.push(Shape::Text(Point::new(profile::width() as i32 - MARGIN - count_width, baseline), count, Scale::Small, colors::faint()));
     let mark = match status {
         Status::Ok => None,
         Status::Partial => Some(text::SECTION_PARTIAL.get(lang)),
         Status::Failed => Some(text::SECTION_FAILED.get(lang)),
     };
     let mark_width = mark.map_or(0, |mark| Scale::Small.width(mark) + 10);
-    let room = WIDTH as i32 - 2 * MARGIN - count_width - 10 - mark_width;
+    let room = profile::width() as i32 - 2 * MARGIN - count_width - 10 - mark_width;
     let title = fit(title, room, Scale::Small);
     let title_width = Scale::Small.width(&title);
     shapes.push(Shape::Text(Point::new(MARGIN, baseline), title, Scale::Small, colors::accent()));
     if let Some(mark) = mark {
         shapes.push(Shape::Text(Point::new(MARGIN + title_width + 10, baseline), mark.to_string(), Scale::Small, colors::error()));
     }
-    let rule = Rectangle::new(Point::new(MARGIN, baseline + small.descent + 4), Size::new(WIDTH - 2 * MARGIN as u32, 1));
+    let rule = Rectangle::new(Point::new(MARGIN, baseline + small.descent + 4), Size::new(profile::width() - 2 * MARGIN as u32, 1));
     shapes.push(Shape::Fill(rule, colors::hairline()));
 }
 
@@ -137,7 +142,7 @@ fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], resul
     if scroll == 0 {
         if let Some(message) = message {
             let small = Scale::Small.metrics();
-            for line in wrap(message, ROOM, Scale::Small) {
+            for line in wrap(message, room(), Scale::Small) {
                 shapes.push(Shape::Text(Point::new(MARGIN, y + small.ascent), line, Scale::Small, colors::error()));
                 y += small.ascent + small.descent + 2;
             }
@@ -149,18 +154,18 @@ fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], resul
     let mut more = false;
     for (index, &(line, color)) in lines.iter().enumerate().skip(skip) {
         if Some(index) == rule_at && index > 0 {
-            if y + 6 > BOTTOM {
+            if y + 6 > bottom() {
                 more = true;
                 break;
             }
-            let rule = Rectangle::new(Point::new(MARGIN, y + 2), Size::new(WIDTH / 3, 1));
+            let rule = Rectangle::new(Point::new(MARGIN, y + 2), Size::new(profile::width() / 3, 1));
             shapes.push(Shape::Fill(rule, colors::hairline()));
             y += 6;
         }
         let drawn = lines_of(line, color);
         let height: i32 = drawn.iter().map(Drawn::height).sum();
         // A line taller than the page still shows at its top.
-        if y + height > BOTTOM && y > TOP {
+        if y + height > bottom() && y > TOP {
             more = true;
             break;
         }
@@ -171,17 +176,17 @@ fn section(shapes: &mut Vec<Shape>, message: Option<&str>, steps: &[Line], resul
     if hint {
         // ▼ Rechenweg, under the result.
         let small = Scale::Small.metrics();
-        let baseline = (y + 10 + small.ascent).min(BOTTOM - small.descent);
+        let baseline = (y + 10 + small.ascent).min(bottom() - small.descent);
         let tip = Point::new(MARGIN + 5, baseline);
         shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -7), tip + Point::new(5, -7)), colors::faint()));
         shapes.push(Shape::Text(Point::new(MARGIN + 16, baseline), text::WORKING.get(lang).to_string(), Scale::Small, colors::faint()));
     }
     if more {
-        let tip = Point::new(WIDTH as i32 - MARGIN - 6, HEIGHT as i32 - 4);
+        let tip = Point::new(profile::width() as i32 - MARGIN - 6, profile::height() as i32 - 4);
         shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, -7), tip + Point::new(5, -7)), colors::faint()));
     }
     if scroll > 0 {
-        let tip = Point::new(WIDTH as i32 - MARGIN - 6, TOP - 2);
+        let tip = Point::new(profile::width() as i32 - MARGIN - 6, TOP - 2);
         shapes.push(Shape::Triangle(Triangle::new(tip, tip + Point::new(-5, 7), tip + Point::new(5, 7)), colors::faint()));
     }
 }
@@ -258,7 +263,7 @@ fn row_height(row: &[RowLayout]) -> i32 {
 /// turned on its side when it is too wide.
 fn lines_of(line: &Line, color: Rgb565) -> Vec<Drawn> {
     match line {
-        Line::Note(note) => wrap(note, ROOM, Scale::Small).into_iter().map(Drawn::Note).collect(),
+        Line::Note(note) => wrap(note, room(), Scale::Small).into_iter().map(Drawn::Note).collect(),
         Line::Math(latex) => broken(&latex::parse(latex), color),
         Line::Grid(rows) => {
             let laid = |rows: &[Vec<String>]| -> Vec<Vec<RowLayout>> {
@@ -269,7 +274,7 @@ fn lines_of(line: &Line, color: Rgb565) -> Vec<Drawn> {
             let width: i32 = (0..columns)
                 .map(|column| grid.iter().filter_map(|row| row.get(column)).map(|cell| cell.width).max().unwrap_or(0) + GAP)
                 .sum();
-            if width <= ROOM {
+            if width <= room() {
                 return vec![Drawn::Grid(grid)];
             }
             // The intervals down the side, each with its signs.
@@ -280,10 +285,10 @@ fn lines_of(line: &Line, color: Rgb565) -> Vec<Drawn> {
     }
 }
 
-/// A row of math broken to fit [`ROOM`].
+/// A row of math broken to fit [`room()`].
 fn broken(row: &Row, color: embedded_graphics::pixelcolor::Rgb565) -> Vec<Drawn> {
     let whole = layout::layout(row, Scale::Normal);
-    if whole.width <= ROOM {
+    if whole.width <= room() {
         return vec![Drawn::Math { laid: whole, x: MARGIN, color }];
     }
     // The pieces: each starts with its relation (but the first), or after a `:` or `,` that
@@ -312,7 +317,7 @@ fn broken(row: &Row, color: embedded_graphics::pixelcolor::Rgb565) -> Vec<Drawn>
     for piece in pieces {
         let mut joined = current.clone();
         joined.0.extend(piece.0.iter().cloned());
-        if current.0.is_empty() || layout::layout(&joined, Scale::Normal).width <= ROOM {
+        if current.0.is_empty() || layout::layout(&joined, Scale::Normal).width <= room() {
             current = joined;
         } else {
             out.push(std::mem::replace(&mut current, piece));
@@ -331,11 +336,11 @@ fn broken(row: &Row, color: embedded_graphics::pixelcolor::Rgb565) -> Vec<Drawn>
         .enumerate()
         .map(|(index, row)| {
             let mut laid = layout::layout(&row, Scale::Normal);
-            if laid.width > ROOM {
+            if laid.width > room() {
                 laid = layout::layout(&row, Scale::Small);
             }
             // The first from the left, the rest to the right.
-            let x = if index == 0 || count == 1 { MARGIN } else { (WIDTH as i32 - MARGIN - laid.width).max(MARGIN) };
+            let x = if index == 0 || count == 1 { MARGIN } else { (profile::width() as i32 - MARGIN - laid.width).max(MARGIN) };
             Drawn::Math { laid, x, color }
         })
         .collect()

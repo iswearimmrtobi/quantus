@@ -16,6 +16,7 @@ pub mod layer;
 pub mod latex;
 pub mod layout;
 pub mod menu;
+pub mod profile;
 pub mod render;
 pub mod search;
 pub mod settings;

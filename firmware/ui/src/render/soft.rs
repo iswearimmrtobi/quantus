@@ -4,7 +4,8 @@
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 
-use super::{colors, Shape, HEIGHT, WIDTH};
+use super::{colors, Shape};
+use crate::profile;
 use crate::app::App;
 use crate::font::Scale;
 use crate::layout;
@@ -20,9 +21,9 @@ pub const SOFT: i32 = 2 * STRIP;
 pub fn slot_rect(index: usize, columns: usize) -> Rectangle {
     let (row, column) = ((index / columns) as i32, (index % columns) as i32);
     let columns = columns as i32;
-    let left = column * WIDTH as i32 / columns;
-    let right = (column + 1) * WIDTH as i32 / columns;
-    let top = HEIGHT as i32 - SOFT + row * STRIP;
+    let left = column * profile::width() as i32 / columns;
+    let right = (column + 1) * profile::width() as i32 / columns;
+    let top = profile::height() as i32 - SOFT + row * STRIP;
     Rectangle::new(Point::new(left, top), Size::new((right - left) as u32, STRIP as u32))
 }
 
@@ -34,9 +35,9 @@ pub fn soft_at<B>(app: &App<B>, point: Point) -> Option<Target> {
 }
 
 pub(super) fn strips<B>(shapes: &mut Vec<Shape>, app: &App<B>, bar: &Bar) {
-    let top = HEIGHT as i32 - SOFT;
-    shapes.push(Shape::Fill(Rectangle::new(Point::new(0, top), Size::new(WIDTH, STRIP as u32)), colors::surface()));
-    shapes.push(Shape::Fill(Rectangle::new(Point::new(0, top + STRIP), Size::new(WIDTH, STRIP as u32)), colors::lower()));
+    let top = profile::height() as i32 - SOFT;
+    shapes.push(Shape::Fill(Rectangle::new(Point::new(0, top), Size::new(profile::width(), STRIP as u32)), colors::surface()));
+    shapes.push(Shape::Fill(Rectangle::new(Point::new(0, top + STRIP), Size::new(profile::width(), STRIP as u32)), colors::lower()));
     let lang = app.settings.language;
     for index in 0..2 * bar.columns {
         let area = slot_rect(index, bar.columns);
@@ -80,5 +81,5 @@ pub(super) fn strips<B>(shapes: &mut Vec<Shape>, app: &App<B>, bar: &Bar) {
         let baseline = area.top_left.y + (STRIP + scale.metrics().digit) / 2;
         shapes.push(Shape::Math(Point::new(x, baseline), row, color));
     }
-    shapes.push(Shape::Fill(Rectangle::new(Point::new(0, top), Size::new(WIDTH, 1)), colors::hairline()));
+    shapes.push(Shape::Fill(Rectangle::new(Point::new(0, top), Size::new(profile::width(), 1)), colors::hairline()));
 }
