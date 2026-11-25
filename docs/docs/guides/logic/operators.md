@@ -48,6 +48,12 @@ $$\overline{A \land B} = \lnot A \lor \lnot B \qquad \overline{A \lor B} = \lnot
 
 They hold for any number of operands.
 
+**Syntax.** Before its operand: `\lnot A`, `\neg A`, `!A`, `¬A`, `not A`; over it: `\overline{A}`,
+`\bar{A}`; after it: `A'`, `A′`, `A^{\prime}`, `A^\prime`, `A^'`. An overline or prime covers
+what is under it or before it: `\overline{A \land B}` and `(A \land B)'` negate the AND. Logic
+notation writes $\lnot A$ for a variable or constant and an overline over anything larger;
+technical notation always an overline. Unary, prefix or postfix.
+
 ## AND
 
 **Theory.** The conjunction is 1 only when every operand is 1. It is commutative and associative,
@@ -60,6 +66,11 @@ $$A \land (B \lor C) = A \land B \lor A \land C \qquad A \land (B \oplus C) = A 
 and absorbs: $A \land (A \lor B) = A$. A product of literals is a **term** of a DNF; the
 minterm $m_i$ is the AND of all variables, each negated where row $i$ has a 0.
 
+**Syntax.** `A \land B`, `A \wedge B`, `A \cdot B`, `A \ast B`, `A \times B`, `A * B`, `A & B`,
+`A \& B`, `A · B`, `A ∧ B`, `A × B`, `A and B`, or nothing at all: `AB`, `A B`, `A(B)`,
+`(A \lor B)(C \lor D)` are products. A chain is one AND of all its operands (`ABC` is
+$A \land B \land C$). Written as $A \land B$ or $A \cdot B$.
+
 ## OR
 
 **Theory.** The disjunction is 1 when at least one operand is 1. It is commutative and
@@ -70,6 +81,10 @@ $$A \lor B \land C = (A \lor B) \land (A \lor C)$$
 
 and absorbs: $A \lor A \land B = A$. A sum of literals is a **clause** of a KNF; the maxterm
 $M_i$ is the OR of all variables, each negated where row $i$ has a 1.
+
+**Syntax.** `A \lor B`, `A \vee B`, `A + B`, `A \mid B`, `A \vert B`, `A | B`, `A \| B`, `A ∨ B`,
+`A or B`. A chain is one OR of all its operands. Written as $A \lor B$ or $A + B$. The `+` is OR
+here, not addition: $1 + 1 = 1$.
 
 ## XOR
 
@@ -82,6 +97,9 @@ $A \oplus A = 0$. Over any number of operands it is the **odd parity**: 1 when a
 them are 1. So $A \oplus B \oplus C$ is 1 in the rows 1, 2, 4 and 7. Its KV diagram is a
 chessboard, and no two of its ones can be joined into a block, so its minimal DNF has all
 $2^{n-1}$ minterms.
+
+**Syntax.** `A \oplus B`, `A \veebar B`, `A ⊕ B`, `A xor B`. A chain is one XOR of all its
+operands, the odd parity. Written as $A \oplus B$ in both notations.
 
 ## XNOR
 
@@ -96,6 +114,11 @@ chain of $n$ operands has $n - 1$ XNORs and is the XOR with $n - 1$ negations: f
 operands that is the **odd** parity, the same as $A \oplus B \oplus C$. An XNOR **gate** of
 three or more inputs is the negated XOR, the **even** parity, which is a different function.
 See [Precedence and grouping](#precedence-and-grouping) for how the page keeps the two apart.
+
+**Syntax.** `A \odot B`, `A \leftrightarrow B`, `A \Leftrightarrow B`, `A \equiv B`, `A ⊙ B`,
+`A ↔ B`, `A xnor B`. Written as $A \leftrightarrow B$ (logic) or $A \odot B$ (technical); an
+XNOR gate of three or more inputs is written $\overline{A \oplus B \oplus C}$, so that it is not
+read back as the chain.
 
 ## NAND
 
@@ -118,6 +141,10 @@ A NAND gate of more than two inputs is $\overline{A \land B \land C}$, not a cha
 **Gates** card builds every function as two levels of NAND from its minimal DNF (see
 [Results](results.md)).
 
+**Syntax.** `A \uparrow B`, `A \barwedge B`, `A ↑ B`, `A nand B`. Binary: `A \uparrow B \uparrow C`
+is an error, *NAND is not associative: write brackets, (A NAND B) NAND C or A NAND (B NAND C).*
+Written as $A \uparrow B$ (logic) or $\overline{A \cdot B}$ (technical).
+
 ## NOR
 
 **Theory.** The Peirce arrow is the negated OR: 1 only when every operand is 0.
@@ -136,6 +163,9 @@ Like NAND it is commutative, not associative, and universal:
 A NOR gate of more than two inputs is $\overline{A \lor B \lor C}$. The two-level NOR form comes
 from the minimal KNF.
 
+**Syntax.** `A \downarrow B`, `A ↓ B`, `A nor B`. Binary like NAND: `A \downarrow B \downarrow C`
+asks for brackets. Written as $A \downarrow B$ (logic) or $\overline{A + B}$ (technical).
+
 ## Constants
 
 **Theory.** $1$ (true, $\top$) and $0$ (false, $\bot$). With them each operator becomes simpler:
@@ -151,12 +181,59 @@ from the minimal KNF.
 
 In the circuit editor a constant is a part of its own, **0** or **1**.
 
+**Syntax.** `1`, `\top` and `0`, `\bot`. Any other digit is an error: *2 is not a logic value:
+only 0 and 1 are.*
+
 ## Buffer
 
 **Theory.** The buffer passes its one input on unchanged: it is the identity. In a real circuit
 it amplifies a signal or adds a delay; here it counts as one level in the delay, like any gate
 (see [Circuit editor](editor.md#gates-and-delay)). It exists only as a gate: tracing a circuit back to
 an expression leaves it out.
+
+## Spelling the words
+
+The words `not`, `and`, `or`, `xor`, `xnor`, `nand` and `nor` count as operators in plain
+letters only in lower case: `A AND B` is the product of the variables $A$, $N$, $D$ and $B$.
+Inside `\mathrm{}`, `\operatorname{}`, `\text{}`, `\textrm{}`, `\mathit{}`, `\mathbf{}`,
+`\mathsf{}` or `\textit{}` any case works: `A \mathrm{AND} B`, `\text{Not} A`.
+
+Brackets are `( )`, `[ ]`, `{ }` and `\{ \}`, also with `\left`, `\right`, `\big`, `\Bigl` and the
+like. Spaces, `\,`, `\;`, `\ `, `~`, `\quad`, `\qquad` and `\displaystyle` change nothing.
+
+## Precedence and grouping
+
+Without brackets the operators bind in this order, highest first:
+
+| Level | Operators | Reads |
+|---|---|---|
+| 1 | NOT | `\lnot A \land B` is $(\lnot A) \land B$ |
+| 2 | AND, also `AB` | `A \lor BC` is $A \lor (B \land C)$ |
+| 3 | NAND | `AB \uparrow C` is $(A \land B) \uparrow C$ |
+| 4 | XOR, XNOR | `A \uparrow B \oplus C` is $(A \uparrow B) \oplus C$ |
+| 5 | OR | `A \oplus B \lor C` is $(A \oplus B) \lor C$ |
+| 6 | NOR | `A \lor B \downarrow C` is $(A \lor B) \downarrow C$ |
+
+- AND before OR is the textbook rule, as $\cdot$ before $+$: `AB + CD` is
+  $(A \land B) \lor (C \land D)$.
+- XOR and XNOR share a level and are read from the left: `A \oplus B \odot C` is
+  $(A \oplus B) \odot C$.
+- A chain of XOR becomes one XOR of all operands. A chain of XNOR stays a chain of two-input XNORs
+  from the left: `A \odot B \odot C` is $(A \odot B) \odot C$, the odd parity. An XNOR gate of
+  three inputs is the even parity, so the page writes it as $\overline{A \oplus B \oplus C}$.
+- NAND and NOR are not associative, so a chain of either is refused and asks for brackets. A NAND
+  next to a NOR needs none: `A \uparrow B \downarrow C` is $(A \uparrow B) \downarrow C$.
+- The page writes results with the fewest brackets these rules allow, and they read back as the
+  same expression.
+
+## What is refused
+
+- **Implication** has no operator: `\to`, `\rightarrow`, `\Rightarrow`, `\implies`, `→` and `⇒`
+  are errors. Write $A \to B$ as `\lnot A \lor B`.
+- Any other command: *\sin is not a logic operator.* Any other sign: *'?' is not part of a logic
+  expression.*
+- An operator without its operand: `A \land` gives *The expression ends too early*, `\land A`
+  *An operand is missing before '∧'.*
 
 ## See also
 
