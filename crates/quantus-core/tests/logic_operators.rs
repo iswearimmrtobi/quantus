@@ -26,8 +26,11 @@ fn bits(row: usize, arity: usize) -> Vec<bool> {
     (0..arity).map(|k| row >> (arity - 1 - k) & 1 == 1).collect()
 }
 
+/// What a binary operator gives for its two operands.
+type Reference = fn(bool, bool) -> bool;
+
 /// The binary operators as typed, each with its reference.
-const BINARY: [(&str, &str, fn(bool, bool) -> bool); 6] = [
+const BINARY: [(&str, &str, Reference); 6] = [
     ("AND", r"A \land B", |a, b| a && b),
     ("OR", r"A \lor B", |a, b| a || b),
     ("XOR", r"A \oplus B", |a, b| a != b),
