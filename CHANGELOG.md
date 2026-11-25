@@ -10,7 +10,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 - Handheld: the Duo, a second handheld with two screens, in the simulator (`--duo`): the
   calculation on a 5" 1280×720 screen, drawn from the same layout with larger fonts, and a 3.5"
   touch screen under it in place of the keypad, with the mode's soft keys as buttons, SHIFT,
-  ALPHA and UNIT with their legends, the function keys in two pages and the number block.
+  ALPHA and UNIT with their legends, the function keys in two pages and the number block. The
+  mode menu shows 4 × 3 tiles. The input screen has its own touch calibration, which follows the
+  main screen's (SETUP → Touch kalibrieren); AC or ← leaves it.
 - Docs: the Base-N mode's operators, one by one: their meaning on the word (two's complement,
   wrapping, truncation, shifts and rotations, IEEE 754), every spelling, the precedence and what
   is refused.
