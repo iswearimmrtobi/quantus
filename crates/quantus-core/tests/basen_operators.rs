@@ -631,3 +631,20 @@ fn the_examples_of_the_operators_page() {
     assert_eq!(error(r"1 \operatorname{and}", NumberBase::Dec, s32), "The input ends too early.");
     assert_eq!(error(r"\operatorname{shl}(1)", NumberBase::Dec, s32), "'shl' takes two numbers: shl(x, n).");
 }
+
+/// MathLive writes the key `\operatorname{f32}` as `\operatorname{\mathrm{f32}}`, because of the
+/// digits; the word is read through the nested command.
+#[test]
+fn a_word_command_nested_in_another_is_read() {
+    let (int, long) = (spec(32, true), spec(64, true));
+    let hex = |latex: &str, spec| run(latex, NumberBase::Hex, spec).map(|r| r.0);
+    assert_eq!(hex(r"\operatorname{\mathrm{f32}}\left(10\right)", int), Ok(0x4120_0000));
+    assert_eq!(hex(r"\operatorname{\mathrm{f32}}(0{,}1)", int), Ok(0x3DCC_CCCD));
+    assert_eq!(hex(r"\operatorname{\mathrm{f64}}\left(1\right)", long), Ok(0x3FF0_0000_0000_0000));
+    assert_eq!(hex(r"\operatorname{ \mathrm{ f32 } }\left(1\right)", int), Ok(0x3F80_0000));
+    assert_eq!(hex(r"\operatorname{\mathrm{f32}}\left(1\right) + 1", int), Ok(0x3F80_0001));
+    assert_eq!(dec(r"\operatorname{\mathrm{shl}}\left(1,4\right)"), 16);
+    assert_eq!(dec(r"12 \operatorname{\mathrm{xor}} 10"), 6);
+    assert_eq!(dec(r"\mathrm{h}\mathrm{\mathrm{1F}}"), 31);
+    assert_eq!(error(r"\operatorname{\sqrt{4}}", NumberBase::Dec, int), r"Basis-N does not know '\sqrt'.");
+}

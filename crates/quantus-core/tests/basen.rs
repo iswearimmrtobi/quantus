@@ -89,3 +89,15 @@ fn a_float_is_broken_down_at_32_and_64_bits() {
     assert_eq!(json["ieee"]["exact"], "0{,}100000001490116119384765625");
     assert_eq!(json["ieee"]["error"], "0{,}000000001490116119384765625");
 }
+
+#[test]
+fn the_float_key_as_mathlive_writes_it_evaluates() {
+    let mut store = SessionStore::new();
+    let settings = Settings { mode: Mode::BaseN, number_base: NumberBase::Hex, ..Settings::default() };
+    api::set_settings(&mut store, settings).unwrap();
+    let request = CalculationRequest { latex: r"\operatorname{\mathrm{f32}}\left(10\right)".into(), ..Default::default() };
+    let response = api::evaluate(&mut store, &request).unwrap();
+    assert_eq!(response.result, "41200000");
+    let json = serde_json::to_value(&response.bits).unwrap();
+    assert_eq!(json["ieee"]["exact"], "10");
+}

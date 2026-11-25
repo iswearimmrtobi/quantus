@@ -377,7 +377,7 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
                         tokens.push(Token::Close);
                     }
                     name if WORD_COMMANDS.contains(&name) => {
-                        let word: String = braced(&chars, &mut i)?.chars().filter(|c| !c.is_whitespace()).collect();
+                        let word = plain_word(&braced(&chars, &mut i)?)?;
                         match Format::of_name(&word).and_then(|format| float_argument(&chars, &mut i).map(|text| Token::Float(format, text))) {
                             Some(float) => tokens.push(float),
                             None => tokens.push(Token::Word(word)),
@@ -395,6 +395,27 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
         }
     }
     Ok(tokens)
+}
+
+/// The word in the braces of `\mathrm{…}` and its kin, without spaces and without a word command
+/// nested in it: MathLive writes the key `\operatorname{f32}` as `\operatorname{\mathrm{f32}}`.
+fn plain_word(braced_text: &str) -> Result<String> {
+    let mut word: String = braced_text.chars().filter(|c| !c.is_whitespace()).collect();
+    while let Some(inner) = word.strip_prefix('\\') {
+        let name: String = inner.chars().take_while(char::is_ascii_alphabetic).collect();
+        if !WORD_COMMANDS.contains(&name.as_str()) {
+            let other = name;
+            return Err(QuantusError::other(msg!("core.basen.unknown_command")));
+        }
+        let chars: Vec<char> = inner[name.len()..].chars().collect();
+        let mut at = 0;
+        let content = braced(&chars, &mut at)?;
+        if at != chars.len() {
+            break;
+        }
+        word = content;
+    }
+    Ok(word)
 }
 
 /// After `f32`/`f64`: the argument in brackets as typed (`(0{,}1)`, `\left(1e3\right)`), and
