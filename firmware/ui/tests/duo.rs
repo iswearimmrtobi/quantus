@@ -109,8 +109,10 @@ fn tiles_and_sheets_fill_the_height() {
     assert_eq!(tile_rect(0).size.height, 116);
     assert_eq!(sheet_rows(), 5);
     profile::set(Profile::DUO);
-    // Two rows of tiles down to the page dots, near the bottom of the 405 high canvas.
-    assert!(tile_rect(3).bottom_right().unwrap().y > 350, "{:?}", tile_rect(3));
+    // Three rows of four tiles down to the page dots, near the bottom of the 405 high canvas.
+    assert_eq!(quantus_ui::app::tiles_per_page(), 12);
+    assert_eq!(tile_rect(3).top_left.y, tile_rect(0).top_left.y, "four to a row");
+    assert!(tile_rect(11).bottom_right().unwrap().y > 350, "{:?}", tile_rect(11));
     assert_eq!(sheet_rows(), 7);
     assert_eq!(quantus_ui::sheet::grid_width(), 700);
 }

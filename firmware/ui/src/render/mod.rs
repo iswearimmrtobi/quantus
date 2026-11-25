@@ -28,7 +28,7 @@ use embedded_graphics::primitives::{
 };
 
 use crate::profile::{self, Profile};
-use crate::app::{App, Screen, MENU_COLUMNS, TILES_PER_PAGE};
+use crate::app::{menu_columns, tiles_per_page, App, Screen};
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
 use crate::menu::{AppsView, Edit, Kind, Menu};
@@ -589,20 +589,20 @@ const UNDER_TILES: i32 = 44;
 /// The height of a tile: two rows fill the screen under the top bar and over the page dots,
 /// 116 on the handheld.
 fn tile_height() -> i32 {
-    let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
+    let rows = (tiles_per_page() / menu_columns()) as i32;
     (profile::height() as i32 - BAR - 10 - UNDER_TILES - (rows - 1) * TILE_GAP) / rows
 }
 /// The pages of the mode menu with `tiles` tiles.
 pub fn pages(tiles: usize) -> usize {
-    tiles.div_ceil(TILES_PER_PAGE)
+    tiles.div_ceil(tiles_per_page())
 }
 
 /// The tile `offset` of a page of the mode menu.
 pub fn tile_rect(offset: usize) -> Rectangle {
-    let columns = MENU_COLUMNS as i32;
+    let columns = menu_columns() as i32;
     let width = (profile::width() as i32 - 2 * MARGIN - (columns - 1) * TILE_GAP) / columns;
-    let column = (offset % MENU_COLUMNS) as i32;
-    let row = (offset / MENU_COLUMNS) as i32;
+    let column = (offset % menu_columns()) as i32;
+    let row = (offset / menu_columns()) as i32;
     let height = tile_height();
     let at = Point::new(MARGIN + column * (width + TILE_GAP), BAR + 10 + row * (height + TILE_GAP));
     Rectangle::new(at, Size::new(width as u32, height as u32))
@@ -611,7 +611,7 @@ pub fn tile_rect(offset: usize) -> Rectangle {
 /// The dot of page `index` of `pages` under the tiles.
 pub fn dot_rect(index: usize, pages: usize) -> Rectangle {
     let dot = 8;
-    let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
+    let rows = (tiles_per_page() / menu_columns()) as i32;
     let y = BAR + 10 + rows * (tile_height() + TILE_GAP) + 10;
     let start = (profile::width() as i32 - (pages as i32 * (dot + 8) - 8)) / 2;
     Rectangle::new(Point::new(start + index as i32 * (dot + 8), y), Size::new(dot as u32, dot as u32))
@@ -750,9 +750,9 @@ pub fn target<B>(app: &App<B>, point: Point) -> Option<Target> {
             }
         },
         Screen::Modes { selected } => {
-            let first = selected / TILES_PER_PAGE * TILES_PER_PAGE;
+            let first = selected / tiles_per_page() * tiles_per_page();
             let count = app.tile_count();
-            let on_page = count.saturating_sub(first).min(TILES_PER_PAGE);
+            let on_page = count.saturating_sub(first).min(tiles_per_page());
             if let Some(offset) = (0..on_page).find(|&offset| tile_rect(offset).contains(point)) {
                 return Some(Target::Tile(first + offset));
             }

@@ -122,9 +122,17 @@ impl Mode {
     }
 }
 
-/// Tiles per page of the mode menu, in [`MENU_COLUMNS`] columns.
-pub const TILES_PER_PAGE: usize = 6;
-pub const MENU_COLUMNS: usize = 3;
+/// The columns of tiles on a page of the mode menu: 3 on the handheld, 4 on the Duo's wider
+/// screen.
+pub fn menu_columns() -> usize {
+    if crate::profile::get() == crate::profile::Profile::HANDHELD { 3 } else { 4 }
+}
+
+/// Tiles per page of the mode menu, in [`menu_columns`] columns: 3 × 2 on the handheld, 4 × 3
+/// on the Duo.
+pub fn tiles_per_page() -> usize {
+    if crate::profile::get() == crate::profile::Profile::HANDHELD { 6 } else { 12 }
+}
 
 /// What fills the screen below the top bar.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1554,7 +1562,7 @@ impl<B: Backend> App<B> {
         match std::mem::replace(&mut self.screen, Screen::Calc) {
             Screen::Modes { selected } => {
                 self.screen = Screen::Modes { selected };
-                let page = selected / TILES_PER_PAGE;
+                let page = selected / tiles_per_page();
                 if moved.x <= -TURN {
                     self.show_page(page + 1);
                 } else if moved.x >= TURN && page > 0 {
@@ -1739,7 +1747,7 @@ impl<B: Backend> App<B> {
 
     /// The mode menu on the first tile of `page`, if there is one.
     fn show_page(&mut self, page: usize) {
-        let selected = page * TILES_PER_PAGE;
+        let selected = page * tiles_per_page();
         if matches!(self.screen, Screen::Modes { .. }) && selected < self.tile_count() {
             self.screen = Screen::Modes { selected };
         }
@@ -2808,8 +2816,8 @@ impl<B: Backend> App<B> {
             Key::Ac | Key::Mode | Key::Del => return self.screen = Screen::Calc,
             Key::Left => selected.saturating_sub(1),
             Key::Right => (selected + 1).min(count - 1),
-            Key::Up if selected >= MENU_COLUMNS => selected - MENU_COLUMNS,
-            Key::Down if selected + MENU_COLUMNS < count => selected + MENU_COLUMNS,
+            Key::Up if selected >= menu_columns() => selected - menu_columns(),
+            Key::Down if selected + menu_columns() < count => selected + menu_columns(),
             _ => selected,
         };
         self.screen = Screen::Modes { selected };

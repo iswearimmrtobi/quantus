@@ -10,7 +10,7 @@ use super::{
     LINE, LINE_GAP, MARGIN, NUMBER_BUTTONS, THUMBNAIL,
 };
 use crate::profile;
-use crate::app::{App, Mode, View, TILES_PER_PAGE};
+use crate::app::{tiles_per_page, App, Mode, View};
 use crate::backend::{Storage, WlanStatus};
 use crate::editor::Row;
 use crate::font::Scale;
@@ -262,7 +262,7 @@ pub(super) fn modes<B>(shapes: &mut Vec<Shape>, app: &App<B>, selected: usize, g
         .chain(app.app_tiles.iter().map(|info| (info.name.clone(), info.name.clone())))
         .collect();
     let count = super::pages(names.len());
-    let page = selected / TILES_PER_PAGE;
+    let page = selected / tiles_per_page();
     let dx = app.drag().map_or(0, |drag| drag.x);
     let pages = if dx == 0 { page..=page } else { page.saturating_sub(1)..=(page + 1).min(count - 1) };
     for shown in pages {
@@ -289,8 +289,8 @@ fn tiles(
     shift: Point,
     glass: bool,
 ) {
-    let first = page * TILES_PER_PAGE;
-    let on_page = names.get(first..(first + TILES_PER_PAGE).min(names.len())).unwrap_or_default();
+    let first = page * tiles_per_page();
+    let on_page = names.get(first..(first + tiles_per_page()).min(names.len())).unwrap_or_default();
     let small = Scale::Small.metrics();
     for (offset, (name, breakable)) in on_page.iter().enumerate() {
         let index = first + offset;
