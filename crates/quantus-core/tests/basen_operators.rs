@@ -598,3 +598,36 @@ fn a_negative_count_is_refused_in_an_unsigned_word_too() {
         assert!(got.is_err(), "{latex}: {got:?}");
     }
 }
+
+/// The examples of `docs/docs/guides/base-n-operators.md` not checked above.
+#[test]
+fn the_examples_of_the_operators_page() {
+    let (s8, u8, s32) = (spec(8, true), spec(8, false), spec(32, true));
+    let dec = |latex: &str, spec| run(latex, NumberBase::Dec, spec).map(|(bits, wrapped)| (read(bits, spec), wrapped));
+    let hex = |latex: &str, spec| run(latex, NumberBase::Hex, spec);
+    assert_eq!(dec("100 + 27", s8), Ok((127, false)));
+    assert_eq!(dec("100 + 28", s8), Ok((-128, true)));
+    assert_eq!(dec("200 + 100", u8), Ok((44, true)));
+    assert_eq!(dec("0 - 1", u8), Ok((255, true)));
+    assert_eq!(dec(r"16 \cdot 16", u8), Ok((0, true)));
+    assert_eq!(dec(r"-8 \cdot 16", s8), Ok((-128, false)));
+    assert_eq!(dec("(2)(3)", s32), Ok((6, false)));
+    assert_eq!(error("(2)3", NumberBase::Dec, s32), "Unexpected '3'.");
+    assert_eq!(dec(r"\operatorname{Not}(0)", s32), Ok((-1, false)));
+    assert_eq!(hex(r"\operatorname{Not}(0F)", u8), Ok((0xF0, false)));
+    assert_eq!(hex(r"\operatorname{Neg}(5)", s8), Ok((0xFB, false)));
+    assert_eq!(dec(r"\operatorname{Neg}(1)", u8), Ok((255, false)));
+    assert_eq!(dec(r"\operatorname{Neg}(-128)", s8), Ok((-128, false)));
+    assert_eq!(dec(r"12 \operatorname{xnor} 10", s8), Ok((-7, false)));
+    assert_eq!(dec("3 << 2", s32), Ok((12, false)));
+    assert_eq!(dec("1 << 7", s8), Ok((-128, false)));
+    assert_eq!(hex("81 << 1", u8), Ok((0x02, false)));
+    assert_eq!(hex("1 << 10", s32), Ok((0x1_0000, false)));
+    assert_eq!(dec("-7 >> 1", s32), Ok((-4, false)));
+    assert_eq!(dec(r"-7 \div 2", s32), Ok((-3, false)));
+    assert_eq!(hex(r"\mathrm{h}1F + \mathrm{b}101", s32), Ok((36, false)));
+    assert_eq!(error(r"\operatorname{shl} 1", NumberBase::Dec, s32), "Expected '(' after 'shl'.");
+    assert_eq!(error(r"\operatorname{and} 1", NumberBase::Dec, s32), "'and' is not a decimal number.");
+    assert_eq!(error(r"1 \operatorname{and}", NumberBase::Dec, s32), "The input ends too early.");
+    assert_eq!(error(r"\operatorname{shl}(1)", NumberBase::Dec, s32), "'shl' takes two numbers: shl(x, n).");
+}
