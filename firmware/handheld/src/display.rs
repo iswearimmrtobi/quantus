@@ -70,7 +70,8 @@ macro_rules! open_display {
             $peripherals.i2c0,
             $peripherals.pins.gpio7, // TP_SDA
             $peripherals.pins.gpio8, // TP_SCL
-            &I2cConfig::new().baudrate(400.kHz().into()),
+            // The Duo's panel power/backlight chip on the same bus answers only at 100 kHz.
+            &I2cConfig::new().baudrate(if cfg!(feature = "duo") { 100.kHz().into() } else { 400.kHz().into() }),
         )
         .expect("i2c");
         let touch_reset = PinDriver::output($peripherals.pins.gpio21).expect("TP_RST");
