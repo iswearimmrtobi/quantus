@@ -25,7 +25,7 @@ use embedded_graphics::primitives::{
     Triangle,
 };
 
-use crate::profile;
+use crate::profile::{self, Profile};
 use crate::app::{App, Screen, MENU_COLUMNS, TILES_PER_PAGE};
 use crate::font::Scale;
 use crate::layout::{self, RowLayout};
@@ -248,53 +248,97 @@ impl Shape {
         }
     }
 
-    fn draw<D: DrawTarget<Color = Rgb565>>(&self, target: &mut D) {
+    /// The area drawn on the panel of `profile`, with a pixel to spare for rounding.
+    fn panel_bounds(&self, profile: &Profile) -> Rectangle {
+        let bounds = self.bounds();
+        if profile.is_unit() {
+            return bounds;
+        }
+        let spare = Size::new(2, 2);
+        let panel = profile.rect(bounds);
+        Rectangle::new(panel.top_left - Point::new(1, 1), panel.size + spare)
+    }
+
+    /// Draws the shape, laid out on the logical canvas, on the panel of `profile`.
+    fn draw<D: DrawTarget<Color = Rgb565>>(&self, target: &mut D, profile: &Profile) {
+        let p = profile;
+        // The two-pixel outlines of boxes.
+        let outline_width = p.length(2);
         match self {
             Shape::Fill(area, color) => {
-                let _ = area.into_styled(PrimitiveStyle::with_fill(*color)).draw(target);
+                let _ = p.rect(*area).into_styled(PrimitiveStyle::with_fill(*color)).draw(target);
             }
             Shape::Round(round, fill, outline) | Shape::Glass(round, fill, _, outline) => {
                 let mut style = PrimitiveStyleBuilder::new().fill_color(*fill);
                 if let Some(outline) = outline {
                     style = style
                         .stroke_color(*outline)
-                        .stroke_width(2)
+                        .stroke_width(outline_width)
                         .stroke_alignment(StrokeAlignment::Inside);
                 }
-                let _ = round.into_styled(style.build()).draw(target);
+                let _ = rounded_on(round, p).into_styled(style.build()).draw(target);
             }
             Shape::Outline(round, color) => {
                 let style = PrimitiveStyleBuilder::new()
                     .stroke_color(*color)
-                    .stroke_width(2)
+                    .stroke_width(outline_width)
                     .stroke_alignment(StrokeAlignment::Inside)
                     .build();
-                let _ = round.into_styled(style).draw(target);
+                let _ = rounded_on(round, p).into_styled(style).draw(target);
             }
             Shape::Triangle(triangle, color) => {
-                let _ = triangle.into_styled(PrimitiveStyle::with_fill(*color)).draw(target);
+                let [a, b, c] = triangle.vertices.map(|vertex| p.point(vertex));
+                let _ = Triangle::new(a, b, c).into_styled(PrimitiveStyle::with_fill(*color)).draw(target);
             }
             Shape::Circle(circle, color) => {
+                let circle = Circle::new(p.point(circle.top_left), p.length(circle.diameter));
                 let _ = circle.into_styled(PrimitiveStyle::with_fill(*color)).draw(target);
             }
             Shape::Arc(arc, color, width) => {
-                let _ = arc.into_styled(PrimitiveStyle::with_stroke(*color, *width)).draw(target);
+                let arc = Arc::new(p.point(arc.top_left), p.length(arc.diameter), arc.angle_start, arc.angle_sweep);
+                let _ = arc.into_styled(PrimitiveStyle::with_stroke(*color, p.length(*width))).draw(target);
             }
             Shape::Path(points, color, width) => {
-                let _ = Polyline::new(points).into_styled(PrimitiveStyle::with_stroke(*color, *width)).draw(target);
+                let points: Vec<Point> = points.iter().map(|point| p.point(*point)).collect();
+                let _ = Polyline::new(&points).into_styled(PrimitiveStyle::with_stroke(*color, p.length(*width))).draw(target);
             }
-            Shape::Text(origin, text, scale, color) => scale.draw(text, *origin, *color, target),
+            Shape::Text(origin, text, scale, color) => scale.draw_scaled(text, *origin, *color, p, target),
             Shape::Math(origin, row, color) => {
-                layout::draw(row, *origin, *color, colors::faint(), target);
+                layout::draw_scaled(row, *origin, *color, colors::faint(), p, target);
             }
             Shape::Thumbnail(at, pixels) => {
-                let width = THUMBNAIL.width;
-                let colors = (0..THUMBNAIL.height)
-                    .flat_map(move |y| (0..width).map(move |x| pixels.get((2 * y * WIDTH + 2 * x) as usize)));
-                let _ = target.fill_contiguous(&Rectangle::new(*at, THUMBNAIL), colors);
+                // Each of the panel's pixels from the wallpaper's pixel under it.
+                let area = p.rect(Rectangle::new(*at, THUMBNAIL));
+                let Size { width, height } = area.size;
+                let (logical, panel) = (THUMBNAIL.width, width.max(1));
+                let colors = (0..height).flat_map(move |y| {
+                    (0..width).map(move |x| {
+                        let (x, y) = (x * logical / panel, y * logical / panel);
+                        pixels.get((2 * y * WIDTH + 2 * x) as usize)
+                    })
+                });
+                let _ = target.fill_contiguous(&area, colors);
             }
         }
     }
+}
+
+/// A rounded box on the panel of `profile`, its corners scaled with it.
+fn rounded_on(round: &RoundedRectangle, profile: &Profile) -> RoundedRectangle {
+    if profile.is_unit() {
+        return *round;
+    }
+    let corner = |size: Size| Size::new(profile.length(size.width), profile.length(size.height));
+    let corners = round.corners;
+    RoundedRectangle::new(
+        profile.rect(round.rectangle),
+        embedded_graphics::primitives::CornerRadii {
+            top_left: corner(corners.top_left),
+            top_right: corner(corners.top_right),
+            bottom_right: corner(corners.bottom_right),
+            bottom_left: corner(corners.bottom_left),
+        },
+    )
 }
 
 /// The screen laid out, back to front, over the backdrop: the wallpaper's pixels if it shows,

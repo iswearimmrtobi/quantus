@@ -9,6 +9,8 @@ use std::cell::Cell;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
 
+use crate::font::Scale;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Profile {
     /// The logical canvas the layout works on.
@@ -56,6 +58,11 @@ impl Profile {
         let top_left = self.point(rect.top_left);
         let end = self.point(rect.top_left + rect.size);
         Rectangle::new(top_left, Size::new((end.x - top_left.x).max(0) as u32, (end.y - top_left.y).max(0) as u32))
+    }
+
+    /// The font that draws text laid out at `scale` on the panel.
+    pub fn font(&self, scale: Scale) -> Scale {
+        if self.is_unit() { scale } else { scale.larger() }
     }
 }
 

@@ -7,6 +7,7 @@ use embedded_graphics::primitives::{Polyline, PrimitiveStyle, Rectangle};
 
 use crate::editor::{Accent, Node, Row, THIN_SPACE};
 use crate::font::Scale;
+use crate::profile::Profile;
 
 /// Characters that get a gap on both sides.
 const OPERATORS: &str = "+-=×÷±→⇒⇔≈≤≥≠∧∨∈∉∪∖▶";
@@ -483,69 +484,74 @@ pub fn draw<D: DrawTarget<Color = Rgb565>>(
     placeholder: Rgb565,
     target: &mut D,
 ) {
+    draw_scaled(row, origin, color, placeholder, &Profile::HANDHELD, target);
+}
+
+/// Draws the row as [`draw`] does, laid out on the logical canvas, on the panel of `profile`.
+pub fn draw_scaled<D: DrawTarget<Color = Rgb565>>(
+    row: &RowLayout,
+    origin: Point,
+    color: Rgb565,
+    placeholder: Rgb565,
+    profile: &Profile,
+    target: &mut D,
+) {
+    // Lines as thick as at the layout's size, in the panel's pixels.
+    let thin = profile.length(1);
+    let stroke = profile.font(row.scale).stroke();
     if row.is_empty() {
         let bounds = row.bounds(origin);
         let bounds = Rectangle::new(bounds.top_left + Point::new(1, 0), bounds.size - Size::new(2, 0));
-        let _ = bounds.into_styled(PrimitiveStyle::with_stroke(placeholder, 1)).draw(target);
+        let _ = profile.rect(bounds).into_styled(PrimitiveStyle::with_stroke(placeholder, thin)).draw(target);
         return;
     }
+    let polyline = |points: &[Point], at: Point, width: u32, target: &mut D| {
+        let points: Vec<Point> = points.iter().map(|point| profile.point(*point + at)).collect();
+        let _ = Polyline::new(&points).into_styled(PrimitiveStyle::with_stroke(color, width)).draw(target);
+    };
     for item in &row.items {
         let at = origin + Point::new(item.x, 0);
         match &item.kind {
-            Kind::Text { text, dx } => row.scale.draw(text, at + Point::new(*dx, 0), color, target),
+            Kind::Text { text, dx } => row.scale.draw_scaled(text, at + Point::new(*dx, 0), color, profile, target),
             Kind::Bar(bar) => {
-                let _ = bar.translate(at).into_styled(PrimitiveStyle::with_fill(color)).draw(target);
+                let _ = profile.rect(bar.translate(at)).into_styled(PrimitiveStyle::with_fill(color)).draw(target);
             }
-            Kind::Sign(points) => {
-                let line = Polyline::new(points).translate(at);
-                let _ = line.into_styled(PrimitiveStyle::with_stroke(color, 1)).draw(target);
-            }
+            Kind::Sign(points) => polyline(points, at, thin, target),
             Kind::Strokes { text, lines } => {
                 if let Some(text) = text {
-                    row.scale.draw(text, at, color, target);
+                    row.scale.draw_scaled(text, at, color, profile, target);
                 }
-                // As thick as the font's strokes.
-                let width = row.scale.stroke();
                 for line in lines {
-                    let line = Polyline::new(line).translate(at);
-                    let _ = line.into_styled(PrimitiveStyle::with_stroke(color, width)).draw(target);
+                    polyline(line, at, stroke, target);
                 }
             }
             Kind::Script => {}
-            Kind::Paren { open } => paren(*open, item, at, row.scale, color, target),
+            Kind::Paren { open } => polyline(&paren(*open, item, at), Point::zero(), stroke, target),
             &Kind::Brackets { width } => {
                 let side = Item { width, kind: Kind::Script, slots: Vec::new(), ..*item };
-                paren(true, &side, at, row.scale, color, target);
-                paren(false, &side, at + Point::new(item.width - width, 0), row.scale, color, target);
+                polyline(&paren(true, &side, at), Point::zero(), stroke, target);
+                polyline(&paren(false, &side, at + Point::new(item.width - width, 0)), Point::zero(), stroke, target);
             }
         }
         for (offset, slot) in &item.slots {
-            draw(slot, at + *offset, color, placeholder, target);
+            draw_scaled(slot, at + *offset, color, placeholder, profile, target);
         }
     }
 }
 
-/// A bracket over the item's whole height: a flat parabola, thickest in the middle like the font's.
-fn paren<D: DrawTarget<Color = Rgb565>>(
-    open: bool,
-    item: &Item,
-    at: Point,
-    scale: Scale,
-    color: Rgb565,
-    target: &mut D,
-) {
+/// The points of a bracket over the item's whole height: a flat parabola, drawn as thick as
+/// the font's strokes.
+fn paren(open: bool, item: &Item, at: Point) -> Vec<Point> {
     const STEPS: i32 = 16;
     let top = at.y - item.ascent + 1;
     let height = item.ascent + item.descent - 2;
     let (inner, outer) = (at.x + 1, at.x + item.width - 2);
     let (inner, outer) = if open { (inner, outer) } else { (outer, inner) };
-    let points: Vec<Point> = (0..=STEPS)
+    (0..=STEPS)
         .map(|step| {
             let t = 2 * step - STEPS;
             let x = inner + (outer - inner) * t * t / (STEPS * STEPS);
             Point::new(x, top + height * step / STEPS)
         })
-        .collect();
-    let width = scale.stroke();
-    let _ = Polyline::new(&points).into_styled(PrimitiveStyle::with_stroke(color, width)).draw(target);
+        .collect()
 }

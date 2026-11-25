@@ -58,10 +58,11 @@ impl Renderer {
         display: &mut D,
     ) -> Result<usize, D::Error> {
         self.fit();
+        let profile = profile::get();
         let Size { width, height } = self.size;
         let mut sent = 0;
         let backdrop = fingerprint(&frame.1);
-        let shapes: Vec<(Rectangle, u64)> = frame.0.iter().map(|shape| (shape.bounds(), fingerprint(shape))).collect();
+        let shapes: Vec<(Rectangle, u64)> = frame.0.iter().map(|shape| (shape.panel_bounds(&profile), fingerprint(shape))).collect();
         for (index, last) in self.sent.iter_mut().enumerate() {
             let top = index as u32 * BAND;
             let area = Rectangle::new(
@@ -82,23 +83,24 @@ impl Renderer {
                 None => pixels.fill(colors::background()),
             }
             let mut band = Band { pixels, area };
-            for shape in &frame.0 {
-                if shape.bounds().intersection(&area).is_zero_sized() {
+            for (shape, (bounds, _)) in frame.0.iter().zip(&shapes) {
+                if bounds.intersection(&area).is_zero_sized() {
                     continue;
                 }
                 match shape {
                     Shape::Glass(round, fill, alpha, outline) => {
+                        let round = &super::rounded_on(round, &profile);
                         band.glass(round, *fill, *alpha);
                         if let Some(outline) = outline {
                             let style = PrimitiveStyleBuilder::new()
                                 .stroke_color(*outline)
-                                .stroke_width(2)
+                                .stroke_width(profile.length(2))
                                 .stroke_alignment(StrokeAlignment::Inside)
                                 .build();
                             let _ = round.into_styled(style).draw(&mut band);
                         }
                     }
-                    shape => shape.draw(&mut band),
+                    shape => shape.draw(&mut band, &profile),
                 }
             }
             let hash = hash(band.pixels);

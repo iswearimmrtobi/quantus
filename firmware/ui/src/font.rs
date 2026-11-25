@@ -8,6 +8,8 @@ use embedded_graphics::prelude::*;
 use u8g2_fonts::types::{FontColor, VerticalPosition};
 use u8g2_fonts::{fonts, FontRenderer};
 
+use crate::profile::Profile;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scale {
     /// FreeUniversal 14.
@@ -20,7 +22,23 @@ pub enum Scale {
     Large,
     /// 30.
     Huge,
+    /// 35, only on screens drawn larger than laid out ([`Scale::larger`]).
+    Xl,
+    /// 42, the same.
+    Xxl,
 }
+
+static XXL: [FontRenderer; 3] = [
+    FontRenderer::new::<fonts::u8g2_font_fur42_tf>(),
+    FontRenderer::new::<fonts::u8g2_font_fur42_t_symbol>(),
+    FontRenderer::new::<fonts::u8g2_font_10x20_t_greek>(),
+];
+
+static XL: [FontRenderer; 3] = [
+    FontRenderer::new::<fonts::u8g2_font_fur35_tf>(),
+    FontRenderer::new::<fonts::u8g2_font_fur35_t_symbol>(),
+    FontRenderer::new::<fonts::u8g2_font_10x20_t_greek>(),
+];
 
 static HUGE: [FontRenderer; 3] = [
     FontRenderer::new::<fonts::u8g2_font_fur30_tf>(),
@@ -73,6 +91,20 @@ impl Scale {
             Scale::Normal => &NORMAL,
             Scale::Large => &LARGE,
             Scale::Huge => &HUGE,
+            Scale::Xl => &XL,
+            Scale::Xxl => &XXL,
+        }
+    }
+
+    /// The size that draws this one on the Duo's main screen, 16/9 as many pixels per
+    /// millimetre (firmware/docs/duo.md §2). No font is larger than 42, so [`Scale::Huge`]
+    /// comes out as [`Scale::Large`] does.
+    pub fn larger(self) -> Scale {
+        match self {
+            Scale::Small => Scale::Large,
+            Scale::Middle => Scale::Huge,
+            Scale::Normal => Scale::Xl,
+            Scale::Large | Scale::Huge | Scale::Xl | Scale::Xxl => Scale::Xxl,
         }
     }
 
@@ -82,6 +114,8 @@ impl Scale {
             Scale::Small | Scale::Middle | Scale::Normal => Scale::Small,
             Scale::Large => Scale::Middle,
             Scale::Huge => Scale::Normal,
+            Scale::Xl => Scale::Large,
+            Scale::Xxl => Scale::Huge,
         }
     }
 
@@ -90,7 +124,8 @@ impl Scale {
         match self {
             Scale::Small | Scale::Middle => 1,
             Scale::Normal | Scale::Large => 2,
-            Scale::Huge => 3,
+            Scale::Huge | Scale::Xl => 3,
+            Scale::Xxl => 4,
         }
     }
 
@@ -126,6 +161,34 @@ impl Scale {
                 dimensions.ok().map(|dimensions| dimensions.advance.x)
             })
             .sum()
+    }
+
+    /// Draws `text` laid out at this size with its baseline at the logical `origin.y`, on the panel
+    /// of `profile`: each character in the larger font where its logical place falls, so the
+    /// text takes the room it was laid out in.
+    pub fn draw_scaled<D: DrawTarget<Color = Rgb565>>(
+        self,
+        text: &str,
+        origin: Point,
+        color: Rgb565,
+        profile: &Profile,
+        target: &mut D,
+    ) {
+        if profile.is_unit() {
+            return self.draw(text, origin, color, target);
+        }
+        let larger = self.larger();
+        let mut advance = 0;
+        for c in text.chars() {
+            let Some(font) = self.font_for(c) else { continue };
+            let at = profile.point(origin + Point::new(advance, 0));
+            if let Some(big) = larger.font_for(c) {
+                let _ = big.render(c, at, VerticalPosition::Baseline, FontColor::Transparent(color), target);
+            }
+            if let Ok(dimensions) = font.get_rendered_dimensions(c, Point::zero(), VerticalPosition::Baseline) {
+                advance += dimensions.advance.x;
+            }
+        }
     }
 
     /// Draws `text` with its baseline at `origin.y`.
