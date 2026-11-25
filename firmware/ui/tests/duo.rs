@@ -57,6 +57,7 @@ impl DrawTarget for Panel {
 fn the_profile_scales_the_canvas_to_the_panel() {
     assert_eq!(Profile::DUO.physical(), PANEL);
     assert_eq!(Profile::HANDHELD.physical(), Size::new(480, 320));
+    assert_eq!(Profile::DUO_BENCH.physical(), Size::new(1280, 800));
     let rect = Profile::DUO.rect(Rectangle::new(Point::new(9, 9), Size::new(9, 18)));
     assert_eq!(rect, Rectangle::new(Point::new(16, 16), Size::new(16, 32)));
 }

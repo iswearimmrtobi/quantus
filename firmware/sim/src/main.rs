@@ -21,6 +21,7 @@
 //! - `--seed <n>`: fixes the random numbers apps get, so a game repeats.
 //! - `--duo`: the Duo (firmware/docs/duo.md): the 1280×720 main screen over the 480×320 input
 //!   screen with the hardware buttons, at one pixel per pixel; the mouse taps both screens.
+//! - `--duo-bench`: the same with the 10.1" 1280×800 panel the Duo is tried on.
 
 mod duo;
 mod keypad;
@@ -61,7 +62,14 @@ fn main() {
         _ => None,
     });
     // The Duo: its main screen for the layout, its input screen and buttons for the keypad.
-    let mut duo = args.iter().any(|arg| arg == "--duo").then(Duo::new);
+    // `--duo-bench`: on the 10.1" 1280×800 panel the Duo is tried on.
+    let bench = args.iter().any(|arg| arg == "--duo-bench");
+    if bench {
+        profile::set(Profile::DUO_BENCH);
+    } else if args.iter().any(|arg| arg == "--duo") {
+        profile::set(Profile::DUO);
+    }
+    let mut duo = (bench || args.iter().any(|arg| arg == "--duo")).then(Duo::new);
     let unit = if args.iter().any(|arg| arg == "--no-keypad") || duo.is_some() {
         None
     } else if png_mode {
@@ -69,9 +77,6 @@ fn main() {
     } else {
         unit.or(Some(keypad::Unit::Big))
     };
-    if duo.is_some() {
-        profile::set(Profile::DUO);
-    }
     let screen_size = Size::new(WIDTH, HEIGHT);
     let mut keypad = unit.map(|unit| Keypad::new(unit, Point::new(WIDTH as i32, 0)));
     let window_size = match &duo {

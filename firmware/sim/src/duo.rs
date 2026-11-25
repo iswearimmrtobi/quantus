@@ -1,5 +1,5 @@
 //! The Duo (firmware/docs/duo.md) in the window: the 5" main screen on top at its 1280×720, the
-//! 3.5" input screen under it at 480×320, and the hardware buttons beside that: the arrows with
+//! 3.5" input screen under it at 480×320 (or the 10.1" bench panel's 1280×800 with `--duo-bench`), and the hardware buttons beside that: the arrows with
 //! OK on the left, MENU and EXE on the right. Both screens at one pixel per pixel, so the input
 //! screen looks smaller than it is next to the denser main one.
 
@@ -13,7 +13,7 @@ use quantus_ui::app::App;
 use quantus_ui::backend::Backend;
 use quantus_ui::key::Key;
 use quantus_ui::pad;
-use quantus_ui::profile::Profile;
+use quantus_ui::profile::{self, Profile};
 use quantus_ui::render::{self, Renderer};
 use quantus_ui::touch::Touch;
 
@@ -63,16 +63,16 @@ impl Duo {
 
     /// The window: both screens one under the other, the buttons beside the lower one.
     pub fn window() -> Size {
-        let main = Profile::DUO.physical();
+        let main = profile::get().physical();
         Size::new(main.width, main.height + HINGE as u32 + pad::HEIGHT + HINGE as u32)
     }
 
     pub fn main_area() -> Rectangle {
-        Rectangle::new(Point::zero(), Profile::DUO.physical())
+        Rectangle::new(Point::zero(), profile::get().physical())
     }
 
     pub fn pad_area() -> Rectangle {
-        let main = Profile::DUO.physical();
+        let main = profile::get().physical();
         let x = (main.width - pad::WIDTH) as i32 / 2;
         Rectangle::new(Point::new(x, main.height as i32 + HINGE), Size::new(pad::WIDTH, pad::HEIGHT))
     }
@@ -106,7 +106,7 @@ impl Duo {
     pub fn press<B: Backend>(&mut self, app: &mut App<B>, point: Point) -> bool {
         if Self::main_area().contains(point) {
             self.held = Some(Held::Main);
-            return app.touch(Touch::Press(Profile::DUO.logical(point)));
+            return app.touch(Touch::Press(profile::get().logical(point)));
         }
         if Self::pad_area().contains(point) {
             self.held = Some(Held::Pad);
@@ -124,7 +124,7 @@ impl Duo {
 
     pub fn drag<B: Backend>(&mut self, app: &mut App<B>, point: Point) -> bool {
         match self.held {
-            Some(Held::Main) => app.touch(Touch::Drag(Profile::DUO.logical(point))),
+            Some(Held::Main) => app.touch(Touch::Drag(profile::get().logical(point))),
             Some(Held::Pad) => app.pad_touch(Touch::Drag(point - Self::pad_area().top_left)),
             _ => false,
         }

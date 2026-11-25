@@ -27,6 +27,7 @@ cargo run -- --sd ~/quantus-sd                      # another folder as the SD c
 cargo run -- --tour                                 # a walk through the UI with the wallpaper
 cargo run -- --seed 7                               # the apps' random numbers fixed, a game repeats
 cargo run -- --duo                                  # the Duo: main screen, input screen, buttons
+cargo run -- --duo-bench                            # the same on the 10.1" 1280×800 bench panel
 ```
 
 The folder `sd` (or the one after `--sd`) stands for the SD card; its `wallpapers` folder holds
@@ -96,6 +97,9 @@ the input screen's keys type as the keypad's do, its top rows are the mode's sof
 turns the function keys. The PC keyboard types as with the handheld. With `--png` both screens and
 the buttons are in the picture. `--mirror` does not go with it: the board shows the handheld's
 screen.
+
+`--duo-bench` is the same with the 10.1" 1280×800 panel the Duo is tried on until its 5" panel
+is there (`firmware/handheld`'s `duo` feature): the same layout, 45 logical rows taller.
 
 The characters are the same over the board's serial console (`firmware/handheld`), and a USB
 keyboard on the board types the same keys (`firmware/ui/src/hid.rs`).

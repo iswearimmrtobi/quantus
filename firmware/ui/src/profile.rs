@@ -27,6 +27,9 @@ impl Profile {
     /// The Duo's 5" main screen, 1280×720 at about 1.78 times the handheld's pixels per
     /// millimetre: a logical 720×405, so the same layout is the same size and shows more.
     pub const DUO: Profile = Profile { width: 720, height: 405, num: 16, den: 9 };
+    /// The 10.1" 1280×800 panel the Duo is tried on until its 5" panel is on the bench: the
+    /// Duo's scale, 45 logical rows taller.
+    pub const DUO_BENCH: Profile = Profile { width: 720, height: 450, num: 16, den: 9 };
 
     /// Whether the panel's pixels are the layout's.
     pub fn is_unit(&self) -> bool {
