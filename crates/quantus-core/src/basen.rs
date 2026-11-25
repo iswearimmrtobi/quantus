@@ -295,7 +295,10 @@ impl Token {
 /// Commands whose braced argument is one word: `\mathrm{h}`, `\operatorname{and}`.
 const WORD_COMMANDS: [&str; 5] = ["mathrm", "operatorname", "text", "mathit", "textrm"];
 /// Commands that are spacing or sizing only.
-const IGNORED_COMMANDS: [&str; 8] = ["left", "right", "quad", "qquad", "displaystyle", "big", "Big", "mathbf"];
+const IGNORED_COMMANDS: [&str; 18] = [
+    "left", "right", "quad", "qquad", "displaystyle", "mathbf", "big", "Big", "bigg", "Bigg", "bigl", "bigr", "Bigl", "Bigr", "biggl",
+    "biggr", "Biggl", "Biggr",
+];
 
 fn tokenize(latex: &str) -> Result<Vec<Token>> {
     let chars: Vec<char> = latex.chars().collect();
@@ -345,7 +348,12 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
                 }
                 let name: String = chars[start..i].iter().collect();
                 if name.is_empty() {
-                    // `\,`, `\ ` and the like: spacing.
+                    // `\{` and `\}` are brackets; `\,`, `\ ` and the like spacing.
+                    match chars.get(i) {
+                        Some('{') => tokens.push(Token::Open),
+                        Some('}') => tokens.push(Token::Close),
+                        _ => {}
+                    }
                     i += 1;
                     continue;
                 }
@@ -381,6 +389,15 @@ fn tokenize(latex: &str) -> Result<Vec<Token>> {
                         match Format::of_name(&word).and_then(|format| float_argument(&chars, &mut i).map(|text| Token::Float(format, text))) {
                             Some(float) => tokens.push(float),
                             None => tokens.push(Token::Word(word)),
+                        }
+                    }
+                    // `\mathopen{(}` is the bracket in its braces, `\mathopen{}` nothing.
+                    "mathopen" | "mathclose" => {
+                        while chars.get(i) == Some(&' ') {
+                            i += 1;
+                        }
+                        if chars.get(i) == Some(&'{') {
+                            tokens.extend(tokenize(&braced(&chars, &mut i)?)?);
                         }
                     }
                     name if IGNORED_COMMANDS.contains(&name) => {}
@@ -605,19 +622,31 @@ impl Parser {
                 _ => return Ok(left),
             };
             self.index += 1;
-            let count = self.sum()?;
-            left = self.apply(shift, left, count)?;
+            let count = self.count(Parser::sum)?;
+            left = self.apply(shift, left, count);
         }
     }
 
-    /// `shift` of `value` by `count` bits; bits shifted out are no overflow.
-    fn apply(&mut self, shift: Shift, value: i128, count: i128) -> Result<i128> {
-        let bits = self.bits(value);
+    /// A shift count, parsed by `parse`: not negative. Unsigned, a count that wrapped from below
+    /// zero is negative too: `-1` and `0 - 1` are refused, not read as 255; a count that wrapped
+    /// on the way back above zero (`-1 + 2`) or typed as a pattern (`FF`) is no error.
+    fn count(&mut self, parse: fn(&mut Parser) -> Result<i128>) -> Result<i128> {
+        let before = std::mem::replace(&mut self.wrapped, false);
+        let count = parse(self)?;
         let count = self.wrap(count);
-        if count < 0 {
-            return Err(QuantusError::other(msg!("core.basen.negative_shift", count)));
+        let wrapped = self.wrapped;
+        self.wrapped |= before;
+        let signed = Spec { signed: true, ..self.spec }.read(self.spec.wrap(count).0);
+        if count < 0 || (wrapped && signed < 0) {
+            return Err(QuantusError::other(msg!("core.basen.negative_shift", signed)));
         }
-        Ok(self.read(shift.apply(bits, count, self.spec)))
+        Ok(count)
+    }
+
+    /// `shift` of `value` by `count ≥ 0` bits; bits shifted out are no overflow.
+    fn apply(&mut self, shift: Shift, value: i128, count: i128) -> i128 {
+        let bits = self.bits(value);
+        self.read(shift.apply(bits, count, self.spec))
     }
 
     /// `shl(x, n)` and the like, after the name.
@@ -631,12 +660,12 @@ impl Parser {
             return Err(QuantusError::other(msg!("core.basen.two_arguments")));
         }
         self.index += 1;
-        let count = self.or()?;
+        let count = self.count(Parser::or)?;
         if self.peek() != Some(&Token::Close) {
             return Err(QuantusError::other(msg!("core.basen.bracket_not_closed")));
         }
         self.index += 1;
-        self.apply(shift, value, count)
+        Ok(self.apply(shift, value, count))
     }
 
     fn sum(&mut self) -> Result<i128> {

@@ -366,28 +366,33 @@ fn every_spelling_of_each_operator_gives_the_same() {
     }
 }
 
-/// Found by these tests: `\bigl`, `\bigr`, `\Bigl` and `\Bigr` are unknown commands, though `\big`
-/// and `\Big` are skipped; MathLive writes the sided sizes.
+/// Found by these tests, then fixed: `\bigl`, `\bigr`, `\Bigl` and `\Bigr` were unknown commands,
+/// though `\big` and `\Big` were skipped.
 #[test]
-#[ignore = "finding: \\bigl( … \\bigr) is refused as an unknown command"]
 fn sided_sizes_are_brackets() {
-    for latex in [r"\bigl(1 + 2\bigr) \cdot 3", r"\Bigl(1 + 2\Bigr) \cdot 3", r"\biggl(1 + 2\biggr) \cdot 3"] {
+    for latex in [
+        r"\bigl(1 + 2\bigr) \cdot 3", r"\Bigl(1 + 2\Bigr) \cdot 3", r"\biggl(1 + 2\biggr) \cdot 3", r"\Biggl(1 + 2\Biggr) \cdot 3",
+        r"\bigg(1 + 2\bigg) \cdot 3", r"\Bigg[1 + 2\Bigg] \cdot 3",
+    ] {
         assert_eq!(evaluate(latex, NumberBase::Dec, spec(32, true)).map(|r| r.value()).map_err(|e| e.to_string()), Ok(9), "{latex}");
     }
 }
 
-/// Found by these tests: `\mathopen` and `\mathclose` are unknown commands.
+/// Found by these tests, then fixed: `\mathopen` and `\mathclose` were unknown commands. They are
+/// the bracket in their braces, and nothing when empty.
 #[test]
-#[ignore = "finding: \\mathopen{(} and \\mathclose{)} are refused"]
 fn mathopen_and_mathclose_are_brackets() {
-    let latex = r"\mathopen{(}1 + 2\mathclose{)} \cdot 3";
-    assert_eq!(evaluate(latex, NumberBase::Dec, spec(32, true)).map(|r| r.value()).map_err(|e| e.to_string()), Ok(9));
+    for latex in [
+        r"\mathopen{(}1 + 2\mathclose{)} \cdot 3", r"\mathopen{[}1 + 2\mathclose{]} \cdot 3", r"\mathopen{}(1 + 2\mathclose{}) \cdot 3",
+        r"\mathopen{} \left(1 + 2\right) \mathclose{} \cdot 3", r"\mathopen(1 + 2\mathclose) \cdot 3",
+    ] {
+        assert_eq!(evaluate(latex, NumberBase::Dec, spec(32, true)).map(|r| r.value()).map_err(|e| e.to_string()), Ok(9), "{latex}");
+    }
 }
 
-/// Found by these tests: `\{` and `\}` are read as spacing (a backslash and one character), so
-/// the braces disappear: `\{1 + 2\} \cdot 3` is `1 + 2 \cdot 3`, 7 instead of 9.
+/// Found by these tests, then fixed: `\{` and `\}` were read as spacing, so the braces
+/// disappeared: `\{1 + 2\} \cdot 3` was `1 + 2 \cdot 3`, 7 instead of 9.
 #[test]
-#[ignore = "finding: \\{ \\} are dropped instead of read as brackets"]
 fn escaped_braces_are_brackets() {
     for latex in [r"\{1 + 2\} \cdot 3", r"\left\{1 + 2\right\} \cdot 3", r"2\{1 + 2\} + 3"] {
         assert_eq!(evaluate(latex, NumberBase::Dec, spec(32, true)).map(|r| r.value()).map_err(|e| e.to_string()), Ok(9), "{latex}");
@@ -587,16 +592,27 @@ fn an_operator_word_without_a_left_operand_is_read_as_a_number() {
     assert_eq!(error("xor 1", NumberBase::Dec, spec(32, true)), "'xor' is not a decimal number.");
 }
 
-/// Found by these tests: unsigned, a negative count wraps into the word before it is checked, so
-/// `1 << -1` in 8 bit unsigned is `1 << 255`, that is 0, with an overflow note, instead of the
-/// error the signed word gives.
+/// Found by these tests, then fixed: unsigned, a negative count wrapped into the word before it
+/// was checked, so `1 << -1` in 8 bit unsigned was `1 << 255`, that is 0, instead of the error the
+/// signed word gives. A count that wrapped from below zero is refused; one typed as a pattern, or
+/// that wrapped back above zero, is not.
 #[test]
-#[ignore = "finding: a negative shift count is no error in an unsigned word"]
 fn a_negative_count_is_refused_in_an_unsigned_word_too() {
-    for latex in ["1 << -1", r"\operatorname{shl}(1, -1)", r"\operatorname{rol}(1, -1)", r"\operatorname{shl}(1, 0 - 1)"] {
-        let got = run(latex, NumberBase::Dec, spec(8, false));
-        assert!(got.is_err(), "{latex}: {got:?}");
+    let byte = spec(8, false);
+    for (latex, count) in [
+        ("1 << -1", -1), ("1 >> -2", -2), (r"\operatorname{shl}(1, -1)", -1), (r"\operatorname{rol}(1, -1)", -1),
+        (r"\operatorname{shl}(1, 0 - 1)", -1), (r"\operatorname{sar}(1, 0 - 56)", -56),
+    ] {
+        assert_eq!(error(latex, NumberBase::Dec, byte), format!("A shift count must not be negative ({count})."), "{latex}");
     }
+    assert_eq!(error("1 << -1", NumberBase::Dec, spec(64, false)), "A shift count must not be negative (-1).");
+    assert_eq!(run("1 << -1 + 2", NumberBase::Dec, byte), Ok((2, true)));
+    assert_eq!(run("1 << 200", NumberBase::Dec, byte), Ok((0, false)));
+    assert_eq!(run(r"\operatorname{rol}(1, 100 + 100)", NumberBase::Dec, byte), Ok((1, false)));
+    assert_eq!(run("1 << FF", NumberBase::Hex, byte), Ok((0, false)));
+    assert_eq!(run("1 << FF", NumberBase::Hex, spec(8, true)), Err("A shift count must not be negative (-1).".into()));
+    // An overflow before the count still shows.
+    assert_eq!(run("1 << 1 + 255", NumberBase::Dec, byte), Ok((1, true)));
 }
 
 /// The examples of `docs/docs/guides/base-n-operators.md` not checked above.
