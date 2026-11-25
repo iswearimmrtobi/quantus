@@ -15,6 +15,7 @@ pub mod key;
 pub mod layer;
 pub mod latex;
 pub mod layout;
+pub mod legend;
 pub mod menu;
 pub mod profile;
 pub mod render;
