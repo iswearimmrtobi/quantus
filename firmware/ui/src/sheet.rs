@@ -32,17 +32,25 @@ pub enum Outcome {
     Calculate,
 }
 
-/// The rows a sheet shows at a time.
-pub const ROWS_SHOWN: usize = 5;
-/// The width the cells share, in pixels, and that of the labels of a form.
-pub const GRID_WIDTH: i32 = 460;
+/// The rows a sheet shows at a time: as many as fit over the cell shown in full, 5 on the
+/// handheld.
+pub fn rows_shown() -> usize {
+    crate::render::sheet_rows()
+}
+
+/// The width the cells share, in pixels: the screen's less its margins.
+pub fn grid_width() -> i32 {
+    crate::profile::width() as i32 - 20
+}
+
+/// The width of the labels of a form.
 pub const LABEL_WIDTH: i32 = 110;
 /// The narrowest a cell gets before the sheet scrolls sideways.
 const NARROWEST: i32 = 88;
 
 /// The width of a cell and how many columns show, for a sheet of `columns`, with labels or not.
 pub fn columns_shown(columns: usize, labels: bool) -> (i32, usize) {
-    let room = GRID_WIDTH - if labels { LABEL_WIDTH } else { 0 };
+    let room = grid_width() - if labels { LABEL_WIDTH } else { 0 };
     let shown = columns.clamp(1, (room / NARROWEST) as usize);
     (room / shown as i32, shown)
 }
@@ -336,7 +344,7 @@ impl Kind {
 
     /// How many rows show at a time: one fewer under the input.
     pub fn rows_shown(self) -> usize {
-        if self.over_input() { ROWS_SHOWN - 1 } else { ROWS_SHOWN }
+        if self.over_input() { rows_shown() - 1 } else { rows_shown() }
     }
 }
 

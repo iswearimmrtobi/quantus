@@ -14,7 +14,7 @@ use crate::font::Scale;
 use crate::latex;
 use crate::layout::{self, RowLayout};
 use crate::settings::UnknownNames;
-use crate::sheet::{self, Column, Kind, Sheet, LABEL_WIDTH, ROWS_SHOWN};
+use crate::sheet::{self, Column, Kind, Sheet, LABEL_WIDTH};
 use crate::text::{self, tx, Lang};
 
 /// The height of a row of cells: a small fraction fits.
@@ -23,8 +23,18 @@ const ROW: i32 = 40;
 const HEADS: i32 = BAR + 20;
 const GRID_TOP: i32 = BAR + 26;
 const FORM_TOP: i32 = BAR + 8;
+/// The room under the cells for the cell at the cursor shown in full, from the line over it.
+const EDIT_ROOM: i32 = 62;
+
+/// How many rows of cells fit over the cell shown in full.
+pub fn sheet_rows() -> usize {
+    ((profile::height() as i32 - GRID_TOP - 6 - EDIT_ROOM) / ROW) as usize
+}
+
 /// The line between the cells and the cell at the cursor shown in full.
-const EDIT_TOP: i32 = GRID_TOP + ROWS_SHOWN as i32 * ROW + 6;
+fn edit_top() -> i32 {
+    GRID_TOP + sheet_rows() as i32 * ROW + 6
+}
 
 /// The letters LGS names its unknowns with when *Unbekannte* says letters, as the engine does.
 const LETTERS: [&str; 24] =
@@ -161,7 +171,7 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
     }
     if kind == Kind::Linear {
         if let Some(area) = cell_rect(kind, sheet, sheet.top, sheet.columns() - 1) {
-            let rows = (sheet.rows() - sheet.top).min(ROWS_SHOWN) as u32;
+            let rows = (sheet.rows() - sheet.top).min(sheet::rows_shown()) as u32;
             let line = Rectangle::new(area.top_left - Point::new(3, 0), Size::new(1, rows * ROW as u32 - 4));
             shapes.push(Shape::Fill(line, colors::hairline()));
         }
@@ -231,14 +241,14 @@ pub(super) fn sheet<B>(shapes: &mut Vec<Shape>, app: &App<B>, kind: Kind, glass:
         arrow(shapes, Point::new(profile::width() as i32 - MARGIN - 6, top(kind) - 4), true);
     }
     if below > 0 {
-        arrow(shapes, Point::new(profile::width() as i32 - MARGIN - 6, EDIT_TOP - 4), false);
+        arrow(shapes, Point::new(profile::width() as i32 - MARGIN - 6, edit_top() - 4), false);
     }
 
     // The cell at the cursor in full along the bottom, with the caret while it is edited.
-    shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, EDIT_TOP), Size::new(profile::width() - 2 * MARGIN as u32, 1)), colors::hairline()));
+    shapes.push(Shape::Fill(Rectangle::new(Point::new(MARGIN, edit_top()), Size::new(profile::width() - 2 * MARGIN as u32, 1)), colors::hairline()));
     let name = cursor_name(app, kind, sheet);
     let normal = Scale::Normal.metrics();
-    let at = Point::new(MARGIN, EDIT_TOP + 6 + normal.ascent);
+    let at = Point::new(MARGIN, edit_top() + 6 + normal.ascent);
     match kind {
         Kind::Formula | Kind::Estimates => shapes.push(Shape::Math(at, layout::layout(&latex::parse(&name), Scale::Normal), colors::muted())),
         _ => shapes.push(Shape::Text(at, name, Scale::Normal, colors::muted())),

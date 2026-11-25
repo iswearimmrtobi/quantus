@@ -101,3 +101,16 @@ fn a_screenshot_is_the_panel_size() {
     assert_eq!(&bytes[22..26], &720u32.to_le_bytes());
     assert_eq!(bytes.len() as u32, bmp::HEADER + 1280 * 3 * 720);
 }
+
+#[test]
+fn tiles_and_sheets_fill_the_height() {
+    use quantus_ui::render::{sheet_rows, tile_rect};
+    profile::set(Profile::HANDHELD);
+    assert_eq!(tile_rect(0).size.height, 116);
+    assert_eq!(sheet_rows(), 5);
+    profile::set(Profile::DUO);
+    // Two rows of tiles down to the page dots, near the bottom of the 405 high canvas.
+    assert!(tile_rect(3).bottom_right().unwrap().y > 350, "{:?}", tile_rect(3));
+    assert_eq!(sheet_rows(), 7);
+    assert_eq!(quantus_ui::sheet::grid_width(), 700);
+}

@@ -16,6 +16,7 @@ mod sheet;
 mod soft;
 
 pub use analysis::{dragged, graph_area};
+pub use sheet::sheet_rows;
 pub use soft::{slot_rect, SOFT};
 pub use renderer::Renderer;
 
@@ -40,8 +41,6 @@ use screens::{app_list, calculation, calibration, menu_screen, modes};
 /// The handheld's screen, the size of a wallpaper and of a screenshot used as one.
 pub const WIDTH: u32 = 480;
 pub const HEIGHT: u32 = 320;
-/// The logical canvas of the profile in force ([`crate::profile`]).
-pub use crate::profile::{height};
 /// The height of a band; a band buffer takes the panel's width × BAND × 2 bytes.
 pub const BAND: u32 = 32;
 
@@ -584,7 +583,15 @@ fn rounded(top_left: Point, size: Size, radius: u32) -> RoundedRectangle {
 }
 
 const TILE_GAP: i32 = 8;
-const TILE_HEIGHT: i32 = 116;
+/// The room under the tiles: the gap below the last row and the page dots.
+const UNDER_TILES: i32 = 44;
+
+/// The height of a tile: two rows fill the screen under the top bar and over the page dots,
+/// 116 on the handheld.
+fn tile_height() -> i32 {
+    let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
+    (profile::height() as i32 - BAR - 10 - UNDER_TILES - (rows - 1) * TILE_GAP) / rows
+}
 /// The pages of the mode menu with `tiles` tiles.
 pub fn pages(tiles: usize) -> usize {
     tiles.div_ceil(TILES_PER_PAGE)
@@ -596,15 +603,16 @@ pub fn tile_rect(offset: usize) -> Rectangle {
     let width = (profile::width() as i32 - 2 * MARGIN - (columns - 1) * TILE_GAP) / columns;
     let column = (offset % MENU_COLUMNS) as i32;
     let row = (offset / MENU_COLUMNS) as i32;
-    let at = Point::new(MARGIN + column * (width + TILE_GAP), BAR + 10 + row * (TILE_HEIGHT + TILE_GAP));
-    Rectangle::new(at, Size::new(width as u32, TILE_HEIGHT as u32))
+    let height = tile_height();
+    let at = Point::new(MARGIN + column * (width + TILE_GAP), BAR + 10 + row * (height + TILE_GAP));
+    Rectangle::new(at, Size::new(width as u32, height as u32))
 }
 
 /// The dot of page `index` of `pages` under the tiles.
 pub fn dot_rect(index: usize, pages: usize) -> Rectangle {
     let dot = 8;
     let rows = (TILES_PER_PAGE / MENU_COLUMNS) as i32;
-    let y = BAR + 10 + rows * (TILE_HEIGHT + TILE_GAP) + 10;
+    let y = BAR + 10 + rows * (tile_height() + TILE_GAP) + 10;
     let start = (profile::width() as i32 - (pages as i32 * (dot + 8) - 8)) / 2;
     Rectangle::new(Point::new(start + index as i32 * (dot + 8), y), Size::new(dot as u32, dot as u32))
 }

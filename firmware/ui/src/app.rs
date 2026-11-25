@@ -1602,7 +1602,7 @@ impl<B: Backend> App<B> {
                     }
                 }
                 if let Some(answer) = &mut self.answer {
-                    let page = sheet::ROWS_SHOWN as isize;
+                    let page = sheet::rows_shown() as isize;
                     let by = match moved.y {
                         y if y <= -TURN => page,
                         y if y >= TURN => -page,
