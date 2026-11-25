@@ -12,7 +12,8 @@ Switch to **Base-N** in the top bar. Above the input are a switch **DEC / HEX / 
 the base the input is read in and the result written in, a switch **8 / 16 / 32 / 64** for the
 word size, a switch **signed / unsigned**, and keys in four labelled groups: **Logic** (`and`,
 `or`, `xor`, `xnor`, `Not`, `Neg`), **Shift** (`<<`, `>>`, `shl`, `shr`, `sar`, `rol`, `ror`),
-**Float** (`f32`, `f64`) and **Prefix** (`d`, `h`, `b`, `o`).
+**Float** (`f32`, `f64`) and **Prefix** (`d`, `h`, `b`, `o`). Each operator's meaning and
+spellings are in [Base-N operators](base-n-operators.md).
 
 ## The word
 
@@ -117,5 +118,6 @@ in three colours and its exact value.
 
 ## See also
 
+- [Base-N operators](base-n-operators.md): each operator's theory and syntax, the precedence
 - [Syntax: Basis-N](../reference/syntax.md#basis-n)
 - [Settings: Number base, word size, signed](../reference/settings.md#outside-the-window)

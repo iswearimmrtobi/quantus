@@ -204,7 +204,8 @@ and the prefixes.
 Signs, `Not`, `Neg` and the functions bind first, then products, then sums, then `<<` and `>>`,
 then `and`, then `or`, `xor` and `xnor`. A shift by the width or more leaves 0 (`sar`: all sign
 bits); a rotation turns by n mod width; a negative count is an error. `f32` and `f64` need a word
-of 32 or 64 bits; `F32` in capitals is a hexadecimal number.
+of 32 or 64 bits; `F32` in capitals is a hexadecimal number. Each operator in detail:
+[Base-N operators](../guides/base-n-operators.md).
 
 ## Logic
 

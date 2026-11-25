@@ -7,6 +7,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Docs: the Base-N mode's operators, one by one: their meaning on the word (two's complement,
+  wrapping, truncation, shifts and rotations, IEEE 754), every spelling, the precedence and what
+  is refused.
 - Docs: the Logic mode's operators, one by one: their meaning and rules, truth tables, gates,
   every spelling, the precedence and what is refused.
 - Desktop, circuit editors: wires with corners. A wire drawn between two terminals or pins turns
