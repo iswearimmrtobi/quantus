@@ -237,6 +237,9 @@ and the versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Basis-N reads `\bigl( \bigr)` and the other sided sizes, `\mathopen{(}` and `\mathclose{)}`, and `\{ \}`
+  as brackets. `\{1 + 2\} \cdot 3` was `1 + 2 \cdot 3`, the braces dropped.
+- Basis-N refuses a negative shift count in an unsigned word too: `1 << -1` was a shift by 255.
 - Basis-N: the keys `f32(` and `f64(` work. MathLive writes them `\operatorname{\mathrm{f32}}`,
   which was refused; a word command nested in another is now read.
 - Desktop: typed `xor`, `xnor`, `nand`, `nor` and `ror` stay words. MathLive turned the `or` and

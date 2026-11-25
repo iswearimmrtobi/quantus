@@ -195,7 +195,9 @@ modulo $n$, and $\operatorname{rol}(x, k) = \operatorname{ror}(x, n - k)$. In 8 
 `{,}` and `\semicolon`): `\operatorname{shl}(1, 4)`, `shl(1; 4)`,
 `\operatorname{shl}\left(1,4\right)`. The name is a word in any case, plain or in
 `\operatorname{}`. Each argument is a whole expression: `shl(1 + 1, 1 \operatorname{or} 2)` is $16$.
-In a signed word a negative count is an error.
+A negative count is an error. In an unsigned word no number is negative, so there a count is
+refused when it was computed below zero and wrapped: `1 << -1` and `\operatorname{shl}(1, 0 - 1)`
+are refused, not read as a shift by 255. A count typed as a pattern, `FF`, is 255.
 
 ## f32 and f64
 
@@ -222,7 +224,8 @@ number must fit the word like any other.
 
 ## Brackets
 
-`( )`, `[ ]` and `{ }`, also with `\left` and `\right`, `\big` and `\Big`. Spaces, `\,`, `\;`,
+`( )`, `[ ]`, `{ }` and `\{ \}`, also with `\left` and `\right`, `\big`, `\Bigl`, `\biggr` and the
+like, and `\mathopen{(}`, `\mathclose{)}`. Spaces, `\,`, `\;`,
 `\:`, `\ `, `\quad`, `\qquad` and `\displaystyle` change nothing.
 
 ## Precedence and grouping
@@ -257,7 +260,7 @@ and `xnor` share one level: in C `1 | 2 ^ 3` is `1 | (2 ^ 3)`, which is $1$.
 | Input | Message |
 |---|---|
 | `1 < 2` | *Basis-N does not know '<'.* (only `<<` and `>>`) |
-| `\operatorname{shl}(1, -1)`, signed | *A shift count must not be negative (-1).* |
+| `\operatorname{shl}(1, -1)` | *A shift count must not be negative (-1).* |
 | `\operatorname{shl}(1)` | *'shl' takes two numbers: shl(x, n).* |
 | `\operatorname{shl} 1` | *Expected '(' after 'shl'.* |
 | `5 \div 0` | *Division by zero.* |
