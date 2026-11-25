@@ -20,6 +20,7 @@ pub fn key_of(label: &str) -> Option<Key> {
         "UNDO" => Key::Undo,
         "x³" => Key::Cube,
         "10ˣ" => Key::TenPow,
+        "×10ˣ" => Key::TimesTen,
         "Σ" => Key::Sum,
         "∫" => Key::Integral,
         "OPTN" => Key::Optn,

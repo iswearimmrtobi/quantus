@@ -83,6 +83,8 @@ pub enum Key {
     TenPow,
     Sum,
     Integral,
+    /// ×10ˣ of the number block: a power of ten after a number, `3×10⁸`.
+    TimesTen,
     Mode,
     /// The mode's option menu.
     Optn,

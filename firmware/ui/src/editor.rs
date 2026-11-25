@@ -533,6 +533,13 @@ impl Editor {
             Key::E => self.char('e'),
             Key::Fraction => self.fraction(),
             Key::Power => self.power(),
+            // ×10ˣ: the cursor in the exponent, as after xʸ.
+            Key::TimesTen => {
+                self.char('×');
+                self.char('1');
+                self.char('0');
+                self.power();
+            }
             Key::Square => self.square(),
             Key::Mixed => self.mixed(),
             Key::Ins => self.overtype = !self.overtype,
