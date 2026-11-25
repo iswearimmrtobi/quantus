@@ -136,7 +136,7 @@ fn every_spelling_of_or_is_read() {
 
 #[test]
 fn every_spelling_of_xor_is_read() {
-    assert_spellings("XOR", &[r"A \oplus B", r"A \veebar B", "A ⊕ B", "A xor B", r"A \mathrm{XOR} B", r"A \text{Xor} B"], &[1, 2]);
+    assert_spellings("XOR", &[r"A \oplus B", r"A \veebar B", "A ⊕ B", "A xor B", r"A \mathrm{XOR} B", r"A \text{Xor} B", r"A \operatorname{xor} B"], &[1, 2]);
 }
 
 #[test]
@@ -149,12 +149,12 @@ fn every_spelling_of_xnor_is_read() {
 
 #[test]
 fn every_spelling_of_nand_is_read() {
-    assert_spellings("NAND", &[r"A \uparrow B", r"A \barwedge B", "A ↑ B", "A nand B", r"A \mathrm{NAND} B", r"A \text{nand} B"], &[0, 1, 2]);
+    assert_spellings("NAND", &[r"A \uparrow B", r"A \barwedge B", "A ↑ B", "A nand B", r"A \mathrm{NAND} B", r"A \text{nand} B", r"A \operatorname{nand} B"], &[0, 1, 2]);
 }
 
 #[test]
 fn every_spelling_of_nor_is_read() {
-    assert_spellings("NOR", &[r"A \downarrow B", "A ↓ B", "A nor B", r"A \mathrm{NOR} B", r"A \text{nor} B"], &[0]);
+    assert_spellings("NOR", &[r"A \downarrow B", "A ↓ B", "A nor B", r"A \mathrm{NOR} B", r"A \text{nor} B", r"A \operatorname{nor} B"], &[0]);
 }
 
 #[test]
