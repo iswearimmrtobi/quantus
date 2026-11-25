@@ -165,7 +165,6 @@ export function MathField({
     // neither, so there MathLive's own keyboard comes up with the field instead of the system's.
     mathfield.mathVirtualKeyboardPolicy = window.matchMedia('(pointer: coarse)').matches ? 'auto' : 'manual';
     mathfield.smartMode = false;
-    mathfield.inlineShortcuts = { ...mathfield.inlineShortcuts, ...WORD_SHORTCUTS };
     if (placeholder) mathfield.placeholder = placeholder;
     mathfield.value = value;
 
@@ -271,6 +270,11 @@ export function MathField({
     mathfield.addEventListener('mode-change', onModeChange);
     mathfield.addEventListener('pointerdown', unmark);
 
+    // The shortcuts are an option of the mounted field: set earlier, MathLive throws.
+    const addWordShortcuts = () => {
+      mathfield.inlineShortcuts = { ...mathfield.inlineShortcuts, ...WORD_SHORTCUTS };
+    };
+    mathfield.addEventListener('mount', addWordShortcuts, { once: true });
     host.current?.appendChild(mathfield);
     field.current = mathfield;
     if (autoFocus) mathfield.focus();
@@ -281,6 +285,7 @@ export function MathField({
       mathfield.removeEventListener('keydown', onKeyDown, true);
       mathfield.removeEventListener('mode-change', onModeChange);
       mathfield.removeEventListener('pointerdown', unmark);
+      mathfield.removeEventListener('mount', addWordShortcuts);
       mathfield.remove();
       field.current = null;
     };
