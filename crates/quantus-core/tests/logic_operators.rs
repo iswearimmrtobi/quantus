@@ -1,7 +1,7 @@
 //! Every operator of the logic mode, one at a time: its truth table, its spellings, its
 //! precedence, how it is written back, and its gate (`docs/docs/guides/logic/operators.md`).
 
-use quantus_core::logic::expr::Expr;
+use quantus_core::logic::expr::{Expr, Notation};
 use quantus_core::logic::parse::parse_expr;
 
 fn names(names: &str) -> Vec<String> {
@@ -342,4 +342,56 @@ fn an_operator_without_its_operands_is_an_error() {
     }
     assert_eq!(error("A'"), "read as Not(Var(\"A\"))");
     assert_eq!(error("'A"), "An operand is missing before '''.");
+}
+
+#[test]
+fn each_operator_is_written_in_both_notations() {
+    // Typed, then in logic notation and in technical notation.
+    let written = [
+        (r"!A", r"\lnot A", r"\overline{A}"),
+        (r"!(A + B)", r"\overline{A \lor B}", r"\overline{A + B}"),
+        (r"A and B", r"A \land B", r"A \cdot B"),
+        (r"A or B", r"A \lor B", r"A + B"),
+        (r"A xor B", r"A \oplus B", r"A \oplus B"),
+        (r"A xnor B", r"A \leftrightarrow B", r"A \odot B"),
+        (r"A nand B", r"A \uparrow B", r"\overline{A \cdot B}"),
+        (r"A nor B", r"A \downarrow B", r"\overline{A + B}"),
+        (r"\top \lor \bot", r"1 \lor 0", "1 + 0"),
+    ];
+    for (typed, logic, technical) in written {
+        let expr = parse_expr(typed).unwrap();
+        assert_eq!(expr.latex(Notation::Logic), logic, "{typed}");
+        assert_eq!(expr.latex(Notation::Technical), technical, "{typed}");
+    }
+}
+
+#[test]
+fn each_operator_is_read_back_as_it_was_written() {
+    let typed = [
+        r"\lnot A", r"\overline{A \land B}", r"A \land B \land C", r"A \lor B \lor C", r"A \oplus B \oplus C",
+        r"A \odot B", r"A \odot B \odot C", r"A \odot (B \odot C)", r"A \uparrow B", r"(A \uparrow B) \uparrow C",
+        r"A \uparrow (B \uparrow C)", r"A \downarrow B", r"(A \downarrow B) \downarrow C", r"A \downarrow (B \downarrow C)",
+        r"A \lor B \downarrow C \uparrow D", r"(A \lor B) \land (C \oplus D)", r"\overline{A \oplus B} \lor C", "1", "0",
+    ];
+    for latex in typed {
+        let expr = parse_expr(latex).unwrap();
+        let vars: Vec<String> = ["A", "B", "C", "D"].map(String::from).to_vec();
+        let table = |e: &Expr| (0..16).map(|r| e.eval_row(&vars, r)).collect::<Vec<_>>();
+        // Logic notation keeps every operator, so it is read back as the same expression.
+        let logic = expr.latex(Notation::Logic);
+        assert_eq!(parse_expr(&logic).unwrap(), expr, "{latex} → {logic}");
+        // Technical notation writes NAND and NOR as overlines: the same function.
+        let technical = expr.latex(Notation::Technical);
+        assert_eq!(table(&parse_expr(&technical).unwrap()), table(&expr), "{latex} → {technical}");
+    }
+}
+
+#[test]
+fn an_xnor_of_three_is_written_as_the_negated_xor() {
+    let gate = Expr::Xnor(vec![Expr::var("A"), Expr::var("B"), Expr::var("C")]);
+    assert_eq!(gate.latex(Notation::Logic), r"\overline{A \oplus B \oplus C}");
+    assert_eq!(gate.latex(Notation::Technical), r"\overline{A \oplus B \oplus C}");
+    let abc = names("A B C");
+    let back = parse_expr(&gate.latex(Notation::Logic)).unwrap();
+    assert!((0..8).all(|r| back.eval_row(&abc, r) == gate.eval_row(&abc, r)));
 }
