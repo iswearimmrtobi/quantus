@@ -45,10 +45,6 @@ const DEBUG_TOUCH: bool = option_env!("QUANTUS_TOUCH_DEBUG").is_some();
 const DEBUG_APPS: bool = option_env!("QUANTUS_APPS_DEBUG").is_some();
 /// Prints what is on the screen after every change (`QUANTUS_SCREEN_DEBUG=1`): the mode, the
 /// Basis-N settings, the menu entry selected and the entry shown, to test the board unattended.
-/// Leaves the Duo's main screen touch unread (`QUANTUS_NO_MAIN_TOUCH=1`), to see whether it
-/// disturbs the input screen's on the shared bus.
-#[cfg(feature = "duo")]
-const NO_MAIN_TOUCH: bool = option_env!("QUANTUS_NO_MAIN_TOUCH").is_some();
 const DEBUG_SCREEN: bool = option_env!("QUANTUS_SCREEN_DEBUG").is_some();
 
 /// The line [`DEBUG_SCREEN`] prints.
@@ -250,7 +246,7 @@ fn main() {
             }
             // The main screen's touch: the panel's portrait point turned to the picture, then
             // to the layout's canvas.
-            if let Some(report) = main_touch.as_mut().filter(|_| !NO_MAIN_TOUCH).and_then(|main| main.poll(&mut main_bus)) {
+            if let Some(report) = main_touch.as_mut().and_then(|main| main.poll(&mut main_bus)) {
                 let profile = quantus_ui::profile::get();
                 let at = |raw| profile.logical(main_screen.landscape(raw));
                 let report = match report {
