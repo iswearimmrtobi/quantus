@@ -76,7 +76,11 @@ pub fn power_on(i2c: &mut I2cDriver) -> Result<(), EspError> {
     i2c.write(BACKLIGHT, &[POWER, 0x17], BLOCK)?;
     i2c.write(BACKLIGHT, &[BRIGHTNESS, 0x00], BLOCK)?;
     FreeRtos::delay_ms(100);
-    i2c.write(BACKLIGHT, &[BRIGHTNESS, 0xFF], BLOCK)
+    i2c.write(BACKLIGHT, &[BRIGHTNESS, 0xFF], BLOCK)?;
+    // Waveshare's driver, and SmartPanel, give the panel and its touch controller a second
+    // before the display starts; the controller takes its baseline while it boots.
+    FreeRtos::delay_ms(1000);
+    Ok(())
 }
 
 /// Sets the backlight to `level`, 1–10 as the settings give it.
