@@ -19,6 +19,9 @@ const STATUS: u16 = 0x814E;
 pub struct Goodix {
     address: u8,
     down: bool,
+    /// Diagnostics: failed reads since the last line, and the last status logged.
+    errors: u32,
+    status: u8,
 }
 
 impl Goodix {
@@ -28,7 +31,7 @@ impl Goodix {
             let mut id = [0u8; 4];
             if i2c.write_read(address, &PRODUCT_ID.to_be_bytes(), &mut id, BLOCK).is_ok() {
                 log::info!("main touch: Goodix {} at 0x{address:02X}", String::from_utf8_lossy(&id));
-                return Some(Goodix { address, down: false });
+                return Some(Goodix { address, down: false, errors: 0, status: 0 });
             }
         }
         log::warn!("main touch: no Goodix controller at 0x5D or 0x14");
@@ -38,7 +41,17 @@ impl Goodix {
     /// What the finger did since the last poll, if anything, on the panel's coordinates.
     pub fn poll(&mut self, i2c: &mut I2cDriver) -> Option<Touch> {
         let mut report = [0u8; 6];
-        i2c.write_read(self.address, &STATUS.to_be_bytes(), &mut report, BLOCK).ok()?;
+        if let Err(error) = i2c.write_read(self.address, &STATUS.to_be_bytes(), &mut report, BLOCK) {
+            self.errors += 1;
+            if self.errors.is_power_of_two() {
+                log::warn!("main touch: read failed {} times: {error}", self.errors);
+            }
+            return None;
+        }
+        if report[0] != self.status {
+            log::info!("main touch: status 0x{:02X} {:02X?}", report[0], &report[1..]);
+            self.status = report[0];
+        }
         if report[0] & 0x80 == 0 {
             // No new report yet: the finger is where it was.
             return None;
